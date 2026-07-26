@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LaunchDesk — Launch your AI receptionist agency</title>
+<meta name="description" content="The platform purpose-built for home-services AI receptionist agencies. Pick a niche template, connect a number, and your agent is answering calls in 15 minutes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAFBFD;
+  --ink:#0C1B33;
+  --ink-soft:#42506B;
+  --line:#DFE5EF;
+  --cobalt:#1F4FFF;
+  --cobalt-deep:#1638B8;
+  --booked:#16A34A;
+  --booked-soft:#E8F7EE;
+  --card:#FFFFFF;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --display:'Archivo',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+
+/* nav */
+header{position:sticky;top:0;z-index:50;background:rgba(250,251,253,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{font-family:var(--display);font-weight:800;font-stretch:110%;font-size:1.15rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:.5rem}
+.logo .dot{width:10px;height:10px;border-radius:50%;background:var(--booked);box-shadow:0 0 0 4px var(--booked-soft)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav a.ghost-sm{font-weight:600;font-size:.9rem;color:var(--ink-soft);text-decoration:none;padding:.5rem .9rem}
+.nav a.ghost-sm:hover{color:var(--ink)}
+.nav a.cta-sm{font-weight:600;font-size:.9rem;color:#fff;background:var(--cobalt);padding:.55rem 1.1rem;border-radius:8px;text-decoration:none;transition:background .15s}
+.nav a.cta-sm:hover{background:var(--cobalt-deep)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding:88px 0 96px}
+.eyebrow{font-family:var(--mono);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cobalt);margin-bottom:1.1rem}
+h1{font-family:var(--display);font-weight:850;font-stretch:105%;font-size:clamp(2.4rem,5vw,3.7rem);line-height:1.04;letter-spacing:-.025em}
+h1 .booked-word{color:var(--booked)}
+.hero p.sub{margin-top:1.25rem;font-size:1.15rem;color:var(--ink-soft);max-width:34rem}
+.hero-ctas{margin-top:2.1rem;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.btn{font-weight:600;font-size:1rem;padding:.85rem 1.6rem;border-radius:10px;text-decoration:none;display:inline-block;transition:transform .12s,background .15s}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--cobalt);color:#fff}
+.btn-primary:hover{background:var(--cobalt-deep)}
+.btn-ghost{color:var(--ink);border:1.5px solid var(--line);background:#fff}
+.btn-ghost:hover{border-color:var(--ink-soft)}
+
+/* live call card */
+.phone-card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px -20px rgba(12,27,51,.22);overflow:hidden}
+.phone-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.8rem;color:var(--ink-soft)}
+.ring-dot{width:9px;height:9px;border-radius:50%;background:var(--booked);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.35)}50%{box-shadow:0 0 0 7px rgba(22,163,74,0)}}
+.transcript{padding:20px 18px 8px;min-height:270px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:85%;padding:.6rem .9rem;border-radius:12px;font-size:.92rem;line-height:1.45;opacity:0;transform:translateY(8px);animation:rise .45s forwards}
+.msg .who{display:block;font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.25rem;color:var(--ink-soft)}
+.msg.caller{align-self:flex-start;background:#F0F3F9;border-bottom-left-radius:4px}
+.msg.agent{align-self:flex-end;background:#EAF0FF;border-bottom-right-radius:4px}
+.msg.agent .who{color:var(--cobalt)}
+@keyframes rise{to{opacity:1;transform:translateY(0)}}
+.msg:nth-child(1){animation-delay:.5s}
+.msg:nth-child(2){animation-delay:1.7s}
+.msg:nth-child(3){animation-delay:3.1s}
+.msg:nth-child(4){animation-delay:4.6s}
+.booked-chip{margin:6px 18px 18px;display:flex;align-items:center;gap:10px;background:var(--booked-soft);border:1px solid #BEE7CC;color:#116233;border-radius:10px;padding:.7rem .95rem;font-weight:600;font-size:.92rem;opacity:0;transform:translateY(8px);animation:rise .45s forwards;animation-delay:6s}
+.booked-chip svg{flex:none}
+@media(prefers-reduced-motion:reduce){.msg,.booked-chip{animation:none;opacity:1;transform:none}.ring-dot{animation:none}}
+
+/* sections */
+section{padding:84px 0;border-top:1px solid var(--line)}
+.kicker{font-family:var(--mono);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cobalt);margin-bottom:.9rem}
+h2{font-family:var(--display);font-weight:800;font-stretch:105%;font-size:clamp(1.7rem,3.2vw,2.4rem);letter-spacing:-.02em;line-height:1.12;max-width:36rem}
+.section-sub{margin-top:.9rem;color:var(--ink-soft);max-width:36rem}
+
+/* steps */
+.steps{margin-top:3rem;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 24px}
+.step .n{font-family:var(--mono);font-size:.78rem;color:var(--cobalt);letter-spacing:.06em}
+.step h3{font-family:var(--display);font-weight:700;font-size:1.12rem;margin:.6rem 0 .45rem;letter-spacing:-.01em}
+.step p{font-size:.95rem;color:var(--ink-soft)}
+
+/* features grid */
+.features{margin-top:3rem;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px 24px}
+.feat-icon{font-size:1.5rem;margin-bottom:.9rem}
+.feat h3{font-family:var(--display);font-weight:700;font-size:1.05rem;margin-bottom:.4rem;letter-spacing:-.01em}
+.feat p{font-size:.93rem;color:var(--ink-soft)}
+
+/* compare */
+.compare{margin-top:3rem;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.col{border-radius:14px;padding:28px 26px;border:1px solid var(--line);background:var(--card)}
+.col.us{border:1.5px solid var(--cobalt);box-shadow:0 14px 40px -22px rgba(31,79,255,.35)}
+.col h3{font-family:var(--display);font-weight:700;font-size:1.05rem;margin-bottom:1rem}
+.col ul{list-style:none;display:flex;flex-direction:column;gap:.7rem}
+.col li{display:flex;gap:.6rem;font-size:.95rem;color:var(--ink-soft)}
+.col.us li{color:var(--ink)}
+.col li svg{flex:none;margin-top:4px}
+
+/* pricing */
+.pricing-grid{margin-top:3rem;display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px 28px;display:flex;flex-direction:column}
+.plan.featured{border:1.5px solid var(--cobalt);box-shadow:0 14px 40px -22px rgba(31,79,255,.35);position:relative}
+.plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--cobalt);color:#fff;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.3rem .8rem;border-radius:20px;white-space:nowrap}
+.plan-name{font-family:var(--display);font-weight:700;font-size:1.1rem;letter-spacing:-.01em}
+.plan-price{font-family:var(--display);font-weight:850;font-size:2.6rem;letter-spacing:-.03em;margin:.6rem 0 .1rem}
+.plan-per{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);margin-bottom:1.4rem}
+.plan ul{list-style:none;display:flex;flex-direction:column;gap:.65rem;flex:1}
+.plan li{display:flex;gap:.6rem;font-size:.93rem;color:var(--ink-soft)}
+.plan.featured li{color:var(--ink)}
+.plan li svg{flex:none;margin-top:3px}
+.plan .btn{margin-top:1.8rem;text-align:center;display:block}
+.plan .btn-outline{border:1.5px solid var(--line);color:var(--ink);background:#fff;padding:.75rem 1.4rem;border-radius:10px;font-weight:600;text-decoration:none;text-align:center;display:block;margin-top:1.8rem;transition:border-color .15s}
+.plan .btn-outline:hover{border-color:var(--ink-soft)}
+
+/* faq */
+.faq{margin-top:2.6rem;max-width:44rem}
+details{border-bottom:1px solid var(--line);padding:1.1rem 0}
+summary{cursor:pointer;font-weight:600;font-size:1.02rem;list-style:none;display:flex;justify-content:space-between;gap:1rem}
+summary::after{content:"+";font-family:var(--mono);color:var(--cobalt);font-size:1.1rem}
+details[open] summary::after{content:"–"}
+details p{margin-top:.7rem;color:var(--ink-soft);font-size:.96rem;max-width:40rem}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:34px 0}
+footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+footer p{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft)}
+
+@media(max-width:880px){
+  .hero{grid-template-columns:1fr;padding:56px 0 64px;gap:40px}
+  .steps,.features,.pricing-grid{grid-template-columns:1fr}
+  .compare{grid-template-columns:1fr}
+  section{padding:64px 0}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="logo" href="#top"><span class="dot"></span>LaunchDesk</a>
+    <div class="nav-right">
+      <a class="ghost-sm" href="#how">How it works</a>
+      <a class="ghost-sm" href="#pricing">Pricing</a>
+      <a class="cta-sm" href="#pricing">Get started</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <div class="wrap hero">
+    <div>
+      <p class="eyebrow">AI receptionist platform for agencies</p>
+      <h1>Your client's phone rings. Your agent answers. The job gets <span class="booked-word">booked.</span></h1>
+      <p class="sub">LaunchDesk is the platform built for home-services AI receptionist agencies. Pick a plumbing, HVAC, or electrical template, connect a number, and your agent is live in 15 minutes — no code, no duct tape.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="#pricing">Start for free</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+    </div>
+
+    <div class="phone-card" aria-label="Example call handled by an AI receptionist">
+      <div class="phone-head"><span class="ring-dot" aria-hidden="true"></span>Incoming call — Summit Plumbing Co. · 2:47 PM</div>
+      <div class="transcript">
+        <div class="msg caller"><span class="who">Caller</span>Hey, my water heater's leaking all over the garage. Can someone come out today?</div>
+        <div class="msg agent"><span class="who">AI Receptionist</span>Sorry to hear that — we can help. I've got a technician available today at 4:30 PM or tomorrow at 9:00 AM. Which works better?</div>
+        <div class="msg caller"><span class="who">Caller</span>Today at 4:30 works.</div>
+        <div class="msg agent"><span class="who">AI Receptionist</span>You're booked for 4:30 PM today. You'll get a text confirmation shortly. Anything else I can help with?</div>
+      </div>
+      <div class="booked-chip">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#16A34A"/><path d="M8 12.5l2.6 2.6L16 9.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Appointment booked — today, 4:30 PM · synced to calendar
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap">
+      <p class="kicker">How it works</p>
+      <h2>From signup to answering live calls in 15 minutes.</h2>
+      <p class="section-sub">Three steps. No engineering degree required.</p>
+      <div class="steps">
+        <div class="step">
+          <span class="n">Step 1</span>
+          <h3>Pick a niche template</h3>
+          <p>Plumbing, HVAC, or electrical agents pre-loaded with real trade vocabulary, emergency triage logic, and pricing question handling — not a blank prompt box.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 2</span>
+          <h3>Connect a number &amp; calendar</h3>
+          <p>Attach a phone number and link the client's booking calendar. Availability syncs automatically — the agent never double-books or offers dead slots.</p>
+        </div>
+        <div class="step">
+          <span class="n">Step 3</span>
+          <h3>Go live and watch the log</h3>
+          <p>Flip the agent on. Every call shows up in your dashboard with a transcript, outcome, and booking status — proof you can send straight to your client.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <p class="kicker">Everything included</p>
+      <h2>Every tool you need to run a home-services AI agency.</h2>
+      <div class="features">
+        <div class="feat">
+          <div class="feat-icon">🔍</div>
+          <h3>Lead Finder</h3>
+          <p>Scrape plumbers, HVAC, and electrical businesses by city. Every lead AI-scored and ranked so you know who to call first.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">📞</div>
+          <h3>Cold Call Station</h3>
+          <p>Click-to-dial with your script on screen, outcome tracking, and daily goal counter. Everything you need to hit 20 dials a day.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🗂️</div>
+          <h3>CRM Pipeline</h3>
+          <p>New → Contacted → Meeting → Proposal → Won. Track every lead, log every call, and never lose a prospect in a spreadsheet again.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">🤖</div>
+          <h3>AI Agent Builder</h3>
+          <p>Build and deploy AI receptionists that answer calls 24/7, book appointments, and handle FAQs — for any home-services client.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">📄</div>
+          <h3>Proposals &amp; Invoicing</h3>
+          <p>Send tracked proposals and collect payments via Stripe or PayPal. Know exactly who opened your proposal and when.</p>
+        </div>
+        <div class="feat">
+          <div class="feat-icon">📚</div>
+          <h3>Agency Playbook</h3>
+          <p>Cold call scripts, objection handling, closing frameworks, onboarding SOPs — everything we use to run a real agency, inside the platform.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section id="why">
+    <div class="wrap">
+      <p class="kicker">Why LaunchDesk</p>
+      <h2>Generic platforms make you build everything from scratch. We already built it.</h2>
+      <div class="compare">
+        <div class="col">
+          <h3>Generic agent platforms</h3>
+          <ul>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="#9AA6BC" stroke-width="2.4" stroke-linecap="round"/></svg>Blank canvas — you write every prompt yourself</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="#9AA6BC" stroke-width="2.4" stroke-linecap="round"/></svg>Built for developers, priced for funded startups</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="#9AA6BC" stroke-width="2.4" stroke-linecap="round"/></svg>Calendar sync is your problem to wire and your demo to break</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="#9AA6BC" stroke-width="2.4" stroke-linecap="round"/></svg>No CRM, no lead finder, no playbook — just the tool</li>
+          </ul>
+        </div>
+        <div class="col us">
+          <h3>LaunchDesk</h3>
+          <ul>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Home-services templates ready on day one</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Built for agency operators — no code required</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Native calendar sync — demos that don't fail on you</li>
+            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Lead finder, CRM, cold call station, playbook — all in one</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="wrap">
+      <p class="kicker">Pricing</p>
+      <h2>Simple pricing. Cancel any time.</h2>
+      <p class="section-sub">Start free, upgrade when you're ready to scale.</p>
+      <div class="pricing-grid">
+        <div class="plan">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">$0</div>
+          <div class="plan-per">free forever</div>
+          <ul>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>1 AI agent</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>100 lead scrapes/mo</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>CRM pipeline</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Cold call station</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Core playbook access</li>
+          </ul>
+          <a class="btn-outline" href="SIGNUP_LINK_HERE">Get started free</a>
+        </div>
+        <div class="plan featured">
+          <span class="plan-badge">Most popular</span>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">$49</div>
+          <div class="plan-per">per month</div>
+          <ul>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited AI agents</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>1,000 lead scrapes/mo</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>All niche templates</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Full CRM + proposals + invoicing</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Full agency playbook</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#1F4FFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Workflow automations</li>
+          </ul>
+          <a class="btn btn-primary" href="SIGNUP_LINK_HERE">Get started</a>
+        </div>
+        <div class="plan">
+          <div class="plan-name">Agency</div>
+          <div class="plan-price">$99</div>
+          <div class="plan-per">per month</div>
+          <ul>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Everything in Pro</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>5,000 lead scrapes/mo</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>White-label agents</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Priority support</li>
+            <li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Team seats (up to 5)</li>
+          </ul>
+          <a class="btn-outline" href="SIGNUP_LINK_HERE">Get started</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="wrap">
+      <p class="kicker">Questions</p>
+      <h2>Straight answers.</h2>
+      <div class="faq">
+        <details>
+          <summary>Do I need to know how to code?</summary>
+          <p>No. If you can fill out a form and connect a calendar, you can put an agent live. LaunchDesk handles the voice infrastructure, telephony, and calendar sync under the hood.</p>
+        </details>
+        <details>
+          <summary>What niches does LaunchDesk support?</summary>
+          <p>Right now: plumbing, HVAC, and electrical. These are the highest-intent home-services verticals — phones ring constantly and missed calls cost real money. More templates coming.</p>
+        </details>
+        <details>
+          <summary>How does the AI agent actually book appointments?</summary>
+          <p>The agent connects to your client's calendar, checks real-time availability, and books directly into open slots during the call — no follow-up needed, no double-booking possible.</p>
+        </details>
+        <details>
+          <summary>Can I white-label the agents for my clients?</summary>
+          <p>Yes, on the Agency plan. Your clients hear their own business name, not LaunchDesk.</p>
+        </details>
+        <details>
+          <summary>What phone infrastructure does LaunchDesk use?</summary>
+          <p>LaunchDesk is built on enterprise-grade voice AI infrastructure. You get a dedicated number per agent with low latency, natural-sounding voices, and full call logging.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 LaunchDesk</p>
+    <p>Built by agency operators, for agency operators.</p>
+  </div>
+</footer>
+
+</body>
+</html>
