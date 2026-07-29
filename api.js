@@ -135,6 +135,16 @@
     },
   };
 
+  const proposals = {
+    async create({ lead_id }) {
+      return request('POST', '/api/proposals', { lead_id });
+    },
+
+    async getAll() {
+      return request('GET', '/api/proposals');
+    },
+  };
+
   global.API = {
     baseUrl: API_BASE_URL,
     getToken,
@@ -144,5 +154,6 @@
     leads,
     agents,
     stripe,
+    proposals,
   };
 })(window);
