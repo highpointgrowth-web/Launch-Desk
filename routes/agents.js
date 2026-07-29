@@ -83,6 +83,20 @@ function createRetellAgent(agentName, voiceId, llmId) {
     voice_id: voiceId,
     response_engine: { type: 'retell-llm', llm_id: llmId },
     webhook_url: `${process.env.APP_URL}/api/webhooks/retell`,
+    post_call_analysis_data: [
+      {
+        type: 'boolean',
+        name: 'booked',
+        description: 'Whether the caller booked an appointment during the call',
+        required: true,
+      },
+      {
+        type: 'string',
+        name: 'summary',
+        description: 'A brief summary of what happened during the call',
+        required: false,
+      },
+    ],
   });
 }
 
