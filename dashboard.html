@@ -679,8 +679,12 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Connect your client's Cal.com calendar so the agent can book appointments in real time during calls.</p>
               <div style="display:flex;flex-direction:column;gap:12px">
                 <div class="f-field">
-                  <label class="f-label">Cal.com Link</label>
-                  <input class="f-input" id="cal-link" placeholder="https://cal.com/metroplumbing/service">
+                  <label class="f-label">Cal.com API Key</label>
+                  <input class="f-input" id="cal-api-key" placeholder="cal_live_…" type="password">
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Event Type ID</label>
+                  <input class="f-input" id="cal-event-type-id" placeholder="e.g. 123456">
                 </div>
                 <div style="background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:10px;padding:14px;font-size:.8rem;color:var(--indigo)">
                   <b style="display:block;margin-bottom:4px">📅 How this works</b>
@@ -1394,7 +1398,8 @@ async function deployAgent(){
   const agentName = document.getElementById('voice-agent-name').value.trim();
   const voice = document.getElementById('voice-select').value;
   const greeting = document.getElementById('voice-greeting').value.trim();
-  const calLink = document.getElementById('cal-link').value.trim();
+  const calApiKey = document.getElementById('cal-api-key').value.trim();
+  const calEventTypeId = document.getElementById('cal-event-type-id').value.trim();
 
   if(!agentName){
     alert('Agent name is required.');
@@ -1413,7 +1418,8 @@ async function deployAgent(){
       agent_name: agentName,
       voice,
       greeting,
-      cal_event_type_id: calLink || undefined,
+      cal_api_key: calApiKey || undefined,
+      cal_event_type_id: calEventTypeId || undefined,
     });
 
     btn.textContent = '✅ Agent Live!';
