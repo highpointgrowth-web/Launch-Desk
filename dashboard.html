@@ -492,7 +492,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div><div class="page-title">AI Agents</div><div class="page-sub">Build and deploy AI receptionists for your clients</div></div>
           <button class="btn btn-indigo" onclick="showBuilder()">+ Build Agent</button>
         </div>
-        <div class="card">
+        <div class="card" id="agents-empty-state">
           <div class="empty">
             <div class="empty-icon">🤖</div>
             <h3>No agents deployed yet</h3>
@@ -500,6 +500,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
             <button class="btn btn-indigo" onclick="showBuilder()">Build Your First Agent</button>
           </div>
         </div>
+        <div class="agent-grid" id="agents-list-cards" style="display:none"></div>
       </div>
 
       <!-- Agent builder -->
@@ -1256,6 +1257,7 @@ function showBuilder(){
   document.getElementById('agents-list').style.display='none';
   document.getElementById('agents-builder').style.display='block';
   goStep(1);
+  loadClientList();
 }
 function hideBuilder(){
   document.getElementById('agents-list').style.display='block';
@@ -1273,10 +1275,53 @@ function goStep(n){
     }
   }
 }
-function selectClient(el, name, location, phone, niche){
+let cachedLeads = [];
+
+function renderClientList(leads){
+  cachedLeads = leads || [];
+  const container = document.getElementById('client-list');
+  if(!cachedLeads.length){
+    container.innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--ink3)">
+        <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">👤</div>
+        <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No clients in CRM yet</div>
+        <div style="font-size:.75rem">Add leads from Lead Finder first, then build agents for them here.</div>
+      </div>
+    `;
+    return;
+  }
+  container.innerHTML = cachedLeads.map((lead) => {
+    const location = [lead.city, lead.state].filter(Boolean).join(', ');
+    return `
+      <div class="client-row" data-lead-id="${lead.id}" onclick="selectClient(this, '${lead.id}')">
+        <div class="client-avatar">🏢</div>
+        <div class="client-info">
+          <div class="client-name">${escapeHtml(lead.business_name || 'Unknown')}</div>
+          <div class="client-meta">${escapeHtml(location || lead.category || '—')}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadClientList(){
+  try {
+    const { leads } = await API.leads.getAll();
+    renderClientList(leads);
+  } catch (err) {
+    console.error('Failed to load leads for client list', err);
+  }
+}
+
+function selectClient(el, leadId){
+  const lead = cachedLeads.find(l => l.id === leadId);
+  if(!lead) return;
   document.querySelectorAll('.client-row').forEach(r=>r.classList.remove('selected'));
   el.classList.add('selected');
-  selectedClient = {name, location, phone, niche};
+  const name = lead.business_name;
+  const location = [lead.city, lead.state].filter(Boolean).join(', ');
+  const niche = lead.category || '';
+  selectedClient = { id: lead.id, name, location, phone: lead.phone, niche };
   const nextBtn = document.getElementById('step1-next');
   nextBtn.disabled = false;
   nextBtn.style.opacity = '1';
@@ -1285,7 +1330,7 @@ function selectClient(el, name, location, phone, niche){
   const bizName = document.getElementById('biz-name');
   if(bizName) bizName.value = name;
   // Pre-select niche
-  selectNiche(niche.toLowerCase());
+  if(niche) selectNiche(niche.toLowerCase());
   // Pre-fill review
   const revClient = document.getElementById('rev-client');
   if(revClient) revClient.textContent = name;
@@ -1381,6 +1426,7 @@ function enterApp(){
   document.getElementById('auth-password').value = '';
   setAuthError('');
   loadUserStats();
+  loadAgentsList();
 }
 
 async function handleLogin(){
@@ -1496,6 +1542,56 @@ async function handleLeadSearch(){
     btn.disabled = false;
     btn.innerHTML = original;
   }
+}
+
+// ── AGENTS LIST ──
+let cachedAgents = [];
+
+function renderAgentsList(agents){
+  cachedAgents = agents || [];
+  const emptyState = document.getElementById('agents-empty-state');
+  const grid = document.getElementById('agents-list-cards');
+
+  if(!cachedAgents.length){
+    if(emptyState) emptyState.style.display = 'block';
+    if(grid){ grid.style.display = 'none'; grid.innerHTML = ''; }
+    return;
+  }
+
+  if(emptyState) emptyState.style.display = 'none';
+  if(grid){
+    grid.style.display = 'grid';
+    grid.innerHTML = cachedAgents.map((agent) => {
+      const statusClass = agent.status === 'active' ? 'b-green' : agent.status === 'building' ? 'b-amber' : 'b-gray';
+      return `
+        <div class="card card-pad">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+            <div>
+              <div style="font-weight:700;font-size:.92rem">${escapeHtml(agent.agent_name || 'Unnamed Agent')}</div>
+              <div style="font-size:.75rem;color:var(--ink3);margin-top:2px">${escapeHtml(agent.business_name || 'Unknown business')} · ${escapeHtml(agent.niche || '—')}</div>
+            </div>
+            <span class="badge ${statusClass} b-dot">${escapeHtml(agent.status || 'building')}</span>
+          </div>
+          <button class="btn btn-ghost" style="width:100%" onclick="manageAgentById('${agent.id}')">Manage</button>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+async function loadAgentsList(){
+  try {
+    const { agents } = await API.agents.getAll();
+    renderAgentsList(agents);
+  } catch (err) {
+    console.error('Failed to load agents', err);
+  }
+}
+
+function manageAgentById(agentId){
+  const agent = cachedAgents.find(a => a.id === agentId);
+  if(!agent) return;
+  showDetail(agent);
 }
 
 // ── PROPOSALS ──
