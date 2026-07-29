@@ -327,7 +327,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
     <div class="signal-left">
       <div class="signal-item live"><span class="pulse"></span><b>0 agents live</b></div>
       <div class="signal-item">Calls today: <b>0</b></div>
-      <div class="signal-item">Pipeline: <b>0 leads</b></div>
+      <div class="signal-item">Pipeline: <b id="signal-pipeline">0 leads</b></div>
       <div class="signal-item">MRR: <b>$0</b></div>
       <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
       <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
@@ -425,10 +425,12 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div class="card-title">Pipeline</div>
               <span class="card-action" onclick="nav('crm',null)">View all →</span>
             </div>
-            <div style="text-align:center;padding:32px;color:var(--ink3)">
-              <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
-              <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
-              <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+            <div id="dashboard-pipeline-card">
+              <div style="text-align:center;padding:32px;color:var(--ink3)">
+                <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
+                <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+              </div>
             </div>
           </div>
 
@@ -1012,27 +1014,22 @@ Look more professional to customers</textarea></div>
     <!-- CRM -->
     <div class="page" id="page-crm">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
-        <div><div class="page-title">CRM</div><div class="page-sub">0 leads · add your first from Lead Finder</div></div>
+        <div><div class="page-title">CRM</div><div class="page-sub" id="crm-page-sub">0 leads · add your first from Lead Finder</div></div>
         <div class="btn-row"><button class="btn btn-ghost">Import CSV</button><button class="btn btn-indigo">+ Add Lead</button></div>
       </div>
       <div class="stat-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
-        <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">To Contact</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">Contacted</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell active"><div class="stat-label">Meeting</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" id="crm-stat-new" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">To Contact</div><div class="stat-val" id="crm-stat-to_contact" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Contacted</div><div class="stat-val" id="crm-stat-contacted" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell active"><div class="stat-label">Meeting</div><div class="stat-val" id="crm-stat-meeting" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" id="crm-stat-proposal" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" id="crm-stat-won" style="font-size:1.4rem">0</div></div>
       </div>
       <div class="card card-pad">
         <table class="data-table">
-          <thead><tr><th>Business</th><th>Phone</th><th>Location</th><th>Score</th><th>Stage</th><th>Sentiment</th></tr></thead>
-          <tbody>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Metro Plumbing Co.</span></td><td>(512) 555-0192</td><td>Austin, TX</td><td><span class="score">85</span></td><td><span class="badge b-indigo b-dot">Meeting</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Sunrise HVAC</span></td><td>(214) 555-0147</td><td>Dallas, TX</td><td><span class="score">95</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🏠</span>Apex Electrical</span></td><td>(303) 555-0183</td><td>Denver, CO</td><td><span class="score">96</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Riverstone Plumbing</span></td><td>(469) 555-0211</td><td>Plano, TX</td><td><span class="score">87</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Peak Home Services</span></td><td>(972) 555-0164</td><td>Fort Worth, TX</td><td><span class="score">91</span></td><td><span class="badge b-gray b-dot">New</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Crestview Plumbing</span></td><td>(817) 555-0229</td><td>Arlington, TX</td><td><span class="score">75</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
+          <thead><tr><th>Business</th><th>Phone</th><th>Location</th><th>Score</th><th>Stage</th></tr></thead>
+          <tbody id="crm-leads-body">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1462,6 +1459,7 @@ function enterApp(){
   setAuthError('');
   loadUserStats();
   loadAgentsList();
+  loadCRM();
 }
 
 async function handleLogin(){
@@ -1541,16 +1539,22 @@ function renderLeadResults(leads){
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No leads found. Try a different search.</td></tr>';
     return;
   }
-  tbody.innerHTML = leads.map((lead) => `
+  tbody.innerHTML = leads.map((lead) => {
+    const stage = lead.pipeline_stage || 'new';
+    const actionCell = stage !== 'new'
+      ? `<span class="badge ${stageBadgeClass(stage)} b-dot">${escapeHtml(STAGE_LABELS[stage] || stage)}</span>`
+      : `<button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm('${lead.id}', this)">+ Add to CRM</button>`;
+    return `
     <tr>
       <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
       <td>${escapeHtml(lead.phone || '—')}</td>
       <td>${lead.rating ? `${lead.rating}⭐ · ${lead.review_count || 0} reviews` : '—'}</td>
       <td><span class="score">${lead.ai_score ?? '—'}</span></td>
       <td><span class="badge b-indigo">${escapeHtml((lead.recommended_agents && lead.recommended_agents[0]) || '—')}</span></td>
-      <td><span class="badge b-gray b-dot">${escapeHtml(lead.pipeline_stage || 'new')}</span></td>
+      <td>${actionCell}</td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function handleLeadSearch(){
@@ -1576,6 +1580,140 @@ async function handleLeadSearch(){
   } finally {
     btn.disabled = false;
     btn.innerHTML = original;
+  }
+}
+
+// ── CRM ──
+const PIPELINE_STAGES = ['new', 'to_contact', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+const STAGE_LABELS = { new: 'New', to_contact: 'To Contact', contacted: 'Contacted', meeting: 'Meeting', proposal: 'Proposal', won: 'Won', lost: 'Lost' };
+
+function stageBadgeClass(stage){
+  if(stage === 'won') return 'b-green';
+  if(stage === 'lost') return 'b-red';
+  if(stage === 'meeting' || stage === 'proposal') return 'b-indigo';
+  if(stage === 'contacted') return 'b-amber';
+  return 'b-gray';
+}
+
+let cachedCRMLeads = [];
+
+function computeStageCounts(leads){
+  const counts = { new: 0, to_contact: 0, contacted: 0, meeting: 0, proposal: 0, won: 0, lost: 0 };
+  (leads || []).forEach((lead) => {
+    const stage = lead.pipeline_stage || 'new';
+    if(counts[stage] !== undefined) counts[stage] += 1;
+  });
+  return counts;
+}
+
+function renderPipelineStats(leads){
+  const counts = computeStageCounts(leads);
+  const total = leads.length;
+
+  const pipelineSignal = document.getElementById('signal-pipeline');
+  if(pipelineSignal) pipelineSignal.textContent = `${total} lead${total === 1 ? '' : 's'}`;
+
+  ['new','to_contact','contacted','meeting','proposal','won'].forEach((stage) => {
+    const el = document.getElementById(`crm-stat-${stage}`);
+    if(el) el.textContent = counts[stage];
+  });
+
+  const dashCard = document.getElementById('dashboard-pipeline-card');
+  if(dashCard){
+    if(!total){
+      dashCard.innerHTML = `
+        <div style="text-align:center;padding:32px;color:var(--ink3)">
+          <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
+          <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+        </div>
+      `;
+    } else {
+      dashCard.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${PIPELINE_STAGES.filter((s) => s !== 'lost').map((stage) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem">
+              <span style="color:var(--ink2)">${STAGE_LABELS[stage]}</span>
+              <span class="badge ${stageBadgeClass(stage)} b-dot">${counts[stage]}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+}
+
+function renderStageSelect(lead){
+  const stage = lead.pipeline_stage || 'new';
+  return `<select class="badge ${stageBadgeClass(stage)} b-dot" style="border:none;cursor:pointer;font-family:inherit;font-size:.67rem" data-lead-id="${lead.id}" onchange="handleStageChange(this)">
+    ${PIPELINE_STAGES.map((s) => `<option value="${s}" ${s === stage ? 'selected' : ''}>${STAGE_LABELS[s]}</option>`).join('')}
+  </select>`;
+}
+
+async function handleStageChange(selectEl){
+  const leadId = selectEl.dataset.leadId;
+  const newStage = selectEl.value;
+  selectEl.disabled = true;
+  try {
+    await API.leads.update(leadId, { pipeline_stage: newStage });
+    const lead = cachedCRMLeads.find((l) => l.id === leadId);
+    if(lead) lead.pipeline_stage = newStage;
+    selectEl.className = `badge ${stageBadgeClass(newStage)} b-dot`;
+    renderPipelineStats(cachedCRMLeads);
+  } catch (err) {
+    alert('Failed to update stage: ' + err.message);
+  } finally {
+    selectEl.disabled = false;
+  }
+}
+
+function renderCRMTable(leads){
+  cachedCRMLeads = leads || [];
+  const total = cachedCRMLeads.length;
+
+  const pageSub = document.getElementById('crm-page-sub');
+  if(pageSub) pageSub.textContent = total ? `${total} lead${total === 1 ? '' : 's'}` : '0 leads · add your first from Lead Finder';
+
+  const tbody = document.getElementById('crm-leads-body');
+  if(tbody){
+    if(!total){
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>';
+    } else {
+      tbody.innerHTML = cachedCRMLeads.map((lead) => `
+        <tr>
+          <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
+          <td>${escapeHtml(lead.phone || '—')}</td>
+          <td>${escapeHtml([lead.city, lead.state].filter(Boolean).join(', ') || '—')}</td>
+          <td><span class="score">${lead.ai_score ?? '—'}</span></td>
+          <td>${renderStageSelect(lead)}</td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  renderPipelineStats(cachedCRMLeads);
+}
+
+async function loadCRM(){
+  try {
+    const { leads } = await API.leads.getAll();
+    renderCRMTable(leads);
+  } catch (err) {
+    console.error('Failed to load CRM leads', err);
+  }
+}
+
+async function handleAddToCrm(leadId, btn){
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+  try {
+    await API.leads.update(leadId, { pipeline_stage: 'to_contact' });
+    btn.outerHTML = `<span class="badge ${stageBadgeClass('to_contact')} b-dot">${STAGE_LABELS.to_contact}</span>`;
+    loadCRM();
+  } catch (err) {
+    alert('Failed to add lead to CRM: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = '+ Add to CRM';
   }
 }
 
