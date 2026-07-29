@@ -302,7 +302,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
     <div class="signal-left">
       <div class="signal-item live"><span class="pulse"></span><b>0 agents live</b></div>
       <div class="signal-item">Calls today: <b>0</b></div>
-      <div class="signal-item">Pipeline: <b>32 leads</b></div>
+      <div class="signal-item">Pipeline: <b>0 leads</b></div>
       <div class="signal-item">MRR: <b>$0</b></div>
     </div>
     <div class="signal-right">
@@ -344,7 +344,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         </div>
         <div class="stat-cell">
           <div class="stat-label">Meetings</div>
-          <div class="stat-val">1</div>
+          <div class="stat-val">0</div>
           <div class="stat-note">in pipeline</div>
         </div>
         <div class="stat-cell">
@@ -398,16 +398,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div class="card-title">Pipeline</div>
               <span class="card-action" onclick="nav('crm',null)">View all →</span>
             </div>
-            <table class="data-table">
-              <thead><tr><th>Business</th><th>Phone</th><th>Score</th><th>Status</th></tr></thead>
-              <tbody>
-                <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Metro Plumbing Co.</span></td><td>(512) 555-0192</td><td><span class="score">85</span></td><td><span class="badge b-indigo b-dot">Meeting</span></td></tr>
-                <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Sunrise HVAC</span></td><td>(214) 555-0147</td><td><span class="score">95</span></td><td><span class="badge b-amber b-dot">Contacted</span></td></tr>
-                <tr><td><span class="td-primary"><span class="td-icon">🏠</span>Apex Electrical</span></td><td>(303) 555-0183</td><td><span class="score">96</span></td><td><span class="badge b-amber b-dot">Contacted</span></td></tr>
-                <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Riverstone Plumbing</span></td><td>(469) 555-0211</td><td><span class="score">87</span></td><td><span class="badge b-amber b-dot">Contacted</span></td></tr>
-                <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Peak Home Services</span></td><td>(972) 555-0164</td><td><span class="score">91</span></td><td><span class="badge b-gray b-dot">New</span></td></tr>
-              </tbody>
-            </table>
+            <div style="text-align:center;padding:32px;color:var(--ink3)">
+              <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
+              <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
+              <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+            </div>
           </div>
 
         </div>
@@ -427,13 +422,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div class="card card-pad">
             <div class="card-header"><div class="card-title">MRR Leaderboard</div></div>
             <div class="lb-stack">
-              <div class="lb-row"><span class="lb-rank g">1</span><span class="lb-name">agency_one</span><span class="lb-mrr">$43,971</span></div>
-              <div class="lb-row"><span class="lb-rank s">2</span><span class="lb-name">drewm</span><span class="lb-mrr">$35,510</span></div>
-              <div class="lb-row"><span class="lb-rank b">3</span><span class="lb-name">launch99</span><span class="lb-mrr">$32,243</span></div>
-              <div class="lb-row"><span class="lb-rank">4</span><span class="lb-name">sierrak</span><span class="lb-mrr">$21,773</span></div>
-              <div class="lb-row"><span class="lb-rank">5</span><span class="lb-name">trey_w</span><span class="lb-mrr">$19,335</span></div>
-              <div style="border-top:1px solid var(--border);margin:6px -10px"></div>
-              <div class="lb-row you"><span class="lb-rank">—</span><span class="lb-name">You</span><span class="lb-mrr">$0</span></div>
+              <div style="text-align:center;padding:20px;color:var(--ink3);font-size:.78rem">Leaderboard coming soon — start closing clients to appear here.</div>
             </div>
           </div>
         </div>
@@ -532,45 +521,10 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <input class="f-input" placeholder="🔍  Search clients…" oninput="filterClients(this.value)">
             </div>
             <div class="client-list" id="client-list">
-              <div class="client-row" onclick="selectClient(this,'Metro Plumbing Co.','Austin, TX','(512) 555-0192','Plumbing')">
-                <div class="client-avatar">🔧</div>
-                <div class="client-info">
-                  <div class="client-name">Metro Plumbing Co.</div>
-                  <div class="client-meta">Austin, TX · (512) 555-0192</div>
-                </div>
-                <span class="badge b-gray">Plumbing</span>
-              </div>
-              <div class="client-row" onclick="selectClient(this,'Sunrise HVAC','Dallas, TX','(214) 555-0147','HVAC')">
-                <div class="client-avatar">❄️</div>
-                <div class="client-info">
-                  <div class="client-name">Sunrise HVAC</div>
-                  <div class="client-meta">Dallas, TX · (214) 555-0147</div>
-                </div>
-                <span class="badge b-gray">HVAC</span>
-              </div>
-              <div class="client-row" onclick="selectClient(this,'Apex Electrical','Denver, CO','(303) 555-0183','Electrical')">
-                <div class="client-avatar">⚡</div>
-                <div class="client-info">
-                  <div class="client-name">Apex Electrical</div>
-                  <div class="client-meta">Denver, CO · (303) 555-0183</div>
-                </div>
-                <span class="badge b-gray">Electrical</span>
-              </div>
-              <div class="client-row" onclick="selectClient(this,'Riverstone Plumbing','Plano, TX','(469) 555-0211','Plumbing')">
-                <div class="client-avatar">🔧</div>
-                <div class="client-info">
-                  <div class="client-name">Riverstone Plumbing</div>
-                  <div class="client-meta">Plano, TX · (469) 555-0211</div>
-                </div>
-                <span class="badge b-gray">Plumbing</span>
-              </div>
-              <div class="client-row" onclick="selectClient(this,'Peak Home Services','Fort Worth, TX','(972) 555-0164','Plumbing')">
-                <div class="client-avatar">🏠</div>
-                <div class="client-info">
-                  <div class="client-name">Peak Home Services</div>
-                  <div class="client-meta">Fort Worth, TX · (972) 555-0164</div>
-                </div>
-                <span class="badge b-gray">Plumbing</span>
+              <div style="text-align:center;padding:32px;color:var(--ink3)">
+                <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">👤</div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No clients in CRM yet</div>
+                <div style="font-size:.75rem">Add leads from Lead Finder first, then build agents for them here.</div>
               </div>
             </div>
             <div style="margin-top:20px;display:flex;justify-content:flex-end">
@@ -583,32 +537,42 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         <div class="builder-panel" id="panel-2" style="display:none">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
             <div class="card card-pad">
-              <div class="card-title" style="margin-bottom:16px">Niche Template</div>
-              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Pick the template that matches your client's trade. Pre-loaded with real vocabulary, emergency logic, and pricing handling.</p>
+              <div class="card-title" style="margin-bottom:16px">Your Niche</div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">Pick the industry your client is in. We'll load the right vocabulary, logic, and call handling for that trade.</p>
               <div style="display:flex;flex-direction:column;gap:10px">
-                <div class="niche-card active" id="niche-plumbing" onclick="selectNiche('plumbing')">
-                  <div class="niche-icon">🔧</div>
-                  <div>
-                    <div class="niche-name">Plumbing</div>
-                    <div class="niche-desc">Leaks, clogs, water heaters, emergency dispatch, booking</div>
-                  </div>
-                  <div class="niche-check" id="ncheck-plumbing">✓</div>
+                <div class="f-field">
+                  <label class="f-label">Select Industry</label>
+                  <select class="f-input" id="niche-select" onchange="selectNicheFromDropdown(this.value)">
+                    <option value="">— Pick a niche —</option>
+                    <optgroup label="Home Services">
+                      <option value="plumbing">🔧 Plumbing</option>
+                      <option value="hvac">❄️ HVAC</option>
+                      <option value="electrical">⚡ Electrical</option>
+                      <option value="roofing">🏠 Roofing</option>
+                      <option value="landscaping">🌿 Landscaping</option>
+                      <option value="cleaning">🧹 Cleaning</option>
+                      <option value="pest">🐛 Pest Control</option>
+                      <option value="garage">🚗 Garage Door</option>
+                    </optgroup>
+                    <optgroup label="Professional Services">
+                      <option value="dental">🦷 Dental</option>
+                      <option value="legal">⚖️ Legal</option>
+                      <option value="chiro">💆 Chiropractic</option>
+                      <option value="realestate">🏡 Real Estate</option>
+                      <option value="insurance">📋 Insurance</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="custom">✏️ Custom — I'll enter my own</option>
+                    </optgroup>
+                  </select>
                 </div>
-                <div class="niche-card" id="niche-hvac" onclick="selectNiche('hvac')">
-                  <div class="niche-icon">❄️</div>
-                  <div>
-                    <div class="niche-name">HVAC</div>
-                    <div class="niche-desc">AC repair, furnace, tune-ups, seasonal maintenance, booking</div>
-                  </div>
-                  <div class="niche-check" id="ncheck-hvac" style="opacity:0">✓</div>
+                <div class="f-field" id="custom-niche-field" style="display:none">
+                  <label class="f-label">Custom Niche</label>
+                  <input class="f-input" id="custom-niche-input" placeholder="e.g. Auto repair, Med spa, Veterinary…">
                 </div>
-                <div class="niche-card" id="niche-electrical" onclick="selectNiche('electrical')">
-                  <div class="niche-icon">⚡</div>
-                  <div>
-                    <div class="niche-name">Electrical</div>
-                    <div class="niche-desc">Panel upgrades, outlets, lighting, emergency calls, booking</div>
-                  </div>
-                  <div class="niche-check" id="ncheck-electrical" style="opacity:0">✓</div>
+                <div id="niche-preview" style="display:none;background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:9px;padding:12px 14px;font-size:.8rem;color:var(--indigo)">
+                  <b style="display:block;margin-bottom:3px">✓ Template loaded</b>
+                  <span id="niche-preview-text"></span>
                 </div>
               </div>
             </div>
@@ -658,7 +622,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div style="display:flex;flex-direction:column;gap:12px">
                 <div class="f-field">
                   <label class="f-label">Agent Name</label>
-                  <input class="f-input" placeholder="e.g. Sarah" value="Sarah">
+                  <input class="f-input" placeholder="e.g. Sarah" value="">
                   <div style="font-size:.72rem;color:var(--ink3);margin-top:4px">This is what callers will hear: "Hi, this is Sarah with Metro Plumbing…"</div>
                 </div>
                 <div class="f-field">
@@ -782,10 +746,10 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <button class="btn btn-ghost" style="padding:.4rem .8rem;font-size:.78rem" onclick="hideDetail()">← Agents</button>
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:10px">
-              <div class="page-title" style="font-size:1.1rem">Metro Plumbing Co. Receptionist</div>
+              <div class="page-title" style="font-size:1.1rem">Agent Name</div>
               <span class="badge b-green b-dot">Live</span>
             </div>
-            <div class="page-sub">Sarah · Plumbing · (512) 555-0192</div>
+            <div class="page-sub">Configure your agent details</div>
           </div>
           <div class="btn-row">
             <button class="btn btn-ghost" style="font-size:.78rem;color:var(--red)">🗑 Delete</button>
@@ -855,8 +819,8 @@ Tone: Warm, confident, helpful. Never say you're an AI unless directly asked. Ke
               <div class="card-header"><div class="card-title">Business Profile</div><span class="card-action">Save Profile</span></div>
               <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">Used for proposals, demos, and AI-generated pain points. Not directly part of the agent prompt.</p>
               <div style="display:flex;flex-direction:column;gap:10px">
-                <div class="f-field"><label class="f-label">Business Name</label><input class="f-input" value="Metro Plumbing Co."></div>
-                <div class="f-field"><label class="f-label">Industry</label><input class="f-input" value="Plumbing"></div>
+                <div class="f-field"><label class="f-label">Business Name</label><input class="f-input" value=""></div>
+                <div class="f-field"><label class="f-label">Industry</label><input class="f-input" value=""></div>
                 <div class="f-field"><label class="f-label">Description</label><textarea class="f-input" rows="2" style="resize:none">Residential and commercial plumbing services in Austin, TX. Specializing in drain cleaning, water heaters, and emergency repairs.</textarea></div>
                 <div class="f-field"><label class="f-label">Target Customers</label><input class="f-input" value="Homeowners and small businesses in Austin, TX"></div>
                 <div class="f-field"><label class="f-label">Services (one per line)</label><textarea class="f-input" rows="3" style="resize:none">Drain cleaning
@@ -1020,15 +984,15 @@ Look more professional to customers</textarea></div>
     <!-- CRM -->
     <div class="page" id="page-crm">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
-        <div><div class="page-title">CRM</div><div class="page-sub">59 leads across all stages</div></div>
+        <div><div class="page-title">CRM</div><div class="page-sub">0 leads · add your first from Lead Finder</div></div>
         <div class="btn-row"><button class="btn btn-ghost">Import CSV</button><button class="btn btn-indigo">+ Add Lead</button></div>
       </div>
       <div class="stat-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
-        <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" style="font-size:1.4rem">32</div></div>
-        <div class="stat-cell"><div class="stat-label">To Contact</div><div class="stat-val" style="font-size:1.4rem">3</div></div>
-        <div class="stat-cell"><div class="stat-label">Contacted</div><div class="stat-val" style="font-size:1.4rem">19</div></div>
-        <div class="stat-cell active"><div class="stat-label">Meeting</div><div class="stat-val" style="font-size:1.4rem">1</div></div>
-        <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" style="font-size:1.4rem">3</div></div>
+        <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">To Contact</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Contacted</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell active"><div class="stat-label">Meeting</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
         <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
       </div>
       <div class="card card-pad">
@@ -1048,7 +1012,7 @@ Look more professional to customers</textarea></div>
 
     <!-- COLD CALL -->
     <div class="page" id="page-coldcall">
-      <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub">0 calls today · 32 leads in queue</div></div>
+      <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub">0 calls today · 0 leads in queue</div></div>
       <div class="coldcall-layout">
         <div class="script-card">
           <div class="card-header"><div class="card-title">Call Script</div><span class="card-action">Edit</span></div>
@@ -1074,7 +1038,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             <div style="text-align:center">
               <div style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Next Lead</div>
               <div style="font-size:1rem;font-weight:700;color:var(--ink);letter-spacing:-.01em;margin-bottom:4px">Sunrise HVAC</div>
-              <div class="dial-number">(214) 555-0147</div>
+              <div class="dial-number">No leads queued</div>
               <div style="margin-top:4px"><span class="badge b-indigo">Score 95</span></div>
             </div>
             <button class="call-btn">
@@ -1174,8 +1138,8 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
           <div class="s-group">
             <div class="s-group-label">Plan & Billing</div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Pro Plan</div><div class="s-meta">$49/mo · 1,000 scrapes · Unlimited agents</div></div></div><div class="s-right" style="color:var(--indigo)">Manage →</div></div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">🔗</div><div><div class="s-label">Affiliate Program</div><div class="s-meta">Earn 30% recurring commission per referral</div></div></div><div class="s-right">Join →</div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Pro Plan</div><div class="s-meta">$49/mo · 1,000 scrapes · Unlimited agents</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="https://billing.stripe.com/p/login/9B614f58Bb1l53t8nQcZa00" target="_blank" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">🔗</div><div><div class="s-label">Affiliate Program</div><div class="s-meta">Earn 30% recurring commission per referral</div></div></div><div class="s-right"><a href="https://billing.stripe.com/p/login/9B614f58Bb1l53t8nQcZa00" target="_blank" style="color:var(--ink3);text-decoration:none">Join →</a></div></div>
           </div>
 
           <div class="s-group">
@@ -1307,17 +1271,42 @@ function filterClients(q){
     r.style.display = name.includes(q.toLowerCase()) ? '' : 'none';
   });
 }
-function selectNiche(n){
-  selectedNiche = n;
-  ['plumbing','hvac','electrical'].forEach(x=>{
-    document.getElementById('niche-'+x).classList.toggle('active', x===n);
-    document.getElementById('ncheck-'+x).style.opacity = x===n ? '1' : '0';
-  });
-  const icons = {plumbing:'🔧',hvac:'❄️',electrical:'⚡'};
-  const labels = {plumbing:'Plumbing',hvac:'HVAC',electrical:'Electrical'};
+function selectNicheFromDropdown(val){
+  const customField = document.getElementById('custom-niche-field');
+  const preview = document.getElementById('niche-preview');
+  const previewText = document.getElementById('niche-preview-text');
+  const labels = {
+    plumbing:'Plumbing agent — leaks, clogs, water heaters, emergency dispatch',
+    hvac:'HVAC agent — AC repair, furnace, tune-ups, seasonal maintenance',
+    electrical:'Electrical agent — panel upgrades, outlets, lighting, emergency calls',
+    roofing:'Roofing agent — inspections, repairs, insurance claims, bookings',
+    landscaping:'Landscaping agent — quotes, seasonal services, recurring bookings',
+    cleaning:'Cleaning agent — residential & commercial, scheduling, quotes',
+    pest:'Pest Control agent — inspections, treatments, follow-up scheduling',
+    garage:'Garage Door agent — repairs, installs, emergency service',
+    dental:'Dental agent — appointments, new patients, insurance questions',
+    legal:'Legal agent — consultations, case inquiries, intake',
+    chiro:'Chiropractic agent — new patient bookings, follow-ups',
+    realestate:'Real Estate agent — buyer/seller inquiries, showing bookings',
+    insurance:'Insurance agent — quotes, claims, policy questions',
+    custom:'Custom niche — you define the industry and logic'
+  };
+  if(val === 'custom'){
+    customField.style.display = 'block';
+    preview.style.display = 'none';
+  } else if(val){
+    customField.style.display = 'none';
+    preview.style.display = 'block';
+    previewText.textContent = labels[val] || val;
+  } else {
+    customField.style.display = 'none';
+    preview.style.display = 'none';
+  }
+  selectedNiche = val;
   const revNiche = document.getElementById('rev-niche');
-  if(revNiche) revNiche.textContent = icons[n]+' '+labels[n];
+  if(revNiche) revNiche.textContent = val ? (document.getElementById('niche-select').options[document.getElementById('niche-select').selectedIndex].text) : '—';
 }
+function selectNiche(n){ selectedNiche = n; }
 function scrapeWebsite(){
   const btn = document.getElementById('scrape-btn');
   btn.textContent = '⏳ Scraping…';
