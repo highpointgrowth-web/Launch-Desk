@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
+<script src="api.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LaunchDesk</title>
@@ -55,6 +56,7 @@
 
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.5}
+.hidden{display:none !important}
 
 /* ── SHELL ── */
 .shell{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;overflow:hidden}
@@ -295,15 +297,40 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 </head>
 <body>
 
-<div class="shell">
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)">
+  <div class="card card-pad" style="width:340px">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:24px">
+      <div class="logo-mark">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <span class="logo-text">LaunchDesk</span>
+    </div>
+    <div class="page-title" style="font-size:1.05rem;margin-bottom:4px">Log in or sign up</div>
+    <div class="page-sub" style="margin-bottom:20px">Access your LaunchDesk dashboard</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="auth-email" type="email" placeholder="you@business.com"></div>
+      <div class="f-field"><label class="f-label">Password</label><input class="f-input" id="auth-password" type="password" placeholder="••••••••"></div>
+    </div>
+    <div id="auth-error" class="hidden" style="margin-top:12px;padding:10px 12px;background:var(--red-bg);border-radius:8px;font-size:.78rem;color:var(--red)"></div>
+    <div class="btn-row" style="margin-top:18px">
+      <button class="btn btn-indigo" style="flex:1" id="auth-login-btn" onclick="handleLogin()">Log In</button>
+      <button class="btn btn-ghost" style="flex:1" id="auth-signup-btn" onclick="handleSignup()">Sign Up</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell hidden" id="app-root">
 
   <!-- SIGNAL BAR -->
   <div class="signal-bar">
     <div class="signal-left">
       <div class="signal-item live"><span class="pulse"></span><b>0 agents live</b></div>
       <div class="signal-item">Calls today: <b>0</b></div>
-      <div class="signal-item">Pipeline: <b>0 leads</b></div>
+      <div class="signal-item">Pipeline: <b id="signal-pipeline">0 leads</b></div>
       <div class="signal-item">MRR: <b>$0</b></div>
+      <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
+      <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
     </div>
     <div class="signal-right">
       <a href="#">Docs</a>
@@ -339,22 +366,22 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="stat-strip">
         <div class="stat-cell active">
           <div class="stat-label">Calls Today</div>
-          <div class="stat-val">0</div>
+          <div class="stat-val" id="stat-calls-today">0</div>
           <div class="stat-note">Goal: <b>20</b></div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Meetings</div>
-          <div class="stat-val">0</div>
+          <div class="stat-val" id="stat-meetings">0</div>
           <div class="stat-note">in pipeline</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Clients</div>
-          <div class="stat-val">0</div>
+          <div class="stat-val" id="stat-clients">0</div>
           <div class="stat-note">active</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">MRR</div>
-          <div class="stat-val">$0</div>
+          <div class="stat-val" id="stat-mrr">$0</div>
           <div class="stat-note">monthly recurring</div>
         </div>
         <div class="stat-cell">
@@ -398,10 +425,12 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div class="card-title">Pipeline</div>
               <span class="card-action" onclick="nav('crm',null)">View all →</span>
             </div>
-            <div style="text-align:center;padding:32px;color:var(--ink3)">
-              <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
-              <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
-              <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+            <div id="dashboard-pipeline-card">
+              <div style="text-align:center;padding:32px;color:var(--ink3)">
+                <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
+                <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+              </div>
             </div>
           </div>
 
@@ -436,10 +465,10 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       </div>
       <div class="card card-pad" style="margin-bottom:20px">
         <div class="find-form">
-          <div class="f-field"><label class="f-label">Industry</label><input class="f-input" placeholder="plumber, HVAC, electrical…"></div>
-          <div class="f-field"><label class="f-label">Location</label><input class="f-input" placeholder="Dallas, TX"></div>
-          <div class="f-field"><label class="f-label">Radius</label><select class="f-input"><option>10 km</option><option>25 km</option><option>50 km</option><option selected>100 km</option></select></div>
-          <button class="btn btn-indigo" style="align-self:flex-end">
+          <div class="f-field"><label class="f-label">Industry</label><input class="f-input" id="lead-industry" placeholder="plumber, HVAC, electrical…"></div>
+          <div class="f-field"><label class="f-label">Location</label><input class="f-input" id="lead-location" placeholder="Dallas, TX"></div>
+          <div class="f-field"><label class="f-label">Radius</label><select class="f-input" id="lead-radius"><option value="10000">10 km</option><option value="25000">25 km</option><option value="50000">50 km</option><option value="100000" selected>100 km</option></select></div>
+          <button class="btn btn-indigo" style="align-self:flex-end" id="lead-search-btn" onclick="handleLeadSearch()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Find & Score
           </button>
@@ -449,12 +478,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         <div class="card-header"><div class="card-title">Results</div><span class="card-action">Export CSV</span></div>
         <table class="data-table">
           <thead><tr><th>Business</th><th>Phone</th><th>Rating</th><th>AI Score</th><th>Recommended Agent</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Sunrise HVAC</span></td><td>(214) 555-0147</td><td>5⭐ · 45 reviews</td><td><span class="score">95</span></td><td><span class="badge b-indigo">AI Receptionist</span></td><td><span class="badge b-amber b-dot">Contacted</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Riverstone Plumbing</span></td><td>(469) 555-0211</td><td>4.9⭐ · 903 reviews</td><td><span class="score">87</span></td><td><span class="badge b-indigo">AI Receptionist</span></td><td><span class="badge b-amber b-dot">Contacted</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🏠</span>Apex Electrical</span></td><td>(303) 555-0183</td><td>5⭐ · 3 reviews</td><td><span class="score">96</span></td><td><span class="badge b-indigo">AI Receptionist</span></td><td><span class="badge b-amber b-dot">Contacted</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Metro Plumbing Co.</span></td><td>(512) 555-0192</td><td>4.9⭐ · 762 reviews</td><td><span class="score">85</span></td><td><span class="badge b-indigo">AI Receptionist</span></td><td><span class="badge b-indigo b-dot">Meeting</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Peak Home Services</span></td><td>(972) 555-0164</td><td>5⭐ · 7 reviews</td><td><span class="score">91</span></td><td><span class="badge b-indigo">AI Receptionist</span></td><td><span class="badge b-gray b-dot">New</span></td></tr>
+          <tbody id="leads-results-body">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">Use Find &amp; Score to search for leads.</td></tr>
           </tbody>
         </table>
       </div>
@@ -469,7 +494,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div><div class="page-title">AI Agents</div><div class="page-sub">Build and deploy AI receptionists for your clients</div></div>
           <button class="btn btn-indigo" onclick="showBuilder()">+ Build Agent</button>
         </div>
-        <div class="card">
+        <div class="card" id="agents-empty-state">
           <div class="empty">
             <div class="empty-icon">🤖</div>
             <h3>No agents deployed yet</h3>
@@ -477,6 +502,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
             <button class="btn btn-indigo" onclick="showBuilder()">Build Your First Agent</button>
           </div>
         </div>
+        <div class="agent-grid" id="agents-list-cards" style="display:none"></div>
       </div>
 
       <!-- Agent builder -->
@@ -622,21 +648,21 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div style="display:flex;flex-direction:column;gap:12px">
                 <div class="f-field">
                   <label class="f-label">Agent Name</label>
-                  <input class="f-input" placeholder="e.g. Sarah" value="">
+                  <input class="f-input" id="voice-agent-name" placeholder="e.g. Sarah" value="">
                   <div style="font-size:.72rem;color:var(--ink3);margin-top:4px">This is what callers will hear: "Hi, this is Sarah with Metro Plumbing…"</div>
                 </div>
                 <div class="f-field">
                   <label class="f-label">Voice</label>
-                  <select class="f-input">
-                    <option>Female — Friendly & Professional</option>
-                    <option>Female — Warm & Calm</option>
-                    <option>Male — Confident & Clear</option>
-                    <option>Male — Friendly & Casual</option>
+                  <select class="f-input" id="voice-select">
+                    <option value="11labs-Lily">Female — Friendly & Professional</option>
+                    <option value="11labs-Marissa">Female — Warm & Calm</option>
+                    <option value="11labs-Bing">Male — Confident & Clear</option>
+                    <option value="11labs-Billy">Male — Friendly & Casual</option>
                   </select>
                 </div>
                 <div class="f-field">
                   <label class="f-label">Greeting</label>
-                  <textarea class="f-input" rows="2" style="resize:none">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
+                  <textarea class="f-input" id="voice-greeting" rows="2" style="resize:none">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
                 </div>
                 <div class="f-field">
                   <label class="f-label">Language</label>
@@ -655,8 +681,12 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Connect your client's Cal.com calendar so the agent can book appointments in real time during calls.</p>
               <div style="display:flex;flex-direction:column;gap:12px">
                 <div class="f-field">
-                  <label class="f-label">Cal.com Link</label>
-                  <input class="f-input" placeholder="https://cal.com/metroplumbing/service">
+                  <label class="f-label">Cal.com API Key</label>
+                  <input class="f-input" id="cal-api-key" placeholder="cal_live_…" type="password">
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Event Type ID</label>
+                  <input class="f-input" id="cal-event-type-id" placeholder="e.g. 123456">
                 </div>
                 <div style="background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:10px;padding:14px;font-size:.8rem;color:var(--indigo)">
                   <b style="display:block;margin-bottom:4px">📅 How this works</b>
@@ -708,7 +738,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div class="card card-pad" style="background:var(--indigo);border-color:var(--indigo)">
                 <div style="color:#fff;font-weight:700;font-size:1rem;margin-bottom:6px">Ready to go live</div>
                 <div style="color:rgba(255,255,255,.7);font-size:.8rem;margin-bottom:20px;line-height:1.5">LaunchDesk will automatically create the agent on Retell, assign the number, and connect the calendar. Your client's agent will be live in under 60 seconds.</div>
-                <button class="btn" style="background:#fff;color:var(--indigo);width:100%;font-size:.9rem;padding:.75rem" onclick="deployAgent()">🚀 Deploy Agent</button>
+                <button class="btn" id="deploy-agent-btn" style="background:#fff;color:var(--indigo);width:100%;font-size:.9rem;padding:.75rem" onclick="deployAgent()">🚀 Deploy Agent</button>
               </div>
               <div class="card card-pad">
                 <div class="card-title" style="margin-bottom:10px">What happens next</div>
@@ -945,13 +975,17 @@ Look more professional to customers</textarea></div>
           <div class="card card-pad">
             <div class="card-header">
               <div class="card-title">Call Logs</div>
-              <div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem">Export CSV</button><button class="btn btn-ghost" style="font-size:.75rem">Sync to Airtable</button><button class="btn btn-indigo" style="font-size:.75rem">Load Calls</button></div>
+              <div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem">Export CSV</button><button class="btn btn-ghost" style="font-size:.75rem">Sync to Airtable</button></div>
             </div>
-            <div style="text-align:center;padding:40px;color:var(--ink3)">
+            <div id="call-logs-empty" style="text-align:center;padding:40px;color:var(--ink3)">
               <div style="font-size:1.8rem;margin-bottom:10px;opacity:.4">📞</div>
               <div style="font-size:.88rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No calls yet</div>
               <div style="font-size:.78rem">Once your agent is live and taking calls, transcripts and outcomes will appear here.</div>
             </div>
+            <table class="data-table" id="call-logs-table" style="display:none">
+              <thead><tr><th>Date</th><th>Duration</th><th>Outcome</th><th>Booked</th><th>Transcript</th></tr></thead>
+              <tbody id="call-logs-body"></tbody>
+            </table>
           </div>
         </div>
 
@@ -961,9 +995,9 @@ Look more professional to customers</textarea></div>
             <div class="card card-pad">
               <div class="card-header"><div class="card-title">Proposals</div><span class="card-action">Edit Default Template</span></div>
               <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Generate an AI-powered proposal for this client using their business profile and pain points.</p>
-              <div style="text-align:center;padding:32px;background:var(--bg2);border-radius:10px">
+              <div id="proposal-area" style="text-align:center;padding:32px;background:var(--bg2);border-radius:10px">
                 <div style="font-size:.88rem;font-weight:600;color:var(--ink2);margin-bottom:12px">No proposals yet</div>
-                <button class="btn btn-indigo">✨ Generate Proposal with AI</button>
+                <button class="btn btn-indigo" id="generate-proposal-btn" onclick="handleGenerateProposal()">✨ Generate Proposal with AI</button>
               </div>
             </div>
             <div class="card card-pad" style="align-self:start">
@@ -984,27 +1018,22 @@ Look more professional to customers</textarea></div>
     <!-- CRM -->
     <div class="page" id="page-crm">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
-        <div><div class="page-title">CRM</div><div class="page-sub">0 leads · add your first from Lead Finder</div></div>
+        <div><div class="page-title">CRM</div><div class="page-sub" id="crm-page-sub">0 leads · add your first from Lead Finder</div></div>
         <div class="btn-row"><button class="btn btn-ghost">Import CSV</button><button class="btn btn-indigo">+ Add Lead</button></div>
       </div>
       <div class="stat-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
-        <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">To Contact</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">Contacted</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell active"><div class="stat-label">Meeting</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
-        <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" id="crm-stat-new" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">To Contact</div><div class="stat-val" id="crm-stat-to_contact" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Contacted</div><div class="stat-val" id="crm-stat-contacted" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell active"><div class="stat-label">Meeting</div><div class="stat-val" id="crm-stat-meeting" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" id="crm-stat-proposal" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" id="crm-stat-won" style="font-size:1.4rem">0</div></div>
       </div>
       <div class="card card-pad">
         <table class="data-table">
-          <thead><tr><th>Business</th><th>Phone</th><th>Location</th><th>Score</th><th>Stage</th><th>Sentiment</th></tr></thead>
-          <tbody>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Metro Plumbing Co.</span></td><td>(512) 555-0192</td><td>Austin, TX</td><td><span class="score">85</span></td><td><span class="badge b-indigo b-dot">Meeting</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Sunrise HVAC</span></td><td>(214) 555-0147</td><td>Dallas, TX</td><td><span class="score">95</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🏠</span>Apex Electrical</span></td><td>(303) 555-0183</td><td>Denver, CO</td><td><span class="score">96</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Riverstone Plumbing</span></td><td>(469) 555-0211</td><td>Plano, TX</td><td><span class="score">87</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Peak Home Services</span></td><td>(972) 555-0164</td><td>Fort Worth, TX</td><td><span class="score">91</span></td><td><span class="badge b-gray b-dot">New</span></td><td><span class="badge b-green">Interested</span></td></tr>
-            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Crestview Plumbing</span></td><td>(817) 555-0229</td><td>Arlington, TX</td><td><span class="score">75</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
+          <thead><tr><th>Business</th><th>Phone</th><th>Location</th><th>Score</th><th>Stage</th></tr></thead>
+          <tbody id="crm-leads-body">
+            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1138,7 +1167,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
           <div class="s-group">
             <div class="s-group-label">Plan & Billing</div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Pro Plan</div><div class="s-meta">$49/mo · 1,000 scrapes · Unlimited agents</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="https://billing.stripe.com/p/login/9B614f58Bb1l53t8nQcZa00" target="_blank" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Pro Plan</div><div class="s-meta">$49/mo · 1,000 scrapes · Unlimited agents</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="#" onclick="handleManagePlan(); return false;" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">🔗</div><div><div class="s-label">Affiliate Program</div><div class="s-meta">Earn 30% recurring commission per referral</div></div></div><div class="s-right"><a href="https://billing.stripe.com/p/login/9B614f58Bb1l53t8nQcZa00" target="_blank" style="color:var(--ink3);text-decoration:none">Join →</a></div></div>
           </div>
 
@@ -1146,7 +1175,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             <div class="s-group-label">Security</div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">🔑</div><div><div class="s-label">API Keys</div><div class="s-meta">Connect external tools</div></div></div><div class="s-right">→</div></div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">🔒</div><div><div class="s-label">Change Password</div></div></div><div class="s-right">→</div></div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">🚪</div><div><div class="s-label" style="color:var(--red)">Log Out</div></div></div></div>
+            <div class="s-row" onclick="handleLogout()"><div class="s-row-left"><div class="s-icon">🚪</div><div><div class="s-label" style="color:var(--red)">Log Out</div></div></div></div>
           </div>
         </div>
       </div>
@@ -1206,7 +1235,9 @@ function toggleCheck(el){
     ?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>'
     :'';
 }
-function showDetail(){
+let currentAgent = null;
+function showDetail(agent){
+  currentAgent = agent || null;
   document.getElementById('agents-list').style.display='none';
   document.getElementById('agents-builder').style.display='none';
   document.getElementById('agents-detail').style.display='block';
@@ -1231,6 +1262,7 @@ function showBuilder(){
   document.getElementById('agents-list').style.display='none';
   document.getElementById('agents-builder').style.display='block';
   goStep(1);
+  loadClientList();
 }
 function hideBuilder(){
   document.getElementById('agents-list').style.display='block';
@@ -1248,10 +1280,53 @@ function goStep(n){
     }
   }
 }
-function selectClient(el, name, location, phone, niche){
+let cachedLeads = [];
+
+function renderClientList(leads){
+  cachedLeads = leads || [];
+  const container = document.getElementById('client-list');
+  if(!cachedLeads.length){
+    container.innerHTML = `
+      <div style="text-align:center;padding:32px;color:var(--ink3)">
+        <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">👤</div>
+        <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No clients in CRM yet</div>
+        <div style="font-size:.75rem">Add leads from Lead Finder first, then build agents for them here.</div>
+      </div>
+    `;
+    return;
+  }
+  container.innerHTML = cachedLeads.map((lead) => {
+    const location = [lead.city, lead.state].filter(Boolean).join(', ');
+    return `
+      <div class="client-row" data-lead-id="${lead.id}" onclick="selectClient(this, '${lead.id}')">
+        <div class="client-avatar">🏢</div>
+        <div class="client-info">
+          <div class="client-name">${escapeHtml(lead.business_name || 'Unknown')}</div>
+          <div class="client-meta">${escapeHtml(location || lead.category || '—')}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadClientList(){
+  try {
+    const { leads } = await API.leads.getAll();
+    renderClientList(leads);
+  } catch (err) {
+    console.error('Failed to load leads for client list', err);
+  }
+}
+
+function selectClient(el, leadId){
+  const lead = cachedLeads.find(l => l.id === leadId);
+  if(!lead) return;
   document.querySelectorAll('.client-row').forEach(r=>r.classList.remove('selected'));
   el.classList.add('selected');
-  selectedClient = {name, location, phone, niche};
+  const name = lead.business_name;
+  const location = [lead.city, lead.state].filter(Boolean).join(', ');
+  const niche = lead.category || '';
+  selectedClient = { id: lead.id, name, location, phone: lead.phone, niche };
   const nextBtn = document.getElementById('step1-next');
   nextBtn.disabled = false;
   nextBtn.style.opacity = '1';
@@ -1260,7 +1335,7 @@ function selectClient(el, name, location, phone, niche){
   const bizName = document.getElementById('biz-name');
   if(bizName) bizName.value = name;
   // Pre-select niche
-  selectNiche(niche.toLowerCase());
+  if(niche) selectNiche(niche.toLowerCase());
   // Pre-fill review
   const revClient = document.getElementById('rev-client');
   if(revClient) revClient.textContent = name;
@@ -1315,17 +1390,48 @@ function scrapeWebsite(){
     document.getElementById('scrape-status').style.display='block';
   }, 2000);
 }
-function deployAgent(){
-  const btn = event.target;
-  btn.textContent = '⏳ Deploying…';
+async function deployAgent(){
+  if(!selectedClient || !selectedClient.id){
+    alert('Select a client in Step 1 first.');
+    return;
+  }
+
+  const agentName = document.getElementById('voice-agent-name').value.trim();
+  const voice = document.getElementById('voice-select').value;
+  const greeting = document.getElementById('voice-greeting').value.trim();
+  const calApiKey = document.getElementById('cal-api-key').value.trim();
+  const calEventTypeId = document.getElementById('cal-event-type-id').value.trim();
+
+  if(!agentName){
+    alert('Agent name is required.');
+    return;
+  }
+
+  const btn = document.getElementById('deploy-agent-btn');
+  const original = btn.textContent;
   btn.disabled = true;
-  setTimeout(()=>{
+  btn.textContent = '⏳ Deploying…';
+
+  try {
+    const { agent } = await API.agents.build({
+      lead_id: selectedClient.id,
+      niche: selectedNiche,
+      agent_name: agentName,
+      voice,
+      greeting,
+      cal_api_key: calApiKey || undefined,
+      cal_event_type_id: calEventTypeId || undefined,
+    });
+
     btn.textContent = '✅ Agent Live!';
-    setTimeout(()=>{
-      hideBuilder();
-      showDetail();
-    }, 1000);
-  }, 2000);
+    await loadAgentsList();
+    hideBuilder();
+    showDetail(agent);
+  } catch (err) {
+    alert('Failed to deploy agent: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
 function toggleTheme(){
@@ -1335,6 +1441,436 @@ function toggleTheme(){
   document.getElementById('theme-toggle').classList.toggle('on',!isDark);
   document.getElementById('theme-icon').textContent=isDark?'🌙':'☀️';
 }
+
+// ── AUTH ──
+function setAuthError(msg){
+  const el = document.getElementById('auth-error');
+  if(!msg){ el.classList.add('hidden'); el.textContent = ''; return; }
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function showAuthScreen(){
+  document.getElementById('app-root').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+function enterApp(){
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-root').classList.remove('hidden');
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  setAuthError('');
+  loadUserStats();
+  loadAgentsList();
+  loadCRM();
+  loadDashboardStats();
+}
+
+async function handleLogin(){
+  setAuthError('');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if(!email || !password){ setAuthError('Email and password are required.'); return; }
+  const btn = document.getElementById('auth-login-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    await API.auth.login({ email, password });
+    enterApp();
+  } catch (err) {
+    setAuthError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function handleSignup(){
+  setAuthError('');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if(!email || !password){ setAuthError('Email and password are required.'); return; }
+  const btn = document.getElementById('auth-signup-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Signing up…';
+  try {
+    await API.auth.signup({ email, password });
+    await API.auth.login({ email, password });
+    enterApp();
+  } catch (err) {
+    setAuthError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function handleLogout(){
+  try {
+    await API.auth.logout();
+  } catch (err) {
+    // token may already be invalid/expired — proceed to the login screen regardless
+  }
+  showAuthScreen();
+}
+
+async function loadUserStats(){
+  try {
+    const { user } = await API.auth.getMe();
+    document.getElementById('signal-plan').textContent = user.plan;
+    document.getElementById('signal-credits').textContent = `${user.scrape_credits_used} / ${user.scrape_credits_limit}`;
+  } catch (err) {
+    console.error('Failed to load user stats', err);
+  }
+}
+
+async function loadDashboardStats(){
+  try {
+    const stats = await API.dashboard.getStats();
+    document.getElementById('stat-calls-today').textContent = stats.calls_today;
+    document.getElementById('stat-meetings').textContent = stats.meetings;
+    document.getElementById('stat-clients').textContent = stats.clients;
+    document.getElementById('stat-mrr').textContent = `$${stats.mrr}`;
+  } catch (err) {
+    console.error('Failed to load dashboard stats', err);
+  }
+}
+
+// ── STRIPE ──
+async function handleManagePlan(){
+  try {
+    const { url } = await API.stripe.getPortal({ return_url: window.location.href });
+    window.location.href = url;
+  } catch (err) {
+    alert('Could not open billing portal: ' + err.message);
+  }
+}
+
+// ── LEAD FINDER ──
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function renderLeadResults(leads){
+  const tbody = document.getElementById('leads-results-body');
+  if(!leads || !leads.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No leads found. Try a different search.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = leads.map((lead) => {
+    const stage = lead.pipeline_stage || 'new';
+    const actionCell = stage !== 'new'
+      ? `<span class="badge ${stageBadgeClass(stage)} b-dot">${escapeHtml(STAGE_LABELS[stage] || stage)}</span>`
+      : `<button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm('${lead.id}', this)">+ Add to CRM</button>`;
+    return `
+    <tr>
+      <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
+      <td>${escapeHtml(lead.phone || '—')}</td>
+      <td>${lead.rating ? `${lead.rating}⭐ · ${lead.review_count || 0} reviews` : '—'}</td>
+      <td><span class="score">${lead.ai_score ?? '—'}</span></td>
+      <td><span class="badge b-indigo">${escapeHtml((lead.recommended_agents && lead.recommended_agents[0]) || '—')}</span></td>
+      <td>${actionCell}</td>
+    </tr>
+  `;
+  }).join('');
+}
+
+async function handleLeadSearch(){
+  const industry = document.getElementById('lead-industry').value.trim();
+  const location = document.getElementById('lead-location').value.trim();
+  const radius = parseInt(document.getElementById('lead-radius').value, 10);
+
+  if(!industry || !location){
+    alert('Industry and location are required.');
+    return;
+  }
+
+  const btn = document.getElementById('lead-search-btn');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+
+  try {
+    const { leads } = await API.leads.scrape({ industry, location, radius });
+    renderLeadResults(leads);
+  } catch (err) {
+    alert('Lead search failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+// ── CRM ──
+const PIPELINE_STAGES = ['new', 'to_contact', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+const STAGE_LABELS = { new: 'New', to_contact: 'To Contact', contacted: 'Contacted', meeting: 'Meeting', proposal: 'Proposal', won: 'Won', lost: 'Lost' };
+
+function stageBadgeClass(stage){
+  if(stage === 'won') return 'b-green';
+  if(stage === 'lost') return 'b-red';
+  if(stage === 'meeting' || stage === 'proposal') return 'b-indigo';
+  if(stage === 'contacted') return 'b-amber';
+  return 'b-gray';
+}
+
+let cachedCRMLeads = [];
+
+function computeStageCounts(leads){
+  const counts = { new: 0, to_contact: 0, contacted: 0, meeting: 0, proposal: 0, won: 0, lost: 0 };
+  (leads || []).forEach((lead) => {
+    const stage = lead.pipeline_stage || 'new';
+    if(counts[stage] !== undefined) counts[stage] += 1;
+  });
+  return counts;
+}
+
+function renderPipelineStats(leads){
+  const counts = computeStageCounts(leads);
+  const total = leads.length;
+
+  const pipelineSignal = document.getElementById('signal-pipeline');
+  if(pipelineSignal) pipelineSignal.textContent = `${total} lead${total === 1 ? '' : 's'}`;
+
+  ['new','to_contact','contacted','meeting','proposal','won'].forEach((stage) => {
+    const el = document.getElementById(`crm-stat-${stage}`);
+    if(el) el.textContent = counts[stage];
+  });
+
+  const dashCard = document.getElementById('dashboard-pipeline-card');
+  if(dashCard){
+    if(!total){
+      dashCard.innerHTML = `
+        <div style="text-align:center;padding:32px;color:var(--ink3)">
+          <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
+          <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
+          <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+        </div>
+      `;
+    } else {
+      dashCard.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${PIPELINE_STAGES.filter((s) => s !== 'lost').map((stage) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem">
+              <span style="color:var(--ink2)">${STAGE_LABELS[stage]}</span>
+              <span class="badge ${stageBadgeClass(stage)} b-dot">${counts[stage]}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+  }
+}
+
+function renderStageSelect(lead){
+  const stage = lead.pipeline_stage || 'new';
+  return `<select class="badge ${stageBadgeClass(stage)} b-dot" style="border:none;cursor:pointer;font-family:inherit;font-size:.67rem" data-lead-id="${lead.id}" onchange="handleStageChange(this)">
+    ${PIPELINE_STAGES.map((s) => `<option value="${s}" ${s === stage ? 'selected' : ''}>${STAGE_LABELS[s]}</option>`).join('')}
+  </select>`;
+}
+
+async function handleStageChange(selectEl){
+  const leadId = selectEl.dataset.leadId;
+  const newStage = selectEl.value;
+  selectEl.disabled = true;
+  try {
+    await API.leads.update(leadId, { pipeline_stage: newStage });
+    const lead = cachedCRMLeads.find((l) => l.id === leadId);
+    if(lead) lead.pipeline_stage = newStage;
+    selectEl.className = `badge ${stageBadgeClass(newStage)} b-dot`;
+    renderPipelineStats(cachedCRMLeads);
+  } catch (err) {
+    alert('Failed to update stage: ' + err.message);
+  } finally {
+    selectEl.disabled = false;
+  }
+}
+
+function renderCRMTable(leads){
+  cachedCRMLeads = leads || [];
+  const total = cachedCRMLeads.length;
+
+  const pageSub = document.getElementById('crm-page-sub');
+  if(pageSub) pageSub.textContent = total ? `${total} lead${total === 1 ? '' : 's'}` : '0 leads · add your first from Lead Finder';
+
+  const tbody = document.getElementById('crm-leads-body');
+  if(tbody){
+    if(!total){
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>';
+    } else {
+      tbody.innerHTML = cachedCRMLeads.map((lead) => `
+        <tr>
+          <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
+          <td>${escapeHtml(lead.phone || '—')}</td>
+          <td>${escapeHtml([lead.city, lead.state].filter(Boolean).join(', ') || '—')}</td>
+          <td><span class="score">${lead.ai_score ?? '—'}</span></td>
+          <td>${renderStageSelect(lead)}</td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  renderPipelineStats(cachedCRMLeads);
+}
+
+async function loadCRM(){
+  try {
+    const { leads } = await API.leads.getAll();
+    renderCRMTable(leads);
+  } catch (err) {
+    console.error('Failed to load CRM leads', err);
+  }
+}
+
+async function handleAddToCrm(leadId, btn){
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+  try {
+    await API.leads.update(leadId, { pipeline_stage: 'to_contact' });
+    btn.outerHTML = `<span class="badge ${stageBadgeClass('to_contact')} b-dot">${STAGE_LABELS.to_contact}</span>`;
+    loadCRM();
+  } catch (err) {
+    alert('Failed to add lead to CRM: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = '+ Add to CRM';
+  }
+}
+
+// ── AGENTS LIST ──
+let cachedAgents = [];
+
+function renderAgentsList(agents){
+  cachedAgents = agents || [];
+  const emptyState = document.getElementById('agents-empty-state');
+  const grid = document.getElementById('agents-list-cards');
+
+  if(!cachedAgents.length){
+    if(emptyState) emptyState.style.display = 'block';
+    if(grid){ grid.style.display = 'none'; grid.innerHTML = ''; }
+    return;
+  }
+
+  if(emptyState) emptyState.style.display = 'none';
+  if(grid){
+    grid.style.display = 'grid';
+    grid.innerHTML = cachedAgents.map((agent) => {
+      const statusClass = agent.status === 'active' ? 'b-green' : agent.status === 'building' ? 'b-amber' : 'b-gray';
+      return `
+        <div class="card card-pad">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+            <div>
+              <div style="font-weight:700;font-size:.92rem">${escapeHtml(agent.agent_name || 'Unnamed Agent')}</div>
+              <div style="font-size:.75rem;color:var(--ink3);margin-top:2px">${escapeHtml(agent.business_name || 'Unknown business')} · ${escapeHtml(agent.niche || '—')}</div>
+            </div>
+            <span class="badge ${statusClass} b-dot">${escapeHtml(agent.status || 'building')}</span>
+          </div>
+          <button class="btn btn-ghost" style="width:100%" onclick="manageAgentById('${agent.id}')">Manage</button>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+async function loadAgentsList(){
+  try {
+    const { agents } = await API.agents.getAll();
+    renderAgentsList(agents);
+  } catch (err) {
+    console.error('Failed to load agents', err);
+  }
+}
+
+async function manageAgentById(agentId){
+  try {
+    const { agent } = await API.agents.get(agentId);
+    showDetail(agent);
+    loadCallLogs(agentId);
+  } catch (err) {
+    alert('Failed to load agent: ' + err.message);
+  }
+}
+
+function renderCallLogs(callLogs){
+  const empty = document.getElementById('call-logs-empty');
+  const table = document.getElementById('call-logs-table');
+  const tbody = document.getElementById('call-logs-body');
+
+  if(!callLogs || !callLogs.length){
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  table.style.display = 'table';
+  tbody.innerHTML = callLogs.map((log) => {
+    const date = log.created_at ? new Date(log.created_at).toLocaleString() : '—';
+    const duration = log.duration_seconds != null
+      ? `${Math.floor(log.duration_seconds / 60)}m ${log.duration_seconds % 60}s`
+      : '—';
+    const bookedBadge = log.booked
+      ? '<span class="badge b-green">Booked</span>'
+      : '<span class="badge b-gray">No</span>';
+    const preview = log.transcript
+      ? escapeHtml(log.transcript.slice(0, 80)) + (log.transcript.length > 80 ? '…' : '')
+      : '—';
+    return `
+      <tr>
+        <td>${escapeHtml(date)}</td>
+        <td>${escapeHtml(duration)}</td>
+        <td>${escapeHtml(log.outcome || '—')}</td>
+        <td>${bookedBadge}</td>
+        <td style="max-width:280px;color:var(--ink3);font-size:.78rem">${preview}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function loadCallLogs(agentId){
+  try {
+    const { call_logs } = await API.agents.getCalls(agentId);
+    renderCallLogs(call_logs);
+  } catch (err) {
+    console.error('Failed to load call logs', err);
+  }
+}
+
+// ── PROPOSALS ──
+function renderProposal(proposal){
+  const area = document.getElementById('proposal-area');
+  area.innerHTML = `
+    <div style="text-align:left;white-space:pre-wrap;font-size:.82rem;color:var(--ink2);line-height:1.6;max-height:400px;overflow-y:auto;padding:4px">${escapeHtml(proposal.content)}</div>
+  `;
+}
+
+async function handleGenerateProposal(){
+  if(!currentAgent || !currentAgent.lead_id){
+    alert('This agent has no associated lead to generate a proposal for.');
+    return;
+  }
+
+  const btn = document.getElementById('generate-proposal-btn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  try {
+    const { proposal } = await API.proposals.create({ lead_id: currentAgent.lead_id });
+    renderProposal(proposal);
+  } catch (err) {
+    alert('Failed to generate proposal: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+// ── INIT ──
+function initApp(){
+  if(API.getToken()){
+    enterApp();
+  } else {
+    showAuthScreen();
+  }
+}
+initApp();
 </script>
 </body>
 </html>
