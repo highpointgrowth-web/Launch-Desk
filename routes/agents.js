@@ -204,6 +204,33 @@ router.get('/:id', async (req, res) => {
   res.json({ agent: data });
 });
 
+router.get('/:id/calls', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: agent, error: agentError } = await supabase
+    .from('agents')
+    .select('id')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (agentError || !agent) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  const { data: callLogs, error } = await supabase
+    .from('call_logs')
+    .select('*')
+    .eq('agent_id', agent.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ call_logs: callLogs });
+});
+
 router.put('/:id', async (req, res) => {
   const { system_prompt, greeting, voice, cal_api_key, cal_event_type_id } = req.body;
   const updates = {};

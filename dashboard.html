@@ -366,22 +366,22 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="stat-strip">
         <div class="stat-cell active">
           <div class="stat-label">Calls Today</div>
-          <div class="stat-val">0</div>
+          <div class="stat-val" id="stat-calls-today">0</div>
           <div class="stat-note">Goal: <b>20</b></div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Meetings</div>
-          <div class="stat-val">0</div>
+          <div class="stat-val" id="stat-meetings">0</div>
           <div class="stat-note">in pipeline</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">Clients</div>
-          <div class="stat-val">0</div>
+          <div class="stat-val" id="stat-clients">0</div>
           <div class="stat-note">active</div>
         </div>
         <div class="stat-cell">
           <div class="stat-label">MRR</div>
-          <div class="stat-val">$0</div>
+          <div class="stat-val" id="stat-mrr">$0</div>
           <div class="stat-note">monthly recurring</div>
         </div>
         <div class="stat-cell">
@@ -975,13 +975,17 @@ Look more professional to customers</textarea></div>
           <div class="card card-pad">
             <div class="card-header">
               <div class="card-title">Call Logs</div>
-              <div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem">Export CSV</button><button class="btn btn-ghost" style="font-size:.75rem">Sync to Airtable</button><button class="btn btn-indigo" style="font-size:.75rem">Load Calls</button></div>
+              <div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem">Export CSV</button><button class="btn btn-ghost" style="font-size:.75rem">Sync to Airtable</button></div>
             </div>
-            <div style="text-align:center;padding:40px;color:var(--ink3)">
+            <div id="call-logs-empty" style="text-align:center;padding:40px;color:var(--ink3)">
               <div style="font-size:1.8rem;margin-bottom:10px;opacity:.4">📞</div>
               <div style="font-size:.88rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No calls yet</div>
               <div style="font-size:.78rem">Once your agent is live and taking calls, transcripts and outcomes will appear here.</div>
             </div>
+            <table class="data-table" id="call-logs-table" style="display:none">
+              <thead><tr><th>Date</th><th>Duration</th><th>Outcome</th><th>Booked</th><th>Transcript</th></tr></thead>
+              <tbody id="call-logs-body"></tbody>
+            </table>
           </div>
         </div>
 
@@ -1460,6 +1464,7 @@ function enterApp(){
   loadUserStats();
   loadAgentsList();
   loadCRM();
+  loadDashboardStats();
 }
 
 async function handleLogin(){
@@ -1515,6 +1520,18 @@ async function loadUserStats(){
     document.getElementById('signal-credits').textContent = `${user.scrape_credits_used} / ${user.scrape_credits_limit}`;
   } catch (err) {
     console.error('Failed to load user stats', err);
+  }
+}
+
+async function loadDashboardStats(){
+  try {
+    const stats = await API.dashboard.getStats();
+    document.getElementById('stat-calls-today').textContent = stats.calls_today;
+    document.getElementById('stat-meetings').textContent = stats.meetings;
+    document.getElementById('stat-clients').textContent = stats.clients;
+    document.getElementById('stat-mrr').textContent = `$${stats.mrr}`;
+  } catch (err) {
+    console.error('Failed to load dashboard stats', err);
   }
 }
 
@@ -1761,10 +1778,59 @@ async function loadAgentsList(){
   }
 }
 
-function manageAgentById(agentId){
-  const agent = cachedAgents.find(a => a.id === agentId);
-  if(!agent) return;
-  showDetail(agent);
+async function manageAgentById(agentId){
+  try {
+    const { agent } = await API.agents.get(agentId);
+    showDetail(agent);
+    loadCallLogs(agentId);
+  } catch (err) {
+    alert('Failed to load agent: ' + err.message);
+  }
+}
+
+function renderCallLogs(callLogs){
+  const empty = document.getElementById('call-logs-empty');
+  const table = document.getElementById('call-logs-table');
+  const tbody = document.getElementById('call-logs-body');
+
+  if(!callLogs || !callLogs.length){
+    empty.style.display = 'block';
+    table.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  table.style.display = 'table';
+  tbody.innerHTML = callLogs.map((log) => {
+    const date = log.created_at ? new Date(log.created_at).toLocaleString() : '—';
+    const duration = log.duration_seconds != null
+      ? `${Math.floor(log.duration_seconds / 60)}m ${log.duration_seconds % 60}s`
+      : '—';
+    const bookedBadge = log.booked
+      ? '<span class="badge b-green">Booked</span>'
+      : '<span class="badge b-gray">No</span>';
+    const preview = log.transcript
+      ? escapeHtml(log.transcript.slice(0, 80)) + (log.transcript.length > 80 ? '…' : '')
+      : '—';
+    return `
+      <tr>
+        <td>${escapeHtml(date)}</td>
+        <td>${escapeHtml(duration)}</td>
+        <td>${escapeHtml(log.outcome || '—')}</td>
+        <td>${bookedBadge}</td>
+        <td style="max-width:280px;color:var(--ink3);font-size:.78rem">${preview}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function loadCallLogs(agentId){
+  try {
+    const { call_logs } = await API.agents.getCalls(agentId);
+    renderCallLogs(call_logs);
+  } catch (err) {
+    console.error('Failed to load call logs', err);
+  }
 }
 
 // ── PROPOSALS ──

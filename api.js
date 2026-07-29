@@ -122,6 +122,10 @@
     async sync(id) {
       return request('POST', `/api/agents/${id}/sync`);
     },
+
+    async getCalls(id) {
+      return request('GET', `/api/agents/${id}/calls`);
+    },
   };
 
   const stripe = {
@@ -145,6 +149,12 @@
     },
   };
 
+  const dashboard = {
+    async getStats() {
+      return request('GET', '/api/dashboard/stats');
+    },
+  };
+
   global.API = {
     baseUrl: API_BASE_URL,
     getToken,
@@ -155,5 +165,6 @@
     agents,
     stripe,
     proposals,
+    dashboard,
   };
 })(window);
