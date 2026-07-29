@@ -1,4 +1,5 @@
 const express = require('express');
+const { createClient } = require('@supabase/supabase-js');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -51,8 +52,15 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ error: 'email and password are required' });
   }
 
-  const supabase = req.app.locals.supabase;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  // Use a throwaway client for sign-in: signInWithPassword attaches the resulting
+  // session to whatever client instance it's called on, and req.app.locals.supabase
+  // is a single shared client reused by every request. Calling it there would leave
+  // this user's session attached for all subsequent requests server-wide, silently
+  // replacing the service-role identity other routes rely on to bypass RLS.
+  const authClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data, error } = await authClient.auth.signInWithPassword({ email, password });
 
   if (error) {
     return res.status(401).json({ error: error.message });
