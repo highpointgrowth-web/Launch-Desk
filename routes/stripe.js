@@ -11,6 +11,12 @@ const PLAN_BY_AMOUNT = {
   9900: { plan: 'agency', scrape_credits_limit: 5000 },
 };
 
+const PRICE_ID_BY_PLAN = {
+  starter: process.env.STRIPE_PRICE_ID_STARTER,
+  pro: process.env.STRIPE_PRICE_ID_PRO,
+  agency: process.env.STRIPE_PRICE_ID_AGENCY,
+};
+
 async function handleCheckoutCompleted(supabase, session) {
   const planInfo = PLAN_BY_AMOUNT[session.amount_total];
   if (!planInfo) {
@@ -105,6 +111,29 @@ router.get('/portal', requireAuth, async (req, res) => {
     });
 
     res.json({ url: portalSession.url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/create-checkout', requireAuth, async (req, res) => {
+  const { plan } = req.body;
+  const priceId = PRICE_ID_BY_PLAN[plan];
+
+  if (!priceId) {
+    return res.status(400).json({ error: 'plan must be one of: starter, pro, agency' });
+  }
+
+  try {
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      client_reference_id: req.userId,
+      success_url: `${process.env.APP_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.APP_URL}/billing/cancel`,
+    });
+
+    res.json({ url: checkoutSession.url });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
