@@ -646,21 +646,21 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div style="display:flex;flex-direction:column;gap:12px">
                 <div class="f-field">
                   <label class="f-label">Agent Name</label>
-                  <input class="f-input" placeholder="e.g. Sarah" value="">
+                  <input class="f-input" id="voice-agent-name" placeholder="e.g. Sarah" value="">
                   <div style="font-size:.72rem;color:var(--ink3);margin-top:4px">This is what callers will hear: "Hi, this is Sarah with Metro Plumbing…"</div>
                 </div>
                 <div class="f-field">
                   <label class="f-label">Voice</label>
-                  <select class="f-input">
-                    <option>Female — Friendly & Professional</option>
-                    <option>Female — Warm & Calm</option>
-                    <option>Male — Confident & Clear</option>
-                    <option>Male — Friendly & Casual</option>
+                  <select class="f-input" id="voice-select">
+                    <option value="11labs-Lily">Female — Friendly & Professional</option>
+                    <option value="11labs-Marissa">Female — Warm & Calm</option>
+                    <option value="11labs-Bing">Male — Confident & Clear</option>
+                    <option value="11labs-Billy">Male — Friendly & Casual</option>
                   </select>
                 </div>
                 <div class="f-field">
                   <label class="f-label">Greeting</label>
-                  <textarea class="f-input" rows="2" style="resize:none">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
+                  <textarea class="f-input" id="voice-greeting" rows="2" style="resize:none">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
                 </div>
                 <div class="f-field">
                   <label class="f-label">Language</label>
@@ -680,7 +680,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div style="display:flex;flex-direction:column;gap:12px">
                 <div class="f-field">
                   <label class="f-label">Cal.com Link</label>
-                  <input class="f-input" placeholder="https://cal.com/metroplumbing/service">
+                  <input class="f-input" id="cal-link" placeholder="https://cal.com/metroplumbing/service">
                 </div>
                 <div style="background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:10px;padding:14px;font-size:.8rem;color:var(--indigo)">
                   <b style="display:block;margin-bottom:4px">📅 How this works</b>
@@ -732,7 +732,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div class="card card-pad" style="background:var(--indigo);border-color:var(--indigo)">
                 <div style="color:#fff;font-weight:700;font-size:1rem;margin-bottom:6px">Ready to go live</div>
                 <div style="color:rgba(255,255,255,.7);font-size:.8rem;margin-bottom:20px;line-height:1.5">LaunchDesk will automatically create the agent on Retell, assign the number, and connect the calendar. Your client's agent will be live in under 60 seconds.</div>
-                <button class="btn" style="background:#fff;color:var(--indigo);width:100%;font-size:.9rem;padding:.75rem" onclick="deployAgent()">🚀 Deploy Agent</button>
+                <button class="btn" id="deploy-agent-btn" style="background:#fff;color:var(--indigo);width:100%;font-size:.9rem;padding:.75rem" onclick="deployAgent()">🚀 Deploy Agent</button>
               </div>
               <div class="card card-pad">
                 <div class="card-title" style="margin-bottom:10px">What happens next</div>
@@ -1385,17 +1385,46 @@ function scrapeWebsite(){
     document.getElementById('scrape-status').style.display='block';
   }, 2000);
 }
-function deployAgent(){
-  const btn = event.target;
-  btn.textContent = '⏳ Deploying…';
+async function deployAgent(){
+  if(!selectedClient || !selectedClient.id){
+    alert('Select a client in Step 1 first.');
+    return;
+  }
+
+  const agentName = document.getElementById('voice-agent-name').value.trim();
+  const voice = document.getElementById('voice-select').value;
+  const greeting = document.getElementById('voice-greeting').value.trim();
+  const calLink = document.getElementById('cal-link').value.trim();
+
+  if(!agentName){
+    alert('Agent name is required.');
+    return;
+  }
+
+  const btn = document.getElementById('deploy-agent-btn');
+  const original = btn.textContent;
   btn.disabled = true;
-  setTimeout(()=>{
+  btn.textContent = '⏳ Deploying…';
+
+  try {
+    const { agent } = await API.agents.build({
+      lead_id: selectedClient.id,
+      niche: selectedNiche,
+      agent_name: agentName,
+      voice,
+      greeting,
+      cal_event_type_id: calLink || undefined,
+    });
+
     btn.textContent = '✅ Agent Live!';
-    setTimeout(()=>{
-      hideBuilder();
-      showDetail();
-    }, 1000);
-  }, 2000);
+    await loadAgentsList();
+    hideBuilder();
+    showDetail(agent);
+  } catch (err) {
+    alert('Failed to deploy agent: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
 function toggleTheme(){
