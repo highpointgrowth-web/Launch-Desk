@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
@@ -14,7 +15,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 const app = express();
 app.use(cors());
 app.use((req, res, next) => {
-  if (req.path === '/api/stripe/webhook') return next();
+  if (req.path === '/api/stripe/webhook' || req.path === '/api/webhooks/retell') return next();
   express.json()(req, res, next);
 });
 
@@ -28,6 +29,76 @@ app.use('/api/leads', leadsRouter);
 app.use('/api/agents', agentsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/stripe', stripeRouter);
+
+function verifyRetellSignature(rawBody, signatureHeader, apiKey) {
+  if (!signatureHeader) return false;
+
+  const match = signatureHeader.match(/v=(\d+),d=(.*)/);
+  if (!match) return false;
+
+  const [, timestamp, digest] = match;
+  const REPLAY_WINDOW_MS = 5 * 60 * 1000;
+  if (Math.abs(Date.now() - Number(timestamp)) > REPLAY_WINDOW_MS) return false;
+
+  const expected = crypto.createHmac('sha256', apiKey).update(rawBody + timestamp).digest('hex');
+  const expectedBuf = Buffer.from(expected, 'utf8');
+  const digestBuf = Buffer.from(digest, 'utf8');
+
+  if (expectedBuf.length !== digestBuf.length) return false;
+  return crypto.timingSafeEqual(expectedBuf, digestBuf);
+}
+
+app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), async (req, res) => {
+  const signature = req.headers['x-retell-signature'];
+  const rawBody = req.body.toString('utf8');
+
+  if (!verifyRetellSignature(rawBody, signature, process.env.RETELL_API_KEY)) {
+    return res.status(401).json({ error: 'Invalid webhook signature' });
+  }
+
+  const payload = JSON.parse(rawBody);
+
+  if (payload.event !== 'call_ended') {
+    return res.json({ received: true });
+  }
+
+  const call = payload.call;
+
+  try {
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id, user_id')
+      .eq('retell_agent_id', call.agent_id)
+      .single();
+
+    if (agentError || !agent) {
+      console.warn(`No agent found for retell_agent_id=${call.agent_id}`);
+      return res.json({ received: true });
+    }
+
+    const durationSeconds =
+      call.start_timestamp && call.end_timestamp
+        ? Math.round((call.end_timestamp - call.start_timestamp) / 1000)
+        : null;
+
+    const { error: insertError } = await supabase.from('call_logs').insert({
+      agent_id: agent.id,
+      user_id: agent.user_id,
+      duration_seconds: durationSeconds,
+      transcript: call.transcript || null,
+      outcome: call.disconnection_reason || null,
+      booked: false,
+    });
+
+    if (insertError) {
+      return res.status(500).json({ error: insertError.message });
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
