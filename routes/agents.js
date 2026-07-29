@@ -1,8 +1,295 @@
 const express = require('express');
-const router = express.Router();
+const Anthropic = require('@anthropic-ai/sdk');
+const { requireAuth } = require('../middleware/auth');
 
-router.get('/', (req, res) => {
-  res.json({ message: 'agents route placeholder' });
+const router = express.Router();
+const anthropic = new Anthropic();
+
+const RETELL_BASE = 'https://api.retellai.com';
+
+router.use(requireAuth);
+
+async function retellFetch(method, path, body) {
+  const res = await fetch(`${RETELL_BASE}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${process.env.RETELL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (res.status === 204) return null;
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(`Retell API error (${res.status}): ${data?.message || res.statusText}`);
+  }
+  return data;
+}
+
+async function scrapeWebsite(url) {
+  const res = await fetch('https://api.firecrawl.dev/v2/scrape', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ url, formats: ['markdown'] }),
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.success) {
+    throw new Error(`Firecrawl scrape failed: ${data?.error || res.statusText}`);
+  }
+  return data.data.markdown;
+}
+
+async function generateSystemPrompt(businessName, niche, scrapedContent) {
+  const response = await anthropic.messages.create({
+    model: 'claude-opus-5',
+    max_tokens: 2000,
+    output_config: { effort: 'medium' },
+    system:
+      "You write system prompts for AI phone voice agents. Given a business's website content, write a " +
+      'complete system prompt for a voice agent that answers calls, represents the business accurately, and ' +
+      'helps with the niche use case described. Respond with only the system prompt text - no preamble, no ' +
+      'explanation, no markdown formatting.',
+    messages: [
+      {
+        role: 'user',
+        content: `Business name: ${businessName}\nNiche/use case: ${niche}\n\nWebsite content:\n${scrapedContent.slice(
+          0,
+          15000
+        )}`,
+      },
+    ],
+  });
+
+  const textBlock = response.content.find((b) => b.type === 'text');
+  return textBlock.text.trim();
+}
+
+function createRetellLlm(generalPrompt, beginMessage) {
+  return retellFetch('POST', '/create-retell-llm', {
+    general_prompt: generalPrompt,
+    ...(beginMessage ? { begin_message: beginMessage } : {}),
+  });
+}
+
+function createRetellAgent(agentName, voiceId, llmId) {
+  return retellFetch('POST', '/create-agent', {
+    agent_name: agentName,
+    voice_id: voiceId,
+    response_engine: { type: 'retell-llm', llm_id: llmId },
+  });
+}
+
+function getRetellAgent(agentId) {
+  return retellFetch('GET', `/get-agent/${agentId}`);
+}
+
+function updateRetellLlm(llmId, fields) {
+  return retellFetch('PATCH', `/update-retell-llm/${llmId}`, fields);
+}
+
+function deleteRetellAgent(agentId) {
+  return retellFetch('DELETE', `/delete-agent/${agentId}`);
+}
+
+router.post('/build', async (req, res) => {
+  const { lead_id, niche, agent_name, voice, greeting, cal_api_key, cal_event_type_id } = req.body;
+
+  if (!lead_id || !niche || !agent_name || !voice) {
+    return res.status(400).json({ error: 'lead_id, niche, agent_name, and voice are required' });
+  }
+
+  const supabase = req.app.locals.supabase;
+
+  try {
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('id', lead_id)
+      .eq('user_id', req.userId)
+      .single();
+
+    if (leadError || !lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    if (!lead.website) {
+      return res.status(400).json({ error: 'Lead has no website to scrape' });
+    }
+
+    const scrapedContent = await scrapeWebsite(lead.website);
+    const systemPrompt = await generateSystemPrompt(lead.business_name, niche, scrapedContent);
+
+    const llm = await createRetellLlm(systemPrompt, greeting);
+    const retellAgent = await createRetellAgent(agent_name, voice, llm.llm_id);
+
+    const { data: agent, error: insertError } = await supabase
+      .from('agents')
+      .insert({
+        user_id: req.userId,
+        lead_id,
+        business_name: lead.business_name,
+        niche,
+        agent_name,
+        voice,
+        greeting: greeting || null,
+        system_prompt: systemPrompt,
+        retell_agent_id: retellAgent.agent_id,
+        retell_phone_number: null,
+        cal_api_key: cal_api_key || null,
+        cal_event_type_id: cal_event_type_id || null,
+        status: 'active',
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      return res.status(500).json({ error: insertError.message });
+    }
+
+    res.status(201).json({ agent });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('user_id', req.userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ agents: data });
+});
+
+router.get('/:id', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (error || !data) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  res.json({ agent: data });
+});
+
+router.put('/:id', async (req, res) => {
+  const { system_prompt, greeting, voice, cal_api_key, cal_event_type_id } = req.body;
+  const updates = {};
+
+  if (system_prompt !== undefined) updates.system_prompt = system_prompt;
+  if (greeting !== undefined) updates.greeting = greeting;
+  if (voice !== undefined) updates.voice = voice;
+  if (cal_api_key !== undefined) updates.cal_api_key = cal_api_key;
+  if (cal_event_type_id !== undefined) updates.cal_event_type_id = cal_event_type_id;
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No updatable fields provided' });
+  }
+
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('agents')
+    .update(updates)
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(404).json({ error: error.message });
+  }
+
+  res.json({ agent: data });
+});
+
+router.delete('/:id', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: agent, error: fetchError } = await supabase
+    .from('agents')
+    .select('retell_agent_id')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (fetchError || !agent) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  if (agent.retell_agent_id) {
+    try {
+      await deleteRetellAgent(agent.retell_agent_id);
+    } catch (err) {
+      // Continue with local deletion even if the Retell-side delete fails
+      // (e.g. the agent was already removed there).
+    }
+  }
+
+  const { error: deleteError } = await supabase
+    .from('agents')
+    .delete()
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId);
+
+  if (deleteError) {
+    return res.status(500).json({ error: deleteError.message });
+  }
+
+  res.status(204).send();
+});
+
+router.post('/:id/sync', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: agent, error } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (error || !agent) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  if (!agent.retell_agent_id) {
+    return res.status(400).json({ error: 'Agent has no linked Retell agent' });
+  }
+
+  try {
+    const retellAgent = await getRetellAgent(agent.retell_agent_id);
+    const llmId = retellAgent.response_engine?.llm_id;
+
+    if (!llmId) {
+      return res.status(400).json({ error: 'Retell agent is not backed by a Retell LLM' });
+    }
+
+    await updateRetellLlm(llmId, {
+      general_prompt: agent.system_prompt,
+      ...(agent.greeting ? { begin_message: agent.greeting } : {}),
+    });
+
+    res.json({ synced: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
