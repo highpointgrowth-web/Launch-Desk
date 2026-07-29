@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<script src="api.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LaunchDesk</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="light"]{
+  --bg:#fafafa;
+  --bg2:#f4f4f6;
+  --surface:#ffffff;
+  --surface2:#f8f8fa;
+  --border:#e8e8ec;
+  --border2:#d8d8e0;
+  --ink:#0a0a0f;
+  --ink2:#6b6b80;
+  --ink3:#a0a0b8;
+  --indigo:#4f46e5;
+  --indigo-dark:#3730a3;
+  --indigo-light:#eef2ff;
+  --indigo-mid:#c7d2fe;
+  --green:#16a34a;
+  --green-bg:#f0fdf4;
+  --red:#dc2626;
+  --red-bg:#fef2f2;
+  --amber:#d97706;
+  --amber-bg:#fffbeb;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+  --shadow-md:0 4px 24px rgba(0,0,0,.08);
+}
+:root[data-theme="dark"]{
+  --bg:#0c0c10;
+  --bg2:#141418;
+  --surface:#18181e;
+  --surface2:#1e1e26;
+  --border:#26262e;
+  --border2:#32323c;
+  --ink:#f0f0f8;
+  --ink2:#8080a0;
+  --ink3:#484860;
+  --indigo:#818cf8;
+  --indigo-dark:#a5b4fc;
+  --indigo-light:#1e1b4b;
+  --indigo-mid:#312e81;
+  --green:#4ade80;
+  --green-bg:#052e16;
+  --red:#f87171;
+  --red-bg:#450a0a;
+  --amber:#fbbf24;
+  --amber-bg:#451a03;
+  --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+  --shadow-md:0 4px 24px rgba(0,0,0,.4);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:13.5px;line-height:1.5}
+.hidden{display:none !important}
+
+/* ── SHELL ── */
+.shell{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;overflow:hidden}
+.content{overflow:auto;background:var(--bg);padding-bottom:8px}
+.content::-webkit-scrollbar{width:5px}
+.content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+/* ── SIGNAL BAR ── */
+.signal-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:38px}
+.signal-left{display:flex;align-items:center;gap:20px}
+.signal-item{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:.67rem;color:var(--ink3);letter-spacing:.03em}
+.signal-item b{color:var(--ink2)}
+.signal-item.live b{color:var(--indigo)}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--indigo);flex:none;animation:sig 1.8s infinite}
+@keyframes sig{0%,100%{box-shadow:0 0 0 0 rgba(79,70,229,.5)}50%{box-shadow:0 0 0 4px rgba(79,70,229,0)}}
+.signal-right{display:flex;align-items:center;gap:16px}
+.signal-right a{font-family:'IBM Plex Mono',monospace;font-size:.67rem;color:var(--ink3);text-decoration:none;letter-spacing:.03em}
+.signal-right a:hover{color:var(--indigo)}
+.signal-right .upgrade{color:var(--indigo);font-weight:500}
+
+/* ── TOP BAR (logo + user only) ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:52px}
+.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:var(--indigo);display:flex;align-items:center;justify-content:center}
+.logo-text{font-weight:700;font-size:.95rem;letter-spacing:-.025em;color:var(--ink)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.icon-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink2);border:1px solid var(--border);background:var(--surface2);transition:all .15s}
+.icon-btn:hover{color:var(--indigo);border-color:var(--indigo-mid)}
+.user-pill{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:99px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s}
+.user-pill:hover{border-color:var(--indigo-mid);box-shadow:0 0 0 3px var(--indigo-light)}
+.user-ava{width:24px;height:24px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.72rem;color:#fff}
+.user-label{font-size:.78rem;font-weight:500;color:var(--ink2)}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 8px;height:60px}
+.nav-link{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border-radius:10px;cursor:pointer;transition:all .15s;color:var(--ink3);border:none;background:none;font-family:'Inter',system-ui,sans-serif;border-top:2px solid transparent}
+.nav-link:hover{color:var(--ink2);background:var(--bg2)}
+.nav-link.active{color:var(--indigo);border-top-color:var(--indigo)}
+.nav-icon{font-size:1.15rem;line-height:1}
+.nav-label{font-size:.62rem;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+
+/* ── PAGE WRAPPER ── */
+.page{display:none;padding:32px}
+.page.active{display:block}
+.page-header{margin-bottom:28px}
+.page-title{font-size:1.4rem;font-weight:700;letter-spacing:-.03em;color:var(--ink)}
+.page-sub{font-size:.82rem;color:var(--ink2);margin-top:3px}
+
+/* ── GRID LAYOUTS ── */
+.dash-grid{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
+.main-col{display:flex;flex-direction:column;gap:20px}
+.side-col{display:flex;flex-direction:column;gap:20px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.card-pad{padding:22px}
+.card-title{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-action{font-size:.78rem;font-weight:500;color:var(--indigo);cursor:pointer}
+.card-action:hover{text-decoration:underline}
+
+/* ── STAT ROW ── */
+.stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:24px}
+.stat-cell{padding:20px 20px 16px;border-right:1px solid var(--border);position:relative}
+.stat-cell:last-child{border-right:none}
+.stat-cell.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--indigo)}
+.stat-label{font-size:.68rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.stat-val{font-size:1.7rem;font-weight:700;letter-spacing:-.04em;color:var(--ink);line-height:1}
+.stat-cell.active .stat-val{color:var(--indigo)}
+.stat-note{font-size:.72rem;color:var(--ink3);margin-top:5px}
+.stat-note b{color:var(--indigo)}
+
+/* ── GOALS ── */
+.goal-stack{display:flex;flex-direction:column;gap:16px}
+.goal-row{}
+.goal-meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.goal-name{font-size:.82rem;font-weight:600;color:var(--ink)}
+.goal-frac{font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink3)}
+.goal-track{height:3px;background:var(--border2);border-radius:99px;overflow:hidden}
+.goal-fill{height:100%;border-radius:99px;background:var(--indigo);transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+/* ── TABLE ── */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:.67rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);padding:0 12px 10px 0;text-align:left;border-bottom:1px solid var(--border)}
+.data-table th:last-child,.data-table td:last-child{text-align:right;padding-right:0}
+.data-table td{padding:11px 12px 11px 0;border-bottom:1px solid var(--border);font-size:.82rem;color:var(--ink2);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr{cursor:pointer;transition:background .1s;border-radius:8px}
+.data-table tbody tr:hover td{background:var(--bg2)}
+.data-table tbody tr:hover td:first-child{border-radius:8px 0 0 8px;padding-left:8px}
+.data-table tbody tr:hover td:last-child{border-radius:0 8px 8px 0}
+.td-primary{font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
+.td-icon{width:26px;height:26px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.78rem;flex:none}
+.score{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--indigo);font-weight:500}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:.67rem;font-weight:600;padding:.2rem .55rem;border-radius:6px;letter-spacing:.02em;white-space:nowrap}
+.b-indigo{background:var(--indigo-light);color:var(--indigo)}
+.b-green{background:var(--green-bg);color:var(--green)}
+.b-amber{background:var(--amber-bg);color:var(--amber)}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-gray{background:var(--bg2);color:var(--ink2);border:1px solid var(--border)}
+.b-dot::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* ── CHECKLIST ── */
+.check-stack{display:flex;flex-direction:column;gap:2px}
+.check-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s}
+.check-item:hover{background:var(--bg2)}
+.checkbox{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex:none;transition:all .15s}
+.checkbox.checked{background:var(--indigo);border-color:var(--indigo)}
+.check-label{font-size:.82rem;color:var(--ink2)}
+.check-item.done .check-label{text-decoration:line-through;color:var(--ink3)}
+
+/* ── LEADERBOARD ── */
+.lb-stack{display:flex;flex-direction:column;gap:1px}
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s}
+.lb-row:hover{background:var(--bg2)}
+.lb-row.you{background:var(--indigo-light);border-radius:8px}
+.lb-rank{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink3);width:18px;text-align:center;flex:none}
+.lb-rank.g{color:#d97706}
+.lb-rank.s{color:#64748b}
+.lb-rank.b{color:#b45309}
+.lb-name{flex:1;font-size:.82rem;font-weight:500;color:var(--ink)}
+.lb-row.you .lb-name{color:var(--indigo);font-weight:600}
+.lb-mrr{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--ink2)}
+.lb-row.you .lb-mrr{color:var(--indigo);font-weight:600}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:.82rem;padding:.55rem 1.1rem;border-radius:9px;border:none;cursor:pointer;transition:all .15s;text-decoration:none;white-space:nowrap;font-family:'Inter',system-ui,sans-serif}
+.btn-indigo{background:var(--indigo);color:#fff}
+.btn-indigo:hover{background:var(--indigo-dark);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,70,229,.3)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--ink2)}
+.btn-ghost:hover{border-color:var(--border2);color:var(--ink);background:var(--bg2)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── SETTINGS ── */
+.settings-layout{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start}
+.settings-nav{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--shadow)}
+.s-nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.82rem;font-weight:500;color:var(--ink2);transition:all .15s}
+.s-nav-item:hover{background:var(--bg2);color:var(--ink)}
+.s-nav-item.active{background:var(--indigo-light);color:var(--indigo);font-weight:600}
+.settings-panels{display:flex;flex-direction:column;gap:16px}
+.s-group{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.s-group-label{font-size:.67rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);padding:16px 20px 0}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+.s-row:last-child{border-bottom:none}
+.s-row:hover{background:var(--bg2)}
+.s-row-left{display:flex;align-items:center;gap:12px}
+.s-icon{width:30px;height:30px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex:none}
+.s-label{font-weight:600;font-size:.82rem;color:var(--ink)}
+.s-meta{font-size:.72rem;color:var(--ink3);margin-top:1px}
+.s-right{display:flex;align-items:center;gap:8px;color:var(--ink3);font-size:.78rem}
+.toggle{width:38px;height:21px;border-radius:99px;background:var(--border2);position:relative;cursor:pointer;transition:background .2s;flex:none}
+.toggle.on{background:var(--indigo)}
+.toggle-knob{position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on .toggle-knob{transform:translateX(17px)}
+.profile-row{display:flex;align-items:center;gap:16px;padding:20px}
+.p-ava{width:48px;height:48px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#fff;flex:none}
+.p-name{font-size:1rem;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.p-email{font-size:.75rem;color:var(--ink3);margin-top:2px}
+.p-plan{margin-top:5px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:64px 32px}
+.empty-icon{font-size:2.2rem;margin-bottom:12px;opacity:.4}
+.empty h3{font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px}
+.empty p{font-size:.8rem;color:var(--ink3);max-width:260px;margin:0 auto 20px;line-height:1.6}
+
+/* ── LEAD FORM ── */
+.find-form{display:grid;grid-template-columns:1fr 1fr 140px auto;gap:10px;align-items:end}
+.f-field{display:flex;flex-direction:column;gap:5px}
+.f-label{font-size:.67rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.55rem .85rem;font-size:.82rem;color:var(--ink);font-family:'Inter',system-ui,sans-serif;outline:none;transition:all .15s}
+.f-input:focus{border-color:var(--indigo);box-shadow:0 0 0 3px var(--indigo-light)}
+
+/* ── COLD CALL ── */
+.coldcall-layout{display:grid;grid-template-columns:1fr 300px;gap:24px;align-items:start}
+.dial-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;display:flex;flex-direction:column;align-items:center;gap:20px;box-shadow:var(--shadow)}
+.dial-number{font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:500;color:var(--ink2);letter-spacing:.06em}
+.dial-sub{font-size:.78rem;color:var(--ink3);text-align:center;margin-top:-14px}
+.call-btn{width:60px;height:60px;border-radius:50%;background:var(--indigo);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;box-shadow:0 4px 14px rgba(79,70,229,.4)}
+.call-btn:hover{transform:scale(1.06);box-shadow:0 6px 20px rgba(79,70,229,.5)}
+.script-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+.script-body{font-size:.82rem;line-height:1.85;color:var(--ink2);white-space:pre-line}
+.script-body strong{color:var(--indigo);font-weight:600}
+
+/* ── AGENT GRID ── */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+
+/* ── AGENT BUILDER ── */
+.builder-steps{display:flex;align-items:center;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 24px;box-shadow:var(--shadow)}
+.builder-step{display:flex;align-items:center;gap:8px;cursor:pointer}
+.bstep-num{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:var(--ink3);transition:all .2s;flex:none}
+.bstep-label{font-size:.8rem;font-weight:500;color:var(--ink3);white-space:nowrap;transition:all .2s}
+.builder-step.active .bstep-num{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.builder-step.active .bstep-label{color:var(--ink);font-weight:600}
+.builder-step.done .bstep-num{background:var(--green);border-color:var(--green);color:#fff}
+.builder-step.done .bstep-label{color:var(--ink2)}
+.bstep-line{flex:1;height:1px;background:var(--border2);margin:0 12px}
+.client-list{display:flex;flex-direction:column;gap:4px;max-height:320px;overflow-y:auto}
+.client-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:9px;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.client-row:hover{background:var(--bg2)}
+.client-row.selected{background:var(--indigo-light);border-color:var(--indigo-mid)}
+.client-avatar{width:32px;height:32px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex:none}
+.client-row.selected .client-avatar{background:var(--indigo-light)}
+.client-info{flex:1;min-width:0}
+.client-name{font-weight:600;font-size:.85rem;color:var(--ink)}
+.client-meta{font-size:.74rem;color:var(--ink3);margin-top:1px}
+.niche-card{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;background:var(--surface)}
+.niche-card:hover{border-color:var(--indigo-mid);background:var(--indigo-light)}
+.niche-card.active{border-color:var(--indigo);background:var(--indigo-light)}
+.niche-icon{font-size:1.2rem;flex:none}
+.niche-name{font-weight:600;font-size:.85rem;color:var(--ink)}
+.niche-desc{font-size:.74rem;color:var(--ink3);margin-top:1px}
+.niche-check{margin-left:auto;color:var(--indigo);font-weight:700;font-size:.85rem;flex:none;transition:opacity .15s}
+.review-row{display:flex;align-items:baseline;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.review-row:last-child{border-bottom:none}
+.review-label{font-size:.75rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3)}
+.review-val{font-size:.85rem;font-weight:500;color:var(--ink)}
+
+/* ── AGENT DETAIL TABS ── */
+.agent-tabbar{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:5px;margin:16px 0;box-shadow:var(--shadow);overflow-x:auto}
+.agent-tab{padding:.45rem 1rem;border-radius:8px;border:none;background:transparent;font-size:.82rem;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:'Inter',system-ui,sans-serif}
+.agent-tab:hover{background:var(--bg2);color:var(--ink)}
+.agent-tab.active{background:var(--indigo);color:#fff;font-weight:600}
+.agent-panel{display:none}
+.agent-panel.active{display:block}
+.agent-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+.agent-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.agent-name{font-weight:700;font-size:.92rem;letter-spacing:-.01em}
+.agent-client{font-size:.75rem;color:var(--ink3);margin-top:2px}
+.agent-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.am{background:var(--bg2);border-radius:8px;padding:10px;text-align:center}
+.am-val{font-weight:700;font-size:1.05rem;letter-spacing:-.02em;color:var(--ink)}
+.am-label{font-size:.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);margin-top:2px}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)">
+  <div class="card card-pad" style="width:340px">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:24px">
+      <div class="logo-mark">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <span class="logo-text">LaunchDesk</span>
+    </div>
+    <div class="page-title" style="font-size:1.05rem;margin-bottom:4px">Log in or sign up</div>
+    <div class="page-sub" style="margin-bottom:20px">Access your LaunchDesk dashboard</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="auth-email" type="email" placeholder="you@business.com"></div>
+      <div class="f-field"><label class="f-label">Password</label><input class="f-input" id="auth-password" type="password" placeholder="••••••••"></div>
+    </div>
+    <div id="auth-error" class="hidden" style="margin-top:12px;padding:10px 12px;background:var(--red-bg);border-radius:8px;font-size:.78rem;color:var(--red)"></div>
+    <div class="btn-row" style="margin-top:18px">
+      <button class="btn btn-indigo" style="flex:1" id="auth-login-btn" onclick="handleLogin()">Log In</button>
+      <button class="btn btn-ghost" style="flex:1" id="auth-signup-btn" onclick="handleSignup()">Sign Up</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell hidden" id="app-root">
+
+  <!-- SIGNAL BAR -->
+  <div class="signal-bar">
+    <div class="signal-left">
+      <div class="signal-item live"><span class="pulse"></span><b>0 agents live</b></div>
+      <div class="signal-item">Calls today: <b>0</b></div>
+      <div class="signal-item">Pipeline: <b>0 leads</b></div>
+      <div class="signal-item">MRR: <b>$0</b></div>
+      <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
+      <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
+    </div>
+    <div class="signal-right">
+      <a href="#">Docs</a>
+      <a href="#">Changelog</a>
+      <a href="#" class="upgrade">↑ Upgrade to Agency</a>
+    </div>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <a class="nav-logo" href="#">
+      <div class="logo-mark">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <span class="logo-text">LaunchDesk</span>
+    </a>
+    <div class="topbar-right">
+      <div class="icon-btn" title="Notifications">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </div>
+      <div class="user-pill" onclick="nav('settings',null)">
+        <div class="user-ava">N</div>
+        <span class="user-label">You · Pro</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-strip">
+        <div class="stat-cell active">
+          <div class="stat-label">Calls Today</div>
+          <div class="stat-val">0</div>
+          <div class="stat-note">Goal: <b>20</b></div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Meetings</div>
+          <div class="stat-val">0</div>
+          <div class="stat-note">in pipeline</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Clients</div>
+          <div class="stat-val">0</div>
+          <div class="stat-note">active</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">MRR</div>
+          <div class="stat-val">$0</div>
+          <div class="stat-note">monthly recurring</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Revenue</div>
+          <div class="stat-val">$0</div>
+          <div class="stat-note">all time</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Proposals</div>
+          <div class="stat-val">0</div>
+          <div class="stat-note">sent today</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="main-col">
+
+          <div class="card card-pad">
+            <div class="card-header">
+              <div class="card-title">Daily Goals</div>
+              <span class="card-action">Edit</span>
+            </div>
+            <div class="goal-stack">
+              <div class="goal-row">
+                <div class="goal-meta"><span class="goal-name">Cold Calls</span><span class="goal-frac">0 / 20</span></div>
+                <div class="goal-track"><div class="goal-fill" style="width:0%"></div></div>
+              </div>
+              <div class="goal-row">
+                <div class="goal-meta"><span class="goal-name">Proposals Sent</span><span class="goal-frac">0 / 5</span></div>
+                <div class="goal-track"><div class="goal-fill" style="width:0%"></div></div>
+              </div>
+              <div class="goal-row">
+                <div class="goal-meta"><span class="goal-name">CRM Updates</span><span class="goal-frac">0 / 10</span></div>
+                <div class="goal-track"><div class="goal-fill" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-pad">
+            <div class="card-header">
+              <div class="card-title">Pipeline</div>
+              <span class="card-action" onclick="nav('crm',null)">View all →</span>
+            </div>
+            <div style="text-align:center;padding:32px;color:var(--ink3)">
+              <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
+              <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
+              <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="side-col">
+          <div class="card card-pad">
+            <div class="card-header"><div class="card-title">Today's Checklist</div></div>
+            <div class="check-stack">
+              <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Make daily cold calls (0/20)</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Update CRM with new leads</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Follow up with warm leads</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Send proposals</span></div>
+              <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Review agent call logs</span></div>
+            </div>
+          </div>
+
+          <div class="card card-pad">
+            <div class="card-header"><div class="card-title">MRR Leaderboard</div></div>
+            <div class="lb-stack">
+              <div style="text-align:center;padding:20px;color:var(--ink3);font-size:.78rem">Leaderboard coming soon — start closing clients to appear here.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADS -->
+    <div class="page" id="page-leads">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div><div class="page-title">Lead Finder</div><div class="page-sub">Scrape Google Maps · AI-scored and ranked · 180 / 1,000 scrapes used</div></div>
+      </div>
+      <div class="card card-pad" style="margin-bottom:20px">
+        <div class="find-form">
+          <div class="f-field"><label class="f-label">Industry</label><input class="f-input" id="lead-industry" placeholder="plumber, HVAC, electrical…"></div>
+          <div class="f-field"><label class="f-label">Location</label><input class="f-input" id="lead-location" placeholder="Dallas, TX"></div>
+          <div class="f-field"><label class="f-label">Radius</label><select class="f-input" id="lead-radius"><option value="10000">10 km</option><option value="25000">25 km</option><option value="50000">50 km</option><option value="100000" selected>100 km</option></select></div>
+          <button class="btn btn-indigo" style="align-self:flex-end" id="lead-search-btn" onclick="handleLeadSearch()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Find & Score
+          </button>
+        </div>
+      </div>
+      <div class="card card-pad">
+        <div class="card-header"><div class="card-title">Results</div><span class="card-action">Export CSV</span></div>
+        <table class="data-table">
+          <thead><tr><th>Business</th><th>Phone</th><th>Rating</th><th>AI Score</th><th>Recommended Agent</th><th>Status</th></tr></thead>
+          <tbody id="leads-results-body">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">Use Find &amp; Score to search for leads.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AGENTS -->
+    <div class="page" id="page-agents">
+
+      <!-- Agent list view -->
+      <div id="agents-list">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
+          <div><div class="page-title">AI Agents</div><div class="page-sub">Build and deploy AI receptionists for your clients</div></div>
+          <button class="btn btn-indigo" onclick="showBuilder()">+ Build Agent</button>
+        </div>
+        <div class="card">
+          <div class="empty">
+            <div class="empty-icon">🤖</div>
+            <h3>No agents deployed yet</h3>
+            <p>Pick a plumbing, HVAC, or electrical template and your agent is answering calls in 15 minutes.</p>
+            <button class="btn btn-indigo" onclick="showBuilder()">Build Your First Agent</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent builder -->
+      <div id="agents-builder" style="display:none">
+        <div class="page-header" style="display:flex;align-items:center;gap:12px">
+          <button class="btn btn-ghost" style="padding:.4rem .8rem;font-size:.78rem" onclick="hideBuilder()">← Back</button>
+          <div><div class="page-title">Build Agent</div><div class="page-sub">Deploy an AI receptionist for your client in minutes</div></div>
+        </div>
+
+        <!-- Step progress -->
+        <div class="builder-steps">
+          <div class="builder-step active" id="bstep-1">
+            <div class="bstep-num">1</div>
+            <div class="bstep-label">Select Client</div>
+          </div>
+          <div class="bstep-line"></div>
+          <div class="builder-step" id="bstep-2">
+            <div class="bstep-num">2</div>
+            <div class="bstep-label">Niche & Knowledge</div>
+          </div>
+          <div class="bstep-line"></div>
+          <div class="builder-step" id="bstep-3">
+            <div class="bstep-num">3</div>
+            <div class="bstep-label">Voice & Calendar</div>
+          </div>
+          <div class="bstep-line"></div>
+          <div class="builder-step" id="bstep-4">
+            <div class="bstep-num">4</div>
+            <div class="bstep-label">Deploy</div>
+          </div>
+        </div>
+
+        <!-- STEP 1: Select Client -->
+        <div class="builder-panel" id="panel-1">
+          <div class="card card-pad">
+            <div class="card-header">
+              <div class="card-title">Select a Client</div>
+              <span class="card-action">+ Add new client manually</span>
+            </div>
+            <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Pick from your CRM — we'll pre-fill their business details automatically.</p>
+            <div class="f-field" style="margin-bottom:16px">
+              <input class="f-input" placeholder="🔍  Search clients…" oninput="filterClients(this.value)">
+            </div>
+            <div class="client-list" id="client-list">
+              <div style="text-align:center;padding:32px;color:var(--ink3)">
+                <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">👤</div>
+                <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No clients in CRM yet</div>
+                <div style="font-size:.75rem">Add leads from Lead Finder first, then build agents for them here.</div>
+              </div>
+            </div>
+            <div style="margin-top:20px;display:flex;justify-content:flex-end">
+              <button class="btn btn-indigo" onclick="goStep(2)" id="step1-next" disabled style="opacity:.4;cursor:not-allowed">Continue →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Niche & Knowledge -->
+        <div class="builder-panel" id="panel-2" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:16px">Your Niche</div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">Pick the industry your client is in. We'll load the right vocabulary, logic, and call handling for that trade.</p>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="f-field">
+                  <label class="f-label">Select Industry</label>
+                  <select class="f-input" id="niche-select" onchange="selectNicheFromDropdown(this.value)">
+                    <option value="">— Pick a niche —</option>
+                    <optgroup label="Home Services">
+                      <option value="plumbing">🔧 Plumbing</option>
+                      <option value="hvac">❄️ HVAC</option>
+                      <option value="electrical">⚡ Electrical</option>
+                      <option value="roofing">🏠 Roofing</option>
+                      <option value="landscaping">🌿 Landscaping</option>
+                      <option value="cleaning">🧹 Cleaning</option>
+                      <option value="pest">🐛 Pest Control</option>
+                      <option value="garage">🚗 Garage Door</option>
+                    </optgroup>
+                    <optgroup label="Professional Services">
+                      <option value="dental">🦷 Dental</option>
+                      <option value="legal">⚖️ Legal</option>
+                      <option value="chiro">💆 Chiropractic</option>
+                      <option value="realestate">🏡 Real Estate</option>
+                      <option value="insurance">📋 Insurance</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                      <option value="custom">✏️ Custom — I'll enter my own</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div class="f-field" id="custom-niche-field" style="display:none">
+                  <label class="f-label">Custom Niche</label>
+                  <input class="f-input" id="custom-niche-input" placeholder="e.g. Auto repair, Med spa, Veterinary…">
+                </div>
+                <div id="niche-preview" style="display:none;background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:9px;padding:12px 14px;font-size:.8rem;color:var(--indigo)">
+                  <b style="display:block;margin-bottom:3px">✓ Template loaded</b>
+                  <span id="niche-preview-text"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card card-pad">
+              <div class="card-header">
+                <div class="card-title">Business Knowledge</div>
+                <span class="card-action" id="scrape-btn" onclick="scrapeWebsite()">✨ Scrape website</span>
+              </div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">Enter your client's website and we'll auto-generate their knowledge base, or fill it in manually.</p>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="f-field">
+                  <label class="f-label">Business Name</label>
+                  <input class="f-input" id="biz-name" placeholder="e.g. Metro Plumbing Co.">
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Website URL</label>
+                  <input class="f-input" id="biz-url" placeholder="https://metroplumbing.com">
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Services Offered</label>
+                  <textarea class="f-input" rows="2" placeholder="e.g. drain cleaning, water heater install, leak repair…" style="resize:none"></textarea>
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Business Hours</label>
+                  <input class="f-input" placeholder="e.g. Mon–Fri 8am–6pm, 24/7 emergency">
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Service Area</label>
+                  <input class="f-input" placeholder="e.g. Austin, TX and surrounding areas">
+                </div>
+              </div>
+              <div id="scrape-status" style="display:none;margin-top:12px;padding:10px 12px;background:var(--green-bg);border-radius:8px;font-size:.78rem;color:var(--green)">✓ Website scraped — knowledge base generated</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:16px">
+            <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+            <button class="btn btn-indigo" onclick="goStep(3)">Continue →</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Voice & Calendar -->
+        <div class="builder-panel" id="panel-3" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:16px">Voice Settings</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div class="f-field">
+                  <label class="f-label">Agent Name</label>
+                  <input class="f-input" placeholder="e.g. Sarah" value="">
+                  <div style="font-size:.72rem;color:var(--ink3);margin-top:4px">This is what callers will hear: "Hi, this is Sarah with Metro Plumbing…"</div>
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Voice</label>
+                  <select class="f-input">
+                    <option>Female — Friendly & Professional</option>
+                    <option>Female — Warm & Calm</option>
+                    <option>Male — Confident & Clear</option>
+                    <option>Male — Friendly & Casual</option>
+                  </select>
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Greeting</label>
+                  <textarea class="f-input" rows="2" style="resize:none">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Language</label>
+                  <select class="f-input">
+                    <option>English (US)</option>
+                    <option>English (UK)</option>
+                    <option>Spanish</option>
+                    <option>French</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:4px">Booking Calendar</div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Connect your client's Cal.com calendar so the agent can book appointments in real time during calls.</p>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div class="f-field">
+                  <label class="f-label">Cal.com Link</label>
+                  <input class="f-input" placeholder="https://cal.com/metroplumbing/service">
+                </div>
+                <div style="background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:10px;padding:14px;font-size:.8rem;color:var(--indigo)">
+                  <b style="display:block;margin-bottom:4px">📅 How this works</b>
+                  The agent checks real-time availability during the call and books directly into open slots — no double-booking, no follow-up needed.
+                </div>
+                <div class="f-field">
+                  <label class="f-label">After-Hours Handling</label>
+                  <select class="f-input">
+                    <option>Take a message + send SMS confirmation</option>
+                    <option>Book next available slot automatically</option>
+                    <option>Emergency escalation to on-call number</option>
+                  </select>
+                </div>
+                <div class="f-field">
+                  <label class="f-label">Escalation Number (optional)</label>
+                  <input class="f-input" placeholder="Number to transfer true emergencies">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:16px">
+            <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+            <button class="btn btn-indigo" onclick="goStep(4)">Continue →</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: Deploy -->
+        <div class="builder-panel" id="panel-4" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:16px">Review & Deploy</div>
+              <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
+                <div class="review-row"><span class="review-label">Client</span><span class="review-val" id="rev-client">Metro Plumbing Co.</span></div>
+                <div class="review-row"><span class="review-label">Niche Template</span><span class="review-val" id="rev-niche">🔧 Plumbing</span></div>
+                <div class="review-row"><span class="review-label">Agent Name</span><span class="review-val">Sarah</span></div>
+                <div class="review-row"><span class="review-label">Voice</span><span class="review-val">Female — Friendly & Professional</span></div>
+                <div class="review-row"><span class="review-label">Calendar</span><span class="review-val">cal.com/metroplumbing/service</span></div>
+                <div class="review-row"><span class="review-label">After-Hours</span><span class="review-val">Take a message + SMS</span></div>
+              </div>
+              <div class="card-title" style="margin-bottom:12px">Phone Number</div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">Your client forwards their existing number to this dedicated agent line, or uses it directly.</p>
+              <div style="display:flex;gap:10px;align-items:center">
+                <div style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:.7rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--ink2)">(512) 555-0100 — auto-assigned on deploy</div>
+                <button class="btn btn-ghost" style="font-size:.78rem">Choose area code</button>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div class="card card-pad" style="background:var(--indigo);border-color:var(--indigo)">
+                <div style="color:#fff;font-weight:700;font-size:1rem;margin-bottom:6px">Ready to go live</div>
+                <div style="color:rgba(255,255,255,.7);font-size:.8rem;margin-bottom:20px;line-height:1.5">LaunchDesk will automatically create the agent on Retell, assign the number, and connect the calendar. Your client's agent will be live in under 60 seconds.</div>
+                <button class="btn" style="background:#fff;color:var(--indigo);width:100%;font-size:.9rem;padding:.75rem" onclick="deployAgent()">🚀 Deploy Agent</button>
+              </div>
+              <div class="card card-pad">
+                <div class="card-title" style="margin-bottom:10px">What happens next</div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="display:flex;gap:10px;font-size:.8rem">
+                    <div style="width:20px;height:20px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">1</div>
+                    <div style="color:var(--ink2)">Agent created on Retell with your niche prompt</div>
+                  </div>
+                  <div style="display:flex;gap:10px;font-size:.8rem">
+                    <div style="width:20px;height:20px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">2</div>
+                    <div style="color:var(--ink2)">Phone number purchased and assigned</div>
+                  </div>
+                  <div style="display:flex;gap:10px;font-size:.8rem">
+                    <div style="width:20px;height:20px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">3</div>
+                    <div style="color:var(--ink2)">Cal.com calendar connected for live booking</div>
+                  </div>
+                  <div style="display:flex;gap:10px;font-size:.8rem">
+                    <div style="width:20px;height:20px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">4</div>
+                    <div style="color:var(--ink2)">Agent goes live — call logs appear in your dashboard</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-start;margin-top:16px">
+            <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+          </div>
+        </div>
+
+      </div><!-- /builder -->
+
+      <!-- AGENT DETAIL VIEW -->
+      <div id="agents-detail" style="display:none">
+        <div class="page-header" style="display:flex;align-items:center;gap:12px;margin-bottom:0">
+          <button class="btn btn-ghost" style="padding:.4rem .8rem;font-size:.78rem" onclick="hideDetail()">← Agents</button>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="page-title" style="font-size:1.1rem">Agent Name</div>
+              <span class="badge b-green b-dot">Live</span>
+            </div>
+            <div class="page-sub">Configure your agent details</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-ghost" style="font-size:.78rem;color:var(--red)">🗑 Delete</button>
+          </div>
+        </div>
+
+        <!-- agent tab bar -->
+        <div class="agent-tabbar">
+          <button class="agent-tab active" onclick="agentTab('prompt',this)">Prompt</button>
+          <button class="agent-tab" onclick="agentTab('business',this)">Business</button>
+          <button class="agent-tab" onclick="agentTab('calendar',this)">Calendar</button>
+          <button class="agent-tab" onclick="agentTab('phone',this)">Phone</button>
+          <button class="agent-tab" onclick="agentTab('test',this)">🎙 Test Call</button>
+          <button class="agent-tab" onclick="agentTab('aifix',this)">✨ AI Fix</button>
+          <button class="agent-tab" onclick="agentTab('calls',this)">Call Logs</button>
+          <button class="agent-tab" onclick="agentTab('proposal',this)">Proposal</button>
+        </div>
+
+        <!-- PROMPT TAB -->
+        <div class="agent-panel active" id="atab-prompt">
+          <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div class="card card-pad">
+                <div class="card-header"><div class="card-title">Welcome Message</div></div>
+                <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">The first thing your agent says when it picks up the call.</p>
+                <textarea class="f-input" rows="3" style="resize:none;width:100%">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
+              </div>
+              <div class="card card-pad">
+                <div class="card-header"><div class="card-title">Agent Instructions</div><span class="card-action">Save & Sync</span></div>
+                <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">Controls how the agent speaks — tone, behavior, escalation rules. Business facts live in the Business tab.</p>
+                <textarea class="f-input" rows="10" style="resize:none;width:100%;font-family:'IBM Plex Mono',monospace;font-size:.78rem">You are Sarah, a friendly and professional AI receptionist for Metro Plumbing Co., a plumbing company serving Austin, TX.
+
+Your job is to:
+1. Greet callers warmly and identify their needs
+2. Answer common questions about services, pricing ranges, and availability
+3. Book appointments using the calendar tool when callers are ready
+4. Transfer emergency calls immediately to the on-call technician
+
+Services: Drain cleaning, water heater repair/install, leak detection, pipe repair, sewer line service.
+
+Emergency: If caller mentions flooding, burst pipe, or no water — treat as emergency and offer immediate transfer.
+
+Tone: Warm, confident, helpful. Never say you're an AI unless directly asked. Keep responses concise.</textarea>
+              </div>
+              <div class="card card-pad">
+                <div class="card-header"><div class="card-title">Call Transfer</div></div>
+                <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">Transfer calls to this number when a caller requests a human or in an emergency.</p>
+                <input class="f-input" placeholder="e.g. (512) 555-0100 — leave blank to disable">
+              </div>
+              <div style="display:flex;gap:10px">
+                <button class="btn btn-indigo" style="flex:1">Save & Sync to Agent</button>
+              </div>
+            </div>
+            <div class="card card-pad" style="align-self:start">
+              <div class="card-title" style="margin-bottom:12px">✨ Generate with AI</div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:12px">Describe your client's business and desired behavior — AI will write the full prompt.</p>
+              <textarea class="f-input" rows="4" style="resize:none;width:100%;margin-bottom:10px" placeholder="e.g. Plumbing company in Austin TX, specializes in residential drain cleaning and water heater installs, 24/7 emergency service, books via Cal.com…"></textarea>
+              <button class="btn btn-ghost" style="width:100%">Generate Prompt with AI</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUSINESS TAB -->
+        <div class="agent-panel" id="atab-business">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="card card-pad">
+              <div class="card-header"><div class="card-title">Business Profile</div><span class="card-action">Save Profile</span></div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">Used for proposals, demos, and AI-generated pain points. Not directly part of the agent prompt.</p>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="f-field"><label class="f-label">Business Name</label><input class="f-input" value=""></div>
+                <div class="f-field"><label class="f-label">Industry</label><input class="f-input" value=""></div>
+                <div class="f-field"><label class="f-label">Description</label><textarea class="f-input" rows="2" style="resize:none">Residential and commercial plumbing services in Austin, TX. Specializing in drain cleaning, water heaters, and emergency repairs.</textarea></div>
+                <div class="f-field"><label class="f-label">Target Customers</label><input class="f-input" value="Homeowners and small businesses in Austin, TX"></div>
+                <div class="f-field"><label class="f-label">Services (one per line)</label><textarea class="f-input" rows="3" style="resize:none">Drain cleaning
+Water heater repair & install
+Leak detection
+Pipe repair
+Sewer line service</textarea></div>
+              </div>
+            </div>
+            <div class="card card-pad">
+              <div class="card-header"><div class="card-title">AI Insights</div><span class="card-action">Regenerate</span></div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">Auto-generated from your business profile. Used in proposals and demos.</p>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="f-field"><label class="f-label">Pain Points</label><textarea class="f-input" rows="3" style="resize:none">Missing calls after hours and on weekends
+No system to handle multiple calls simultaneously
+Spending time on calls that could be automated</textarea></div>
+                <div class="f-field"><label class="f-label">Goals</label><textarea class="f-input" rows="3" style="resize:none">Never miss a lead again
+Book more appointments without hiring staff
+Look more professional to customers</textarea></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CALENDAR TAB -->
+        <div class="agent-panel" id="atab-calendar">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="card card-pad">
+              <div class="card-header"><div class="card-title">📅 Cal.com Integration</div><span class="card-action">Save & Test</span></div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">LaunchDesk splits availability checking and booking into two separate connections for reliability.</p>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="background:var(--bg2);border-radius:10px;padding:14px">
+                  <div style="font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px">Check Availability</div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <div class="f-field"><label class="f-label">API Key</label><input class="f-input" placeholder="cal_live_…" type="password"></div>
+                    <div class="f-field"><label class="f-label">Event Type ID</label><input class="f-input" placeholder="e.g. 123456"></div>
+                    <div class="f-field"><label class="f-label">Timezone</label><select class="f-input"><option>America/Chicago</option><option>America/New_York</option><option>America/Los_Angeles</option><option>America/Denver</option></select></div>
+                  </div>
+                </div>
+                <div style="background:var(--bg2);border-radius:10px;padding:14px">
+                  <div style="font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px">Book Appointment</div>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <div class="f-field"><label class="f-label">API Key</label><input class="f-input" placeholder="cal_live_…" type="password"></div>
+                    <div class="f-field"><label class="f-label">Event Type ID</label><input class="f-input" placeholder="e.g. 123456"></div>
+                  </div>
+                </div>
+                <button class="btn btn-indigo">Save Cal Settings</button>
+              </div>
+            </div>
+            <div class="card card-pad" style="align-self:start">
+              <div class="card-title" style="margin-bottom:12px">How it works</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">1</div><div style="color:var(--ink2)">Caller asks to book — agent checks real-time availability</div></div>
+                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">2</div><div style="color:var(--ink2)">Caller picks a time — agent confirms and books the slot</div></div>
+                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68sm;flex:none">3</div><div style="color:var(--ink2)">Caller gets an SMS confirmation — you see it in Booked Meetings</div></div>
+              </div>
+              <div style="margin-top:16px">
+                <button class="btn btn-ghost" style="width:100%;margin-bottom:8px">Test Availability</button>
+                <a href="https://cal.com" target="_blank" style="display:block;text-align:center;font-size:.78rem;color:var(--indigo)">📹 Cal.com setup guide →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHONE TAB -->
+        <div class="agent-panel" id="atab-phone">
+          <div class="card card-pad" style="max-width:540px">
+            <div class="card-header"><div class="card-title">Phone Number</div><span style="font-family:'IBM Plex Mono',monospace;font-size:.72rem;color:var(--ink3)">$2.20/mo per number</span></div>
+            <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Buy a dedicated US number for this agent. Your client forwards their existing number to it, or uses it directly.</p>
+            <div style="display:flex;gap:10px;margin-bottom:20px">
+              <input class="f-input" placeholder="Area code (e.g. 512) — leave blank for any" style="flex:1">
+              <button class="btn btn-indigo">Search & Buy</button>
+            </div>
+            <div style="background:var(--bg2);border-radius:10px;padding:16px;text-align:center">
+              <div style="font-size:.82rem;color:var(--ink3);margin-bottom:8px">No number purchased yet</div>
+              <div style="font-size:.75rem;color:var(--ink3)">Numbers are billed monthly and can be released any time.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEST CALL TAB -->
+        <div class="agent-panel" id="atab-test">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div class="card card-pad" style="text-align:center;padding:40px">
+              <div style="font-size:2.5rem;margin-bottom:16px">🎙</div>
+              <div style="font-weight:700;font-size:1.05rem;margin-bottom:8px;color:var(--ink)">Test Your Agent Live</div>
+              <p style="font-size:.82rem;color:var(--ink3);max-width:280px;margin:0 auto 24px;line-height:1.6">Start a live web call to talk to your AI receptionist right now. See the full conversation transcript in real time.</p>
+              <button class="btn btn-indigo" style="font-size:.95rem;padding:.75rem 2rem">Start Test Call</button>
+              <div style="margin-top:16px;font-size:.75rem;color:var(--ink3)">Uses your browser microphone · No phone number needed</div>
+            </div>
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:12px">Live Transcript</div>
+              <div style="background:var(--bg2);border-radius:10px;padding:16px;min-height:200px;display:flex;align-items:center;justify-content:center">
+                <div style="text-align:center;color:var(--ink3);font-size:.82rem">Start a test call to see the transcript here in real time</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI FIX TAB -->
+        <div class="agent-panel" id="atab-aifix">
+          <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:6px">✨ AI Agent Fixer</div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Describe a problem with your agent. LaunchDesk will analyze recent call transcripts, find the root cause, and suggest a fix — to the prompt or the knowledge base — for your approval before applying.</p>
+              <textarea class="f-input" rows="4" style="resize:none;width:100%;margin-bottom:12px" placeholder="e.g. The agent is quoting prices when callers ask — I don't want it to do that. Or: It's not handling emergency calls correctly…"></textarea>
+              <button class="btn btn-indigo">Diagnose & Fix</button>
+            </div>
+            <div class="card card-pad" style="align-self:start">
+              <div class="card-title" style="margin-bottom:12px">How AI Fix works</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">1</div><div style="color:var(--ink2)">Describe the issue in plain English</div></div>
+                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">2</div><div style="color:var(--ink2)">AI reads your recent call transcripts to find patterns</div></div>
+                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">3</div><div style="color:var(--ink2)">AI proposes a fix — you approve before anything changes</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CALLS TAB -->
+        <div class="agent-panel" id="atab-calls">
+          <div class="card card-pad">
+            <div class="card-header">
+              <div class="card-title">Call Logs</div>
+              <div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem">Export CSV</button><button class="btn btn-ghost" style="font-size:.75rem">Sync to Airtable</button><button class="btn btn-indigo" style="font-size:.75rem">Load Calls</button></div>
+            </div>
+            <div style="text-align:center;padding:40px;color:var(--ink3)">
+              <div style="font-size:1.8rem;margin-bottom:10px;opacity:.4">📞</div>
+              <div style="font-size:.88rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No calls yet</div>
+              <div style="font-size:.78rem">Once your agent is live and taking calls, transcripts and outcomes will appear here.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROPOSAL TAB -->
+        <div class="agent-panel" id="atab-proposal">
+          <div style="display:grid;grid-template-columns:1fr 300px;gap:20px">
+            <div class="card card-pad">
+              <div class="card-header"><div class="card-title">Proposals</div><span class="card-action">Edit Default Template</span></div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Generate an AI-powered proposal for this client using their business profile and pain points.</p>
+              <div style="text-align:center;padding:32px;background:var(--bg2);border-radius:10px">
+                <div style="font-size:.88rem;font-weight:600;color:var(--ink2);margin-bottom:12px">No proposals yet</div>
+                <button class="btn btn-indigo">✨ Generate Proposal with AI</button>
+              </div>
+            </div>
+            <div class="card card-pad" style="align-self:start">
+              <div class="card-title" style="margin-bottom:12px">Send Proposal</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="f-field"><label class="f-label">Recipient Email</label><input class="f-input" placeholder="client@business.com"></div>
+                <div style="background:var(--amber-bg);border-radius:8px;padding:10px 12px;font-size:.75rem;color:var(--amber)">⚠️ Connect your email in Settings to send proposals</div>
+                <button class="btn btn-ghost" style="width:100%">Connect Email</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /agent detail -->
+
+    </div>
+
+    <!-- CRM -->
+    <div class="page" id="page-crm">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div><div class="page-title">CRM</div><div class="page-sub">0 leads · add your first from Lead Finder</div></div>
+        <div class="btn-row"><button class="btn btn-ghost">Import CSV</button><button class="btn btn-indigo">+ Add Lead</button></div>
+      </div>
+      <div class="stat-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
+        <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">To Contact</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Contacted</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell active"><div class="stat-label">Meeting</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" style="font-size:1.4rem">0</div></div>
+      </div>
+      <div class="card card-pad">
+        <table class="data-table">
+          <thead><tr><th>Business</th><th>Phone</th><th>Location</th><th>Score</th><th>Stage</th><th>Sentiment</th></tr></thead>
+          <tbody>
+            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Metro Plumbing Co.</span></td><td>(512) 555-0192</td><td>Austin, TX</td><td><span class="score">85</span></td><td><span class="badge b-indigo b-dot">Meeting</span></td><td><span class="badge b-green">Interested</span></td></tr>
+            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Sunrise HVAC</span></td><td>(214) 555-0147</td><td>Dallas, TX</td><td><span class="score">95</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
+            <tr><td><span class="td-primary"><span class="td-icon">🏠</span>Apex Electrical</span></td><td>(303) 555-0183</td><td>Denver, CO</td><td><span class="score">96</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
+            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Riverstone Plumbing</span></td><td>(469) 555-0211</td><td>Plano, TX</td><td><span class="score">87</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
+            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Peak Home Services</span></td><td>(972) 555-0164</td><td>Fort Worth, TX</td><td><span class="score">91</span></td><td><span class="badge b-gray b-dot">New</span></td><td><span class="badge b-green">Interested</span></td></tr>
+            <tr><td><span class="td-primary"><span class="td-icon">🔧</span>Crestview Plumbing</span></td><td>(817) 555-0229</td><td>Arlington, TX</td><td><span class="score">75</span></td><td><span class="badge b-amber b-dot">Contacted</span></td><td><span class="badge b-green">Interested</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- COLD CALL -->
+    <div class="page" id="page-coldcall">
+      <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub">0 calls today · 0 leads in queue</div></div>
+      <div class="coldcall-layout">
+        <div class="script-card">
+          <div class="card-header"><div class="card-title">Call Script</div><span class="card-action">Edit</span></div>
+          <div class="script-body">Hey <strong>[Name]</strong>, this is <strong>[Your Name]</strong> with LaunchDesk.
+
+I noticed your business and wanted to reach out — we help home-service companies like yours never miss a call again. Our AI answers your phones, books jobs, and handles FAQs 24/7 so you capture every lead even when you're on a job site.
+
+Do you have 30 seconds to hear how it works?
+
+<strong>[If yes:]</strong>
+Most of our clients see 15–30% more booked appointments in the first month just from capturing calls they were missing before. We set it up, you just forward your number.
+
+Would a quick 15-minute call this week make sense so I can show you exactly how it'd work for your business?
+
+<strong>[Objection — not interested:]</strong>
+Totally get it. Is it because you already have call coverage handled, or just not top of mind right now?
+
+<strong>[Objection — send info:]</strong>
+Happy to. What's the biggest headache with missed calls for you right now — so I send the right thing?</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="dial-card">
+            <div style="text-align:center">
+              <div style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Next Lead</div>
+              <div style="font-size:1rem;font-weight:700;color:var(--ink);letter-spacing:-.01em;margin-bottom:4px">Sunrise HVAC</div>
+              <div class="dial-number">No leads queued</div>
+              <div style="margin-top:4px"><span class="badge b-indigo">Score 95</span></div>
+            </div>
+            <button class="call-btn">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.1a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </button>
+            <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <button class="btn btn-indigo" style="font-size:.78rem">✓ Interested</button>
+                <button class="btn btn-ghost" style="font-size:.78rem">📅 Meeting</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <button class="btn btn-ghost" style="font-size:.78rem">📵 No Answer</button>
+                <button class="btn btn-ghost" style="font-size:.78rem">⏭ Skip</button>
+              </div>
+            </div>
+            <div style="width:100%">
+              <div style="font-size:.67rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px">Call Notes</div>
+              <textarea style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.82rem;color:var(--ink);font-family:'Inter',system-ui,sans-serif;resize:none;outline:none;line-height:1.5;transition:border-color .15s" rows="3" placeholder="Type notes during the call…" onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+            </div>
+          </div>
+          <div class="card card-pad">
+            <div class="card-title" style="margin-bottom:12px">Today's Stats</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div class="am"><div class="am-val">0</div><div class="am-label">Calls</div></div>
+              <div class="am"><div class="am-val">0</div><div class="am-label">Interested</div></div>
+              <div class="am"><div class="am-val">0</div><div class="am-label">Meetings</div></div>
+              <div class="am"><div class="am-val">0</div><div class="am-label">No Answer</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYBOOK -->
+    <div class="page" id="page-playbook">
+      <div class="page-header"><div class="page-title">Agency Playbook</div><div class="page-sub">Everything you need to close your first client and scale</div></div>
+      <div class="card card-pad">
+        <table class="data-table">
+          <thead><tr><th>Module</th><th>Category</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><span class="td-primary">Cold Call Frameworks</span></td><td style="color:var(--ink3)">Sales & Outreach</td><td><span class="badge b-indigo">Popular</span></td></tr>
+            <tr><td><span class="td-primary">Offer Builder</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr><td><span class="td-primary">Script Vault</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr><td><span class="td-primary">Objection Library</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr><td><span class="td-primary">Client Onboarding SOP</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
+            <tr><td><span class="td-primary">Pricing & Packaging Guide</span></td><td style="color:var(--ink3)">Sales & Outreach</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr><td><span class="td-primary">Agency Growth Playbook</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
+            <tr><td><span class="td-primary">Proposal & Contract Templates</span></td><td style="color:var(--ink3)">Tools & Templates</td><td></td></tr>
+            <tr><td><span class="td-primary">ROI Calculator</span></td><td style="color:var(--ink3)">Tools & Templates</td><td></td></tr>
+            <tr><td><span class="td-primary">Niche Deep Dives — Plumbing, HVAC, Electrical</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="page-header"><div class="page-title">Settings</div><div class="page-sub">Account, appearance & integrations</div></div>
+      <div class="settings-layout">
+        <div class="settings-nav">
+          <div class="s-nav-item active">Account</div>
+          <div class="s-nav-item">Appearance</div>
+          <div class="s-nav-item">Integrations</div>
+          <div class="s-nav-item">Billing</div>
+          <div class="s-nav-item">Support</div>
+        </div>
+        <div class="settings-panels">
+          <div class="s-group">
+            <div class="profile-row">
+              <div class="p-ava">N</div>
+              <div>
+                <div class="p-name">Your Name</div>
+                <div class="p-email">yourname@email.com</div>
+                <div class="p-plan"><span class="badge b-indigo">Pro · $49/mo</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="s-group">
+            <div class="s-group-label">Appearance</div>
+            <div class="s-row" onclick="toggleTheme()">
+              <div class="s-row-left">
+                <div class="s-icon" id="theme-icon">🌙</div>
+                <div><div class="s-label">Dark Mode</div><div class="s-meta">Switch between light and dark interface</div></div>
+              </div>
+              <div class="toggle" id="theme-toggle"><div class="toggle-knob"></div></div>
+            </div>
+          </div>
+
+          <div class="s-group">
+            <div class="s-group-label">Integrations</div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">📅</div><div><div class="s-label">Cal.com</div><div class="s-meta">Booking calendar for your agents</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">💳</div><div><div class="s-label">Stripe</div><div class="s-meta">Collect client payments</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">📧</div><div><div class="s-label">Email</div><div class="s-meta">Send proposals from your address</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Zapier</div><div class="s-meta">Automate your workflow</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
+          </div>
+
+          <div class="s-group">
+            <div class="s-group-label">Plan & Billing</div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Pro Plan</div><div class="s-meta">$49/mo · 1,000 scrapes · Unlimited agents</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="#" onclick="handleManagePlan(); return false;" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">🔗</div><div><div class="s-label">Affiliate Program</div><div class="s-meta">Earn 30% recurring commission per referral</div></div></div><div class="s-right"><a href="https://billing.stripe.com/p/login/9B614f58Bb1l53t8nQcZa00" target="_blank" style="color:var(--ink3);text-decoration:none">Join →</a></div></div>
+          </div>
+
+          <div class="s-group">
+            <div class="s-group-label">Security</div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">🔑</div><div><div class="s-label">API Keys</div><div class="s-meta">Connect external tools</div></div></div><div class="s-right">→</div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">🔒</div><div><div class="s-label">Change Password</div></div></div><div class="s-right">→</div></div>
+            <div class="s-row" onclick="handleLogout()"><div class="s-row-left"><div class="s-icon">🚪</div><div><div class="s-label" style="color:var(--red)">Log Out</div></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-link active" id="nav-dashboard" onclick="nav('dashboard',this)">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Dashboard</span>
+    </button>
+    <button class="nav-link" id="nav-leads" onclick="nav('leads',this)">
+      <span class="nav-icon">🔍</span>
+      <span class="nav-label">Leads</span>
+    </button>
+    <button class="nav-link" id="nav-agents" onclick="nav('agents',this)">
+      <span class="nav-icon">🤖</span>
+      <span class="nav-label">Agents</span>
+    </button>
+    <button class="nav-link" id="nav-crm" onclick="nav('crm',this)">
+      <span class="nav-icon">🗂️</span>
+      <span class="nav-label">CRM</span>
+    </button>
+    <button class="nav-link" id="nav-coldcall" onclick="nav('coldcall',this)">
+      <span class="nav-icon">📞</span>
+      <span class="nav-label">Cold Call</span>
+    </button>
+    <button class="nav-link" id="nav-playbook" onclick="nav('playbook',this)">
+      <span class="nav-icon">📚</span>
+      <span class="nav-label">Playbook</span>
+    </button>
+    <button class="nav-link" id="nav-settings" onclick="nav('settings',this)">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Settings</span>
+    </button>
+  </nav>
+
+</div>
+
+<script>
+function nav(name, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active'));
+  const page=document.getElementById('page-'+name);
+  if(page)page.classList.add('active');
+  const btn=document.getElementById('nav-'+name);
+  if(btn)btn.classList.add('active');
+  document.querySelector('.content').scrollTop=0;
+}
+function toggleCheck(el){
+  el.classList.toggle('done');
+  const cb=el.querySelector('.checkbox');
+  cb.classList.toggle('checked');
+  cb.innerHTML=cb.classList.contains('checked')
+    ?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>'
+    :'';
+}
+function showDetail(){
+  document.getElementById('agents-list').style.display='none';
+  document.getElementById('agents-builder').style.display='none';
+  document.getElementById('agents-detail').style.display='block';
+}
+function hideDetail(){
+  document.getElementById('agents-detail').style.display='none';
+  document.getElementById('agents-list').style.display='block';
+}
+function agentTab(name, el){
+  document.querySelectorAll('.agent-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.agent-tab').forEach(t=>t.classList.remove('active'));
+  const panel = document.getElementById('atab-'+name);
+  if(panel) panel.classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// Builder
+let selectedClient = null;
+let selectedNiche = 'plumbing';
+
+function showBuilder(){
+  document.getElementById('agents-list').style.display='none';
+  document.getElementById('agents-builder').style.display='block';
+  goStep(1);
+}
+function hideBuilder(){
+  document.getElementById('agents-list').style.display='block';
+  document.getElementById('agents-builder').style.display='none';
+}
+function goStep(n){
+  for(let i=1;i<=4;i++){
+    const panel=document.getElementById('panel-'+i);
+    const step=document.getElementById('bstep-'+i);
+    if(panel) panel.style.display = i===n ? 'block' : 'none';
+    if(step){
+      step.classList.remove('active','done');
+      if(i===n) step.classList.add('active');
+      else if(i<n) step.classList.add('done');
+    }
+  }
+}
+function selectClient(el, name, location, phone, niche){
+  document.querySelectorAll('.client-row').forEach(r=>r.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedClient = {name, location, phone, niche};
+  const nextBtn = document.getElementById('step1-next');
+  nextBtn.disabled = false;
+  nextBtn.style.opacity = '1';
+  nextBtn.style.cursor = 'pointer';
+  // Pre-fill step 2
+  const bizName = document.getElementById('biz-name');
+  if(bizName) bizName.value = name;
+  // Pre-select niche
+  selectNiche(niche.toLowerCase());
+  // Pre-fill review
+  const revClient = document.getElementById('rev-client');
+  if(revClient) revClient.textContent = name;
+}
+function filterClients(q){
+  document.querySelectorAll('.client-row').forEach(r=>{
+    const name = r.querySelector('.client-name').textContent.toLowerCase();
+    r.style.display = name.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function selectNicheFromDropdown(val){
+  const customField = document.getElementById('custom-niche-field');
+  const preview = document.getElementById('niche-preview');
+  const previewText = document.getElementById('niche-preview-text');
+  const labels = {
+    plumbing:'Plumbing agent — leaks, clogs, water heaters, emergency dispatch',
+    hvac:'HVAC agent — AC repair, furnace, tune-ups, seasonal maintenance',
+    electrical:'Electrical agent — panel upgrades, outlets, lighting, emergency calls',
+    roofing:'Roofing agent — inspections, repairs, insurance claims, bookings',
+    landscaping:'Landscaping agent — quotes, seasonal services, recurring bookings',
+    cleaning:'Cleaning agent — residential & commercial, scheduling, quotes',
+    pest:'Pest Control agent — inspections, treatments, follow-up scheduling',
+    garage:'Garage Door agent — repairs, installs, emergency service',
+    dental:'Dental agent — appointments, new patients, insurance questions',
+    legal:'Legal agent — consultations, case inquiries, intake',
+    chiro:'Chiropractic agent — new patient bookings, follow-ups',
+    realestate:'Real Estate agent — buyer/seller inquiries, showing bookings',
+    insurance:'Insurance agent — quotes, claims, policy questions',
+    custom:'Custom niche — you define the industry and logic'
+  };
+  if(val === 'custom'){
+    customField.style.display = 'block';
+    preview.style.display = 'none';
+  } else if(val){
+    customField.style.display = 'none';
+    preview.style.display = 'block';
+    previewText.textContent = labels[val] || val;
+  } else {
+    customField.style.display = 'none';
+    preview.style.display = 'none';
+  }
+  selectedNiche = val;
+  const revNiche = document.getElementById('rev-niche');
+  if(revNiche) revNiche.textContent = val ? (document.getElementById('niche-select').options[document.getElementById('niche-select').selectedIndex].text) : '—';
+}
+function selectNiche(n){ selectedNiche = n; }
+function scrapeWebsite(){
+  const btn = document.getElementById('scrape-btn');
+  btn.textContent = '⏳ Scraping…';
+  setTimeout(()=>{
+    btn.textContent = '✨ Scrape website';
+    document.getElementById('scrape-status').style.display='block';
+  }, 2000);
+}
+function deployAgent(){
+  const btn = event.target;
+  btn.textContent = '⏳ Deploying…';
+  btn.disabled = true;
+  setTimeout(()=>{
+    btn.textContent = '✅ Agent Live!';
+    setTimeout(()=>{
+      hideBuilder();
+      showDetail();
+    }, 1000);
+  }, 2000);
+}
+
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')==='dark';
+  html.setAttribute('data-theme',isDark?'light':'dark');
+  document.getElementById('theme-toggle').classList.toggle('on',!isDark);
+  document.getElementById('theme-icon').textContent=isDark?'🌙':'☀️';
+}
+
+// ── AUTH ──
+function setAuthError(msg){
+  const el = document.getElementById('auth-error');
+  if(!msg){ el.classList.add('hidden'); el.textContent = ''; return; }
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function showAuthScreen(){
+  document.getElementById('app-root').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+function enterApp(){
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-root').classList.remove('hidden');
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  setAuthError('');
+  loadUserStats();
+}
+
+async function handleLogin(){
+  setAuthError('');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if(!email || !password){ setAuthError('Email and password are required.'); return; }
+  const btn = document.getElementById('auth-login-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Logging in…';
+  try {
+    await API.auth.login({ email, password });
+    enterApp();
+  } catch (err) {
+    setAuthError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function handleSignup(){
+  setAuthError('');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if(!email || !password){ setAuthError('Email and password are required.'); return; }
+  const btn = document.getElementById('auth-signup-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Signing up…';
+  try {
+    await API.auth.signup({ email, password });
+    await API.auth.login({ email, password });
+    enterApp();
+  } catch (err) {
+    setAuthError(err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function handleLogout(){
+  try {
+    await API.auth.logout();
+  } catch (err) {
+    // token may already be invalid/expired — proceed to the login screen regardless
+  }
+  showAuthScreen();
+}
+
+async function loadUserStats(){
+  try {
+    const { user } = await API.auth.getMe();
+    document.getElementById('signal-plan').textContent = user.plan;
+    document.getElementById('signal-credits').textContent = `${user.scrape_credits_used} / ${user.scrape_credits_limit}`;
+  } catch (err) {
+    console.error('Failed to load user stats', err);
+  }
+}
+
+// ── STRIPE ──
+async function handleManagePlan(){
+  try {
+    const { url } = await API.stripe.getPortal({ return_url: window.location.href });
+    window.location.href = url;
+  } catch (err) {
+    alert('Could not open billing portal: ' + err.message);
+  }
+}
+
+// ── LEAD FINDER ──
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function renderLeadResults(leads){
+  const tbody = document.getElementById('leads-results-body');
+  if(!leads || !leads.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No leads found. Try a different search.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = leads.map((lead) => `
+    <tr>
+      <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
+      <td>${escapeHtml(lead.phone || '—')}</td>
+      <td>${lead.rating ? `${lead.rating}⭐ · ${lead.review_count || 0} reviews` : '—'}</td>
+      <td><span class="score">${lead.ai_score ?? '—'}</span></td>
+      <td><span class="badge b-indigo">${escapeHtml((lead.recommended_agents && lead.recommended_agents[0]) || '—')}</span></td>
+      <td><span class="badge b-gray b-dot">${escapeHtml(lead.pipeline_stage || 'new')}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function handleLeadSearch(){
+  const industry = document.getElementById('lead-industry').value.trim();
+  const location = document.getElementById('lead-location').value.trim();
+  const radius = parseInt(document.getElementById('lead-radius').value, 10);
+
+  if(!industry || !location){
+    alert('Industry and location are required.');
+    return;
+  }
+
+  const btn = document.getElementById('lead-search-btn');
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+
+  try {
+    const { leads } = await API.leads.scrape({ industry, location, radius });
+    renderLeadResults(leads);
+  } catch (err) {
+    alert('Lead search failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+// ── INIT ──
+function initApp(){
+  if(API.getToken()){
+    enterApp();
+  } else {
+    showAuthScreen();
+  }
+}
+initApp();
+</script>
+</body>
+</html>
