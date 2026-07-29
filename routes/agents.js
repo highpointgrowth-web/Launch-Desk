@@ -82,6 +82,7 @@ function createRetellAgent(agentName, voiceId, llmId) {
     agent_name: agentName,
     voice_id: voiceId,
     response_engine: { type: 'retell-llm', llm_id: llmId },
+    webhook_url: `${process.env.APP_URL}/api/webhooks/retell`,
   });
 }
 

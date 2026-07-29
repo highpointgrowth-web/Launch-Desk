@@ -126,6 +126,7 @@ create table if not exists call_logs (
   id uuid primary key default gen_random_uuid(),
   agent_id uuid not null references agents(id) on delete cascade,
   user_id uuid not null references users(id) on delete cascade,
+  retell_call_id text unique,
   duration_seconds integer,
   transcript text,
   outcome text,
@@ -135,6 +136,7 @@ create table if not exists call_logs (
 
 create index if not exists call_logs_agent_id_idx on call_logs(agent_id);
 create index if not exists call_logs_user_id_idx on call_logs(user_id);
+create index if not exists call_logs_retell_call_id_idx on call_logs(retell_call_id);
 
 alter table call_logs enable row level security;
 
