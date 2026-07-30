@@ -126,6 +126,10 @@
     async getCalls(id) {
       return request('GET', `/api/agents/${id}/calls`);
     },
+
+    async buyPhone(id, { area_code } = {}) {
+      return request('POST', `/api/agents/${id}/buy-phone`, { area_code });
+    },
   };
 
   const stripe = {
@@ -146,6 +150,10 @@
 
     async getAll() {
       return request('GET', '/api/proposals');
+    },
+
+    async send(id) {
+      return request('POST', `/api/proposals/${id}/send`);
     },
   };
 

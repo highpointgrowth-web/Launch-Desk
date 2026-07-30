@@ -1,11 +1,30 @@
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
+const nodemailer = require('nodemailer');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const anthropic = new Anthropic();
 
 router.use(requireAuth);
+
+function buildTransport(config) {
+  if (config.mode === 'smtp') {
+    const port = Number(config.smtp_port);
+    return nodemailer.createTransport({
+      host: config.smtp_host,
+      port,
+      secure: port === 465,
+      auth: { user: config.smtp_username, pass: config.smtp_password },
+    });
+  }
+
+  // App-password mode assumes Gmail, the overwhelmingly common app-password provider.
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: config.email, pass: config.app_password },
+  });
+}
 
 async function generateProposal(lead) {
   const response = await anthropic.messages.create({
@@ -95,6 +114,62 @@ router.get('/', async (req, res) => {
   }
 
   res.json({ proposals: data });
+});
+
+router.post('/:id/send', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  try {
+    const { data: proposal, error: proposalError } = await supabase
+      .from('proposals')
+      .select('*, leads(business_name, email)')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+
+    if (proposalError || !proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+
+    const lead = proposal.leads;
+    if (!lead || !lead.email) {
+      return res.status(400).json({ error: 'This lead has no email address on file' });
+    }
+
+    const { data: integration, error: integrationError } = await supabase
+      .from('user_integrations')
+      .select('config')
+      .eq('user_id', req.userId)
+      .eq('provider', 'email')
+      .single();
+
+    if (integrationError || !integration) {
+      return res.status(400).json({ error: 'Connect your email in Settings before sending proposals' });
+    }
+
+    const transport = buildTransport(integration.config);
+    await transport.sendMail({
+      from: integration.config.email,
+      to: lead.email,
+      subject: `Proposal for ${lead.business_name}`,
+      text: proposal.content,
+    });
+
+    const { data: updated, error: updateError } = await supabase
+      .from('proposals')
+      .update({ status: 'sent' })
+      .eq('id', proposal.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    res.json({ proposal: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

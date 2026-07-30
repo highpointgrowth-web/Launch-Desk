@@ -158,6 +158,13 @@ function deleteRetellAgent(agentId) {
   return retellFetch('DELETE', `/delete-agent/${agentId}`);
 }
 
+function buyRetellPhoneNumber(retellAgentId, areaCode) {
+  return retellFetch('POST', '/create-phone-number', {
+    inbound_agent_id: retellAgentId,
+    ...(areaCode ? { area_code: Number(areaCode) } : {}),
+  });
+}
+
 router.post('/build', async (req, res) => {
   const { lead_id, niche, agent_name, voice, greeting, cal_api_key, cal_event_type_id } = req.body;
 
@@ -375,6 +382,49 @@ router.post('/:id/sync', async (req, res) => {
     });
 
     res.json({ synced: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/:id/buy-phone', async (req, res) => {
+  const { area_code } = req.body;
+  const supabase = req.app.locals.supabase;
+
+  const { data: agent, error } = await supabase
+    .from('agents')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (error || !agent) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  if (!agent.retell_agent_id) {
+    return res.status(400).json({ error: 'Agent has no linked Retell agent' });
+  }
+
+  if (agent.retell_phone_number) {
+    return res.status(400).json({ error: 'Agent already has a phone number' });
+  }
+
+  try {
+    const phoneNumber = await buyRetellPhoneNumber(agent.retell_agent_id, area_code);
+
+    const { data: updated, error: updateError } = await supabase
+      .from('agents')
+      .update({ retell_phone_number: phoneNumber.phone_number })
+      .eq('id', agent.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    res.status(201).json({ agent: updated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
