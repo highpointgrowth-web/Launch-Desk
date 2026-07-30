@@ -11,6 +11,7 @@ const authRouter = require('./routes/auth');
 const stripeRouter = require('./routes/stripe');
 const proposalsRouter = require('./routes/proposals');
 const dashboardRouter = require('./routes/dashboard');
+const adminRouter = require('./routes/admin');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
@@ -33,6 +34,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/stripe', stripeRouter);
 app.use('/api/proposals', proposalsRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/admin', adminRouter);
 
 function verifyRetellSignature(rawBody, signatureHeader, apiKey) {
   if (!signatureHeader) return false;
