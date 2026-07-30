@@ -226,6 +226,17 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .empty h3{font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px}
 .empty p{font-size:.8rem;color:var(--ink3);max-width:260px;margin:0 auto 20px;line-height:1.6}
 
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,10,15,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);width:100%;max-width:420px;padding:24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:1rem;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.modal-close{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink3);font-size:.9rem;transition:all .15s}
+.modal-close:hover{background:var(--bg2);color:var(--ink)}
+.modal-sub{font-size:.78rem;color:var(--ink3);margin-top:-6px}
+.modal-error{font-size:.78rem;color:var(--red);min-height:1em}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+
 /* ── LEAD FORM ── */
 .find-form{display:grid;grid-template-columns:1fr 1fr 140px auto;gap:10px;align-items:end}
 .f-field{display:flex;flex-direction:column;gap:5px}
@@ -1159,9 +1170,9 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
           <div class="s-group">
             <div class="s-group-label">Integrations</div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">📅</div><div><div class="s-label">Cal.com</div><div class="s-meta">Booking calendar for your agents</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
+            <div class="s-row" onclick="openModal('cal')"><div class="s-row-left"><div class="s-icon">📅</div><div><div class="s-label">Cal.com</div><div class="s-meta">Booking calendar for your agents</div></div></div><div class="s-right"><span class="badge b-amber" id="integration-badge-cal">Not connected</span></div></div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">💳</div><div><div class="s-label">Stripe</div><div class="s-meta">Collect client payments</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">📧</div><div><div class="s-label">Email</div><div class="s-meta">Send proposals from your address</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
+            <div class="s-row" onclick="openModal('email')"><div class="s-row-left"><div class="s-icon">📧</div><div><div class="s-label">Email</div><div class="s-meta">Send proposals from your address</div></div></div><div class="s-right"><span class="badge b-amber" id="integration-badge-email">Not connected</span></div></div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Zapier</div><div class="s-meta">Automate your workflow</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
           </div>
 
@@ -1181,6 +1192,58 @@ Happy to. What's the biggest headache with missed calls for you right now — so
       </div>
     </div>
 
+  </div>
+
+  <!-- INTEGRATION MODALS -->
+  <div class="modal-overlay hidden" id="modal-cal" onclick="if(event.target===this) closeModal('cal')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">📅 Connect Cal.com</div>
+        <div class="modal-close" onclick="closeModal('cal')">✕</div>
+      </div>
+      <div class="modal-sub">Used as the default calendar connection when you build new agents.</div>
+      <div class="f-field"><label class="f-label">Cal.com API Key</label><input class="f-input" id="cal-api-key" type="password" placeholder="cal_live_…"></div>
+      <div class="f-field"><label class="f-label">Default Event Type ID</label><input class="f-input" id="cal-event-type-id" placeholder="e.g. 123456"></div>
+      <div class="modal-error" id="cal-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('cal')">Cancel</button>
+        <button class="btn btn-indigo" id="cal-save-btn" onclick="saveCalIntegration()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="modal-email" onclick="if(event.target===this) closeModal('email')">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">📧 Connect Email</div>
+        <div class="modal-close" onclick="closeModal('email')">✕</div>
+      </div>
+      <div class="modal-sub">Used to send proposals to your leads from your own address.</div>
+      <div class="f-field"><label class="f-label">Email Address</label><input class="f-input" id="email-address" type="email" placeholder="you@youragency.com"></div>
+      <div class="f-field">
+        <label class="f-label">Connection Type</label>
+        <select class="f-input" id="email-mode" onchange="toggleEmailMode()">
+          <option value="app_password">App Password</option>
+          <option value="smtp">Custom SMTP</option>
+        </select>
+      </div>
+      <div id="email-app-password-fields" class="f-field">
+        <label class="f-label">App Password</label><input class="f-input" id="email-app-password" type="password" placeholder="16-character app password">
+      </div>
+      <div id="email-smtp-fields" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+        <div class="two-col">
+          <div class="f-field"><label class="f-label">SMTP Host</label><input class="f-input" id="email-smtp-host" placeholder="smtp.example.com"></div>
+          <div class="f-field"><label class="f-label">SMTP Port</label><input class="f-input" id="email-smtp-port" placeholder="587"></div>
+        </div>
+        <div class="f-field"><label class="f-label">SMTP Username</label><input class="f-input" id="email-smtp-username" placeholder="you@youragency.com"></div>
+        <div class="f-field"><label class="f-label">SMTP Password</label><input class="f-input" id="email-smtp-password" type="password" placeholder="••••••••"></div>
+      </div>
+      <div class="modal-error" id="email-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('email')">Cancel</button>
+        <button class="btn btn-indigo" id="email-save-btn" onclick="saveEmailIntegration()">Save</button>
+      </div>
+    </div>
   </div>
 
   <!-- BOTTOM NAV -->
@@ -1466,6 +1529,7 @@ function enterApp(){
   loadCRM();
   loadDashboardStats();
   loadColdCallQueue();
+  loadIntegrations();
 }
 
 async function handleLogin(){
@@ -1973,6 +2037,123 @@ async function handleColdCallNoAnswer(){
 function handleColdCallSkip(){
   if(!currentColdCallLead()) return;
   coldCallAdvance();
+}
+
+// ── INTEGRATIONS ──
+function openModal(provider){
+  clearModalError(provider);
+  document.getElementById('modal-' + provider).classList.remove('hidden');
+}
+function closeModal(provider){
+  document.getElementById('modal-' + provider).classList.add('hidden');
+}
+function clearModalError(provider){
+  const el = document.getElementById(provider + '-modal-error');
+  if(el) el.textContent = '';
+}
+function setModalError(provider, message){
+  const el = document.getElementById(provider + '-modal-error');
+  if(el) el.textContent = message;
+}
+function setIntegrationBadge(provider, connected){
+  const el = document.getElementById('integration-badge-' + provider);
+  if(!el) return;
+  el.textContent = connected ? 'Connected' : 'Not connected';
+  el.classList.toggle('b-green', connected);
+  el.classList.toggle('b-amber', !connected);
+}
+
+async function loadIntegrations(){
+  try {
+    const { integrations } = await API.integrations.getAll();
+    setIntegrationBadge('cal', !!(integrations.cal && integrations.cal.connected));
+    setIntegrationBadge('email', !!(integrations.email && integrations.email.connected));
+    if(integrations.cal && integrations.cal.event_type_id){
+      document.getElementById('cal-event-type-id').value = integrations.cal.event_type_id;
+    }
+    if(integrations.email && integrations.email.email){
+      document.getElementById('email-address').value = integrations.email.email;
+      if(integrations.email.mode){
+        document.getElementById('email-mode').value = integrations.email.mode;
+        toggleEmailMode();
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load integrations', err);
+  }
+}
+
+async function saveCalIntegration(){
+  clearModalError('cal');
+  const api_key = document.getElementById('cal-api-key').value.trim();
+  const event_type_id = document.getElementById('cal-event-type-id').value.trim();
+  if(!api_key || !event_type_id){
+    setModalError('cal', 'API key and Event Type ID are required.');
+    return;
+  }
+  const btn = document.getElementById('cal-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await API.integrations.saveCal({ api_key, event_type_id });
+    setIntegrationBadge('cal', true);
+    document.getElementById('cal-api-key').value = '';
+    closeModal('cal');
+  } catch (err) {
+    setModalError('cal', err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+function toggleEmailMode(){
+  const mode = document.getElementById('email-mode').value;
+  document.getElementById('email-app-password-fields').classList.toggle('hidden', mode !== 'app_password');
+  document.getElementById('email-smtp-fields').classList.toggle('hidden', mode !== 'smtp');
+}
+
+async function saveEmailIntegration(){
+  clearModalError('email');
+  const email = document.getElementById('email-address').value.trim();
+  const mode = document.getElementById('email-mode').value;
+  const payload = { email, mode };
+
+  if(!email){
+    setModalError('email', 'Email address is required.');
+    return;
+  }
+
+  if(mode === 'smtp'){
+    payload.smtp_host = document.getElementById('email-smtp-host').value.trim();
+    payload.smtp_port = document.getElementById('email-smtp-port').value.trim();
+    payload.smtp_username = document.getElementById('email-smtp-username').value.trim();
+    payload.smtp_password = document.getElementById('email-smtp-password').value;
+    if(!payload.smtp_host || !payload.smtp_port || !payload.smtp_username || !payload.smtp_password){
+      setModalError('email', 'All SMTP fields are required.');
+      return;
+    }
+  } else {
+    payload.app_password = document.getElementById('email-app-password').value;
+    if(!payload.app_password){
+      setModalError('email', 'App password is required.');
+      return;
+    }
+  }
+
+  const btn = document.getElementById('email-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await API.integrations.saveEmail(payload);
+    setIntegrationBadge('email', true);
+    document.getElementById('email-app-password').value = '';
+    document.getElementById('email-smtp-password').value = '';
+    closeModal('email');
+  } catch (err) {
+    setModalError('email', err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 
 // ── INIT ──

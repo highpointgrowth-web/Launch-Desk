@@ -155,6 +155,28 @@
     },
   };
 
+  const integrations = {
+    async getAll() {
+      return request('GET', '/api/integrations');
+    },
+
+    async saveCal({ api_key, event_type_id }) {
+      return request('PUT', '/api/integrations/cal', { api_key, event_type_id });
+    },
+
+    async saveEmail({ email, mode, app_password, smtp_host, smtp_port, smtp_username, smtp_password }) {
+      return request('PUT', '/api/integrations/email', {
+        email,
+        mode,
+        app_password,
+        smtp_host,
+        smtp_port,
+        smtp_username,
+        smtp_password,
+      });
+    },
+  };
+
   global.API = {
     baseUrl: API_BASE_URL,
     getToken,
@@ -166,5 +188,6 @@
     stripe,
     proposals,
     dashboard,
+    integrations,
   };
 })(window);
