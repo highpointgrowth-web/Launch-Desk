@@ -1137,11 +1137,11 @@ Happy to. What's the biggest headache with missed calls for you right now — so
         <div class="settings-panels">
           <div class="s-group">
             <div class="profile-row">
-              <div class="p-ava">N</div>
+              <div class="p-ava" id="settings-avatar">?</div>
               <div>
-                <div class="p-name">Your Name</div>
-                <div class="p-email">yourname@email.com</div>
-                <div class="p-plan"><span class="badge b-indigo">Pro · $49/mo</span></div>
+                <div class="p-name" id="settings-name">Loading…</div>
+                <div class="p-email" id="settings-email"></div>
+                <div class="p-plan"><span class="badge b-indigo" id="settings-plan-badge">—</span></div>
               </div>
             </div>
           </div>
@@ -1167,7 +1167,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
           <div class="s-group">
             <div class="s-group-label">Plan & Billing</div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Pro Plan</div><div class="s-meta">$49/mo · 1,000 scrapes · Unlimited agents</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="#" onclick="handleManagePlan(); return false;" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
+            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label" id="billing-plan-label">Plan</div><div class="s-meta" id="billing-plan-meta">Loading…</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="#" onclick="handleManagePlan(); return false;" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">🔗</div><div><div class="s-label">Affiliate Program</div><div class="s-meta">Earn 30% recurring commission per referral</div></div></div><div class="s-right"><a href="https://billing.stripe.com/p/login/9B614f58Bb1l53t8nQcZa00" target="_blank" style="color:var(--ink3);text-decoration:none">Join →</a></div></div>
           </div>
 
@@ -1514,11 +1514,40 @@ async function handleLogout(){
   showAuthScreen();
 }
 
+const PLAN_INFO = {
+  starter: { label: 'Starter', price: '$10/mo' },
+  pro: { label: 'Pro', price: '$49/mo' },
+  agency: { label: 'Agency', price: '$99/mo' },
+};
+
 async function loadUserStats(){
   try {
     const { user } = await API.auth.getMe();
     document.getElementById('signal-plan').textContent = user.plan;
     document.getElementById('signal-credits').textContent = `${user.scrape_credits_used} / ${user.scrape_credits_limit}`;
+
+    const planInfo = PLAN_INFO[user.plan] || { label: user.plan, price: '' };
+    const displayName = user.full_name || user.email;
+
+    const avatarEl = document.getElementById('settings-avatar');
+    if(avatarEl) avatarEl.textContent = (displayName || '?').charAt(0).toUpperCase();
+
+    const nameEl = document.getElementById('settings-name');
+    if(nameEl) nameEl.textContent = user.full_name || user.email;
+
+    const emailEl = document.getElementById('settings-email');
+    if(emailEl) emailEl.textContent = user.email;
+
+    const planBadgeEl = document.getElementById('settings-plan-badge');
+    if(planBadgeEl) planBadgeEl.textContent = planInfo.price ? `${planInfo.label} · ${planInfo.price}` : planInfo.label;
+
+    const billingLabelEl = document.getElementById('billing-plan-label');
+    if(billingLabelEl) billingLabelEl.textContent = `${planInfo.label} Plan`;
+
+    const billingMetaEl = document.getElementById('billing-plan-meta');
+    if(billingMetaEl) {
+      billingMetaEl.textContent = `${planInfo.price} · ${user.scrape_credits_used} / ${user.scrape_credits_limit} scrapes used`;
+    }
   } catch (err) {
     console.error('Failed to load user stats', err);
   }
