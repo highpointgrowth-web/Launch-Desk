@@ -45,7 +45,54 @@ async function scrapeWebsite(url) {
   return data.data.markdown;
 }
 
+function cleanScrapedContent(markdown) {
+  if (!markdown) return '';
+
+  // Strip raw HTML tags/artifacts that sometimes leak into "markdown" scrape output.
+  let text = markdown.replace(/<[^>]+>/g, ' ');
+
+  // Convert markdown links/images to plain text - keep the label, drop the URL.
+  // (Also neutralizes malformed links like "[Name](https://.../maps/contrib/...)".)
+  text = text.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
+
+  const junkLinePatterns = [
+    /reviews?\s*&\s*testimonials/i,
+    /^#+.*_\s*$/, // garbled/truncated headings ending in an underscore (widget artifacts)
+    /^\d+(\.\d+)?\s*(stars?|★|⭐)/i,
+    /^(read more|see all reviews?|leave a review|write a review|google reviews?)$/i,
+    /^(home|about|about us|services|contact|contact us|menu|blog|careers)$/i,
+    /^(faq|frequently asked questions)$/i,
+    /^(privacy policy|terms of service|terms (and|&) conditions|sitemap)$/i,
+    /^©.*$/,
+    /all rights reserved/i,
+    /^(facebook|twitter|instagram|linkedin|youtube|tiktok|x)$/i,
+    /^\.{3,}$/,
+  ];
+
+  const seenHeadings = new Set();
+  const cleanedLines = [];
+
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (junkLinePatterns.some((pattern) => pattern.test(line))) continue;
+
+    // Drop repeated/garbled headings - a strong signal of scraped widget or nav cruft.
+    if (/^#{1,6}\s/.test(line)) {
+      const normalized = line.replace(/[#_*]+/g, '').trim().toLowerCase();
+      if (!normalized || seenHeadings.has(normalized)) continue;
+      seenHeadings.add(normalized);
+    }
+
+    cleanedLines.push(line);
+  }
+
+  return cleanedLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 async function generateSystemPrompt(businessName, niche, scrapedContent) {
+  const cleanedContent = cleanScrapedContent(scrapedContent).slice(0, 15000);
+
   const response = await anthropic.messages.create({
     model: 'claude-opus-5',
     max_tokens: 2000,
@@ -53,15 +100,14 @@ async function generateSystemPrompt(businessName, niche, scrapedContent) {
     system:
       "You write system prompts for AI phone voice agents. Given a business's website content, write a " +
       'complete system prompt for a voice agent that answers calls, represents the business accurately, and ' +
-      'helps with the niche use case described. Respond with only the system prompt text - no preamble, no ' +
-      'explanation, no markdown formatting.',
+      'helps with the niche use case described. Ignore any reviews, testimonials, navigation, or footer ' +
+      'content in the website text - your job is to write a clean AI receptionist system prompt for this ' +
+      'business using only the business name, services, hours, location, and contact info. Respond with only ' +
+      'the system prompt text - no preamble, no explanation, no markdown formatting.',
     messages: [
       {
         role: 'user',
-        content: `Business name: ${businessName}\nNiche/use case: ${niche}\n\nWebsite content:\n${scrapedContent.slice(
-          0,
-          15000
-        )}`,
+        content: `Business name: ${businessName}\nNiche/use case: ${niche}\n\nWebsite content:\n${cleanedContent}`,
       },
     ],
   });
