@@ -66,6 +66,11 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
 .auth-switch{text-align:center;margin-top:18px;font-size:.8rem;color:var(--ink3)}
 .auth-switch a{color:var(--indigo);text-decoration:none;font-weight:600;cursor:pointer}
 .auth-switch a:hover{text-decoration:underline}
+
+.auth-agree{display:flex;align-items:flex-start;gap:8px;font-size:.78rem;color:var(--ink2);line-height:1.4;cursor:pointer}
+.auth-agree input{accent-color:var(--indigo);width:15px;height:15px;flex:none;margin-top:1px;cursor:pointer}
+.auth-agree a{color:var(--indigo);text-decoration:none}
+.auth-agree a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -103,6 +108,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
     <div class="f-field"><label class="f-label">Name</label><input class="f-input" id="signup-name" type="text" placeholder="Your name" autocomplete="name"></div>
     <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="signup-email" type="email" placeholder="you@business.com" autocomplete="email"></div>
     <div class="f-field"><label class="f-label">Password</label><input class="f-input" id="signup-password" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+    <label class="auth-agree">
+      <input type="checkbox" id="signup-terms-agree">
+      <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></span>
+    </label>
     <div class="auth-error" id="signup-error"></div>
     <button class="auth-submit" id="signup-submit" onclick="handleSignupSubmit()">Create Account</button>
     <div class="auth-switch">Already have an account? <a onclick="switchAuthTab('login')">Log in</a></div>
@@ -161,6 +170,11 @@ async function handleSignupSubmit(){
 
   if(!email || !password){
     setError('signup-error', 'Email and password are required.');
+    return;
+  }
+
+  if(!document.getElementById('signup-terms-agree').checked){
+    setError('signup-error', 'You must agree to the Terms of Service and Privacy Policy to continue.');
     return;
   }
 
