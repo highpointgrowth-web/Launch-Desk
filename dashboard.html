@@ -1026,21 +1026,26 @@ Look more professional to customers</textarea></div>
               <div class="card-title" style="margin-bottom:16px">Client Billing</div>
               <div style="display:flex;flex-direction:column;gap:10px">
                 <div class="f-field"><label class="f-label">What you charge this client / month ($)</label><input class="f-input" id="agent-billing-charge" type="number" step="1" placeholder="e.g. 500" oninput="renderAgentBillingCalc()"></div>
-                <div class="f-field"><label class="f-label">Est. Retell cost / min ($)</label><input class="f-input" id="agent-billing-rate" type="number" step="0.01" value="0.10" oninput="renderAgentBillingCalc()"></div>
+                <div class="f-field"><label class="f-label">Estimated call minutes / month</label><input class="f-input" id="agent-billing-est-minutes" type="number" step="1" placeholder="e.g. 200"></div>
+                <div class="f-field"><label class="f-label">Other monthly costs for this client ($)</label><input class="f-input" id="agent-billing-other-costs" type="number" step="1" placeholder="e.g. phone number rental" oninput="renderAgentBillingCalc()"></div>
                 <div id="agent-billing-status" style="font-size:.75rem;min-height:1em"></div>
                 <button class="btn btn-indigo" style="align-self:flex-start" id="agent-billing-save-btn" onclick="saveAgentBilling()">Save Charge</button>
               </div>
             </div>
             <div class="card card-pad">
-              <div class="card-title" style="margin-bottom:16px">Cost Breakdown</div>
+              <div class="card-title" style="margin-bottom:10px">This Month</div>
+              <div class="review-row"><span class="review-label">Call Minutes (this month)</span><span class="review-val" id="agent-billing-minutes">0</span></div>
+              <div style="background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:9px;padding:10px 12px;font-size:.74rem;color:var(--indigo);margin:12px 0">📞 Call costs are billed directly by Retell to your own account — they're not included in the profit calculation below.</div>
+
+              <div class="card-title" style="margin:18px 0 4px">Profit Calculator</div>
               <div style="display:flex;flex-direction:column;gap:2px">
-                <div class="review-row"><span class="review-label">Total Call Minutes</span><span class="review-val" id="agent-billing-minutes">0</span></div>
-                <div class="review-row"><span class="review-label">Est. Retell Cost</span><span class="review-val" id="agent-billing-cost">$0.00</span></div>
                 <div class="review-row"><span class="review-label">You Charge</span><span class="review-val" id="agent-billing-charge-display">$0.00</span></div>
+                <div class="review-row"><span class="review-label">LaunchDesk Cost Share</span><span class="review-val" id="agent-billing-share">$0.00</span></div>
+                <div class="review-row"><span class="review-label">Other Costs</span><span class="review-val" id="agent-billing-other-display">$0.00</span></div>
                 <div class="review-row"><span class="review-label">Profit</span><span class="review-val" id="agent-billing-profit">$0.00</span></div>
                 <div class="review-row"><span class="review-label">Margin</span><span class="review-val" id="agent-billing-margin">0%</span></div>
               </div>
-              <div style="font-size:.72rem;color:var(--ink3);margin-top:12px">Retell cost/min is an estimate you can adjust — based on this agent's logged call minutes.</div>
+              <div style="font-size:.72rem;color:var(--ink3);margin-top:12px" id="agent-billing-share-note"></div>
             </div>
           </div>
         </div>
@@ -1728,6 +1733,13 @@ async function handleBuyPhone(){
 // ── AGENT BILLING TAB ──
 let agentBillingMinutes = 0;
 
+function isThisMonth(dateStr){
+  if(!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getUTCFullYear() === now.getUTCFullYear() && d.getUTCMonth() === now.getUTCMonth();
+}
+
 async function renderAgentBillingTab(){
   const chargeInput = document.getElementById('agent-billing-charge');
   if(!chargeInput || !currentAgent) return;
@@ -1738,31 +1750,60 @@ async function renderAgentBillingTab(){
 
   try {
     const { call_logs } = await API.agents.getCalls(currentAgent.id);
-    const totalSeconds = (call_logs || []).reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
+    const thisMonthLogs = (call_logs || []).filter((c) => isThisMonth(c.created_at));
+    const totalSeconds = thisMonthLogs.reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
     agentBillingMinutes = totalSeconds / 60;
     document.getElementById('agent-billing-minutes').textContent = agentBillingMinutes.toFixed(1);
   } catch (err) {
     console.error('Failed to load call logs for billing tab', err);
   }
 
+  if(!cachedUser){
+    try {
+      const { user } = await API.auth.getMe();
+      cachedUser = user;
+    } catch (err) {
+      console.error('Failed to load user plan for billing tab', err);
+    }
+  }
+
   renderAgentBillingCalc();
+}
+
+// The agency's own LaunchDesk subscription is a fixed monthly cost shared
+// across every active agent/client, not something Retell bills - split it
+// evenly so each client's calculator reflects its slice of that overhead.
+function launchDeskCostShare(){
+  const planPrice = cachedUser ? (PLAN_PRICES[cachedUser.plan] || 0) : 0;
+  const activeAgentCount = cachedAgents.filter((a) => a.status === 'active').length;
+  const divisor = Math.max(activeAgentCount, 1);
+  return { share: planPrice / divisor, planPrice, divisor };
 }
 
 function renderAgentBillingCalc(){
   const charge = parseFloat(document.getElementById('agent-billing-charge').value) || 0;
-  const rate = parseFloat(document.getElementById('agent-billing-rate').value) || 0;
-  const cost = agentBillingMinutes * rate;
-  const profit = charge - cost;
+  const otherCosts = parseFloat(document.getElementById('agent-billing-other-costs').value) || 0;
+  const { share, planPrice, divisor } = launchDeskCostShare();
+  const profit = charge - share - otherCosts;
   const margin = charge > 0 ? (profit / charge) * 100 : 0;
 
-  document.getElementById('agent-billing-cost').textContent = '$' + cost.toFixed(2);
   document.getElementById('agent-billing-charge-display').textContent = '$' + charge.toFixed(2);
+  document.getElementById('agent-billing-share').textContent = '$' + share.toFixed(2);
+  document.getElementById('agent-billing-other-display').textContent = '$' + otherCosts.toFixed(2);
   const profitEl = document.getElementById('agent-billing-profit');
   profitEl.textContent = '$' + profit.toFixed(2);
   profitEl.style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
   const marginEl = document.getElementById('agent-billing-margin');
   marginEl.textContent = margin.toFixed(1) + '%';
   marginEl.style.color = margin >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const noteEl = document.getElementById('agent-billing-share-note');
+  if(noteEl){
+    const planLabel = cachedUser && PLAN_INFO[cachedUser.plan] ? PLAN_INFO[cachedUser.plan].label : (cachedUser ? cachedUser.plan : '');
+    noteEl.textContent = cachedUser
+      ? `Your ${planLabel} plan ($${planPrice}/mo) split across ${divisor} active agent${divisor === 1 ? '' : 's'}.`
+      : '';
+  }
 }
 
 async function saveAgentBilling(){
@@ -1776,6 +1817,7 @@ async function saveAgentBilling(){
   try {
     const { agent } = await API.agents.update(currentAgent.id, { monthly_charge });
     currentAgent = agent;
+    renderAgentBillingCalc();
     statusEl.textContent = '✓ Saved';
     statusEl.style.color = 'var(--green)';
   } catch (err) {
@@ -2068,10 +2110,14 @@ const PLAN_INFO = {
   pro: { label: 'Pro', price: '$49/mo' },
   agency: { label: 'Agency', price: '$99/mo' },
 };
+const PLAN_PRICES = { starter: 10, pro: 49, agency: 99 };
+
+let cachedUser = null;
 
 async function loadUserStats(){
   try {
     const { user } = await API.auth.getMe();
+    cachedUser = user;
     document.getElementById('signal-plan').textContent = user.plan;
     document.getElementById('signal-credits').textContent = `${user.scrape_credits_used} / ${user.scrape_credits_limit}`;
 
