@@ -986,11 +986,11 @@ Look more professional to customers</textarea></div>
         <div class="agent-panel" id="atab-calendar">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
             <div class="card card-pad">
-              <div class="card-header"><div class="card-title">📅 Cal.com Integration</div></div>
-              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">Connect this agent to a Cal.com event type so it can book appointments in real time during calls.</p>
+              <div class="card-header"><div class="card-title">📅 Cal.com Integration</div><span class="badge" id="agent-cal-state-badge"></span></div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">Connect this agent to a Cal.com event type so it can book appointments in real time during calls. Each client's agent can (and usually should) use its own connection.</p>
               <div style="display:flex;flex-direction:column;gap:10px">
-                <div class="f-field"><label class="f-label">API Key</label><input class="f-input" id="agent-cal-api-key" placeholder="cal_live_…" type="password"></div>
-                <div class="f-field"><label class="f-label">Event Type ID</label><input class="f-input" id="agent-cal-event-type-id" placeholder="e.g. 123456"></div>
+                <div class="f-field"><label class="f-label">API Key</label><input class="f-input" id="agent-cal-api-key" placeholder="cal_live_…" type="password" oninput="updateAgentCalBadge()"></div>
+                <div class="f-field"><label class="f-label">Event Type ID</label><input class="f-input" id="agent-cal-event-type-id" placeholder="e.g. 123456" oninput="updateAgentCalBadge()"></div>
                 <div id="agent-cal-hint" style="font-size:.72rem;color:var(--ink3)"></div>
                 <div id="agent-cal-status" style="font-size:.75rem;min-height:1em"></div>
                 <button class="btn btn-indigo" id="agent-cal-save-btn" onclick="saveAgentCalSettings()">Save Cal Settings</button>
@@ -1314,7 +1314,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
           <div class="s-group">
             <div class="s-group-label">Integrations</div>
-            <div class="s-row" onclick="openModal('cal')"><div class="s-row-left"><div class="s-icon">📅</div><div><div class="s-label">Cal.com</div><div class="s-meta">Booking calendar for your agents</div></div></div><div class="s-right"><span class="badge b-amber" id="integration-badge-cal">Not connected</span></div></div>
+            <div class="s-row" onclick="openModal('cal')"><div class="s-row-left"><div class="s-icon">📅</div><div><div class="s-label">Cal.com (Default)</div><div class="s-meta">Pre-fills new agents — each client's agent can override this with its own calendar</div></div></div><div class="s-right"><span class="badge b-amber" id="integration-badge-cal">Not connected</span></div></div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">💳</div><div><div class="s-label">Stripe</div><div class="s-meta">Collect client payments</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
             <div class="s-row" onclick="openModal('email')"><div class="s-row-left"><div class="s-icon">📧</div><div><div class="s-label">Email</div><div class="s-meta">Send proposals from your address</div></div></div><div class="s-right"><span class="badge b-amber" id="integration-badge-email">Not connected</span></div></div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Zapier</div><div class="s-meta">Automate your workflow</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
@@ -1620,6 +1620,38 @@ function renderAgentCalendarTab(){
     eventTypeInput.value = currentAgent.cal_event_type_id || '';
     if(hintEl) hintEl.textContent = '';
   }
+  updateAgentCalBadge();
+}
+
+// Warns when a client's agent is still using the shared account-level
+// default untouched - the main way an agency would accidentally book
+// two different clients into the same calendar.
+function updateAgentCalBadge(){
+  const badge = document.getElementById('agent-cal-state-badge');
+  const apiKeyInput = document.getElementById('agent-cal-api-key');
+  const eventTypeInput = document.getElementById('agent-cal-event-type-id');
+  if(!badge || !apiKeyInput || !eventTypeInput) return;
+
+  const apiKeyVal = apiKeyInput.value.trim();
+  const eventTypeVal = eventTypeInput.value.trim();
+
+  if(!apiKeyVal){
+    badge.textContent = 'Not connected';
+    badge.className = 'badge b-gray';
+    return;
+  }
+
+  const accountCal = cachedIntegrations.cal;
+  const hasDefault = !!(accountCal && accountCal.connected);
+  const matchesDefaultExactly = hasDefault && apiKeyVal === accountCal.api_key && eventTypeVal === (accountCal.event_type_id || '');
+
+  if(matchesDefaultExactly){
+    badge.textContent = '⚠ Using default — unedited';
+    badge.className = 'badge b-amber';
+  } else {
+    badge.textContent = '✓ Configured for this client';
+    badge.className = 'badge b-green';
+  }
 }
 
 async function saveAgentCalSettings(){
@@ -1635,6 +1667,7 @@ async function saveAgentCalSettings(){
   try {
     const { agent } = await API.agents.update(currentAgent.id, { cal_api_key: api_key, cal_event_type_id: event_type_id });
     currentAgent = agent;
+    updateAgentCalBadge();
     if(statusEl){ statusEl.textContent = '✓ Saved'; statusEl.style.color = 'var(--green)'; }
   } catch (err) {
     if(statusEl){ statusEl.textContent = err.message; statusEl.style.color = 'var(--red)'; }
