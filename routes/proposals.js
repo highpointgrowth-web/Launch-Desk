@@ -6,7 +6,35 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 const anthropic = new Anthropic();
 
+// A 1x1 transparent PNG, served by the tracking pixel below.
+const TRANSPARENT_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64'
+);
+
+// Unauthenticated on purpose - email clients load this as a plain <img>
+// with no way to attach a bearer token. Registered before requireAuth
+// below so it bypasses the router-wide auth gate, the same way the
+// Retell/Stripe webhooks bypass it in server.js. Security is by
+// unguessable proposal id, the standard model for tracking pixels.
+router.get('/:id/pixel.png', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  await supabase
+    .from('proposals')
+    .update({ status: 'viewed', viewed_at: new Date().toISOString() })
+    .eq('id', req.params.id)
+    .eq('status', 'sent');
+
+  res.set('Content-Type', 'image/png');
+  res.send(TRANSPARENT_PNG);
+});
+
 router.use(requireAuth);
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 function buildTransport(config) {
   if (config.mode === 'smtp') {
@@ -26,7 +54,7 @@ function buildTransport(config) {
   });
 }
 
-async function generateProposal(lead) {
+async function generateProposal(lead, proposalTemplate) {
   const response = await anthropic.messages.create({
     model: 'claude-opus-5',
     max_tokens: 3000,
@@ -37,7 +65,10 @@ async function generateProposal(lead) {
       'shows the ROI of adding an AI receptionist for that specific business - reference their actual rating, ' +
       'review count, and category to ground the pitch, and include a concrete (labeled as estimated) ROI ' +
       'calculation such as missed-call recovery and the value of after-hours coverage. Respond with only the ' +
-      'proposal text - no preamble, no explanation, no markdown code fences.',
+      'proposal text - no preamble, no explanation, no markdown code fences.' +
+      (proposalTemplate
+        ? `\n\nFollow this template's structure and style as closely as possible:\n\n${proposalTemplate}`
+        : ''),
     messages: [
       {
         role: 'user',
@@ -79,7 +110,9 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    const content = await generateProposal(lead);
+    const { data: user } = await supabase.from('users').select('proposal_template').eq('id', req.userId).single();
+
+    const content = await generateProposal(lead, user && user.proposal_template);
 
     const { data: proposal, error: insertError } = await supabase
       .from('proposals')
@@ -105,7 +138,7 @@ router.get('/', async (req, res) => {
   const supabase = req.app.locals.supabase;
   const { data, error } = await supabase
     .from('proposals')
-    .select('*')
+    .select('*, leads(business_name)')
     .eq('user_id', req.userId)
     .order('created_at', { ascending: false });
 
@@ -114,6 +147,81 @@ router.get('/', async (req, res) => {
   }
 
   res.json({ proposals: data });
+});
+
+router.get('/stats', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: proposals, error } = await supabase
+    .from('proposals')
+    .select('id, status, lead_id')
+    .eq('user_id', req.userId);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  const sent = proposals.filter((p) => p.status !== 'draft');
+  const viewed = sent.filter((p) => p.status === 'viewed' || p.status === 'closed');
+  const leadIds = [...new Set(sent.map((p) => p.lead_id).filter(Boolean))];
+
+  let wonLeadIds = new Set();
+  if (leadIds.length > 0) {
+    const { data: wonLeads, error: leadsError } = await supabase
+      .from('leads')
+      .select('id')
+      .in('id', leadIds)
+      .eq('user_id', req.userId)
+      .eq('pipeline_stage', 'won');
+
+    if (leadsError) {
+      return res.status(500).json({ error: leadsError.message });
+    }
+    wonLeadIds = new Set(wonLeads.map((l) => l.id));
+  }
+
+  const wonProposals = sent.filter((p) => p.lead_id && wonLeadIds.has(p.lead_id));
+
+  let mrrWon = 0;
+  if (wonLeadIds.size > 0) {
+    const { data: agentsForWonLeads, error: agentsError } = await supabase
+      .from('agents')
+      .select('lead_id, monthly_charge')
+      .in('lead_id', [...wonLeadIds])
+      .eq('user_id', req.userId);
+
+    if (agentsError) {
+      return res.status(500).json({ error: agentsError.message });
+    }
+    mrrWon = agentsForWonLeads.reduce((sum, a) => sum + (Number(a.monthly_charge) || 0), 0);
+  }
+
+  res.json({
+    total_sent: sent.length,
+    viewed_count: viewed.length,
+    view_rate: sent.length ? viewed.length / sent.length : 0,
+    won_count: wonProposals.length,
+    close_rate: sent.length ? wonProposals.length / sent.length : 0,
+    mrr_won: mrrWon,
+  });
+});
+
+router.put('/template', async (req, res) => {
+  const { proposal_template } = req.body;
+  const supabase = req.app.locals.supabase;
+
+  const { data, error } = await supabase
+    .from('users')
+    .update({ proposal_template: proposal_template || null })
+    .eq('id', req.userId)
+    .select('proposal_template')
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ proposal_template: data.proposal_template });
 });
 
 router.post('/:id/send', async (req, res) => {
@@ -148,11 +256,17 @@ router.post('/:id/send', async (req, res) => {
     }
 
     const transport = buildTransport(integration.config);
+    const pixelUrl = `${process.env.APP_URL}/api/proposals/${proposal.id}/pixel.png`;
+    const htmlContent =
+      `<div style="white-space:pre-wrap;font-family:sans-serif;font-size:14px;line-height:1.6">${escapeHtml(proposal.content)}</div>` +
+      `<img src="${pixelUrl}" width="1" height="1" alt="" style="display:none">`;
+
     await transport.sendMail({
       from: integration.config.email,
       to: lead.email,
       subject: `Proposal for ${lead.business_name}`,
       text: proposal.content,
+      html: htmlContent,
     });
 
     const { data: updated, error: updateError } = await supabase

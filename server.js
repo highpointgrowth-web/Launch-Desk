@@ -13,6 +13,8 @@ const proposalsRouter = require('./routes/proposals');
 const dashboardRouter = require('./routes/dashboard');
 const adminRouter = require('./routes/admin');
 const integrationsRouter = require('./routes/integrations');
+const meetingsRouter = require('./routes/meetings');
+const todosRouter = require('./routes/todos');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
@@ -37,6 +39,8 @@ app.use('/api/proposals', proposalsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/meetings', meetingsRouter);
+app.use('/api/todos', todosRouter);
 
 function verifyRetellSignature(rawBody, signatureHeader, apiKey) {
   if (!signatureHeader) return false;

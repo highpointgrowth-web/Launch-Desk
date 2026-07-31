@@ -96,6 +96,35 @@ router.get('/me', requireAuth, async (req, res) => {
   res.json({ user: data });
 });
 
+router.put('/me', requireAuth, async (req, res) => {
+  const { full_name, agency_name, goal_weekly_revenue, goal_monthly_revenue, goal_yearly_revenue } = req.body;
+  const updates = {};
+
+  if (full_name !== undefined) updates.full_name = full_name;
+  if (agency_name !== undefined) updates.agency_name = agency_name;
+  if (goal_weekly_revenue !== undefined) updates.goal_weekly_revenue = goal_weekly_revenue;
+  if (goal_monthly_revenue !== undefined) updates.goal_monthly_revenue = goal_monthly_revenue;
+  if (goal_yearly_revenue !== undefined) updates.goal_yearly_revenue = goal_yearly_revenue;
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No updatable fields provided' });
+  }
+
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', req.userId)
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ user: data });
+});
+
 router.post('/forgot-password', async (req, res) => {
   const { email, redirect_to } = req.body;
 

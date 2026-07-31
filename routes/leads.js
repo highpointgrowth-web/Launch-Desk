@@ -6,6 +6,7 @@ const router = express.Router();
 const anthropic = new Anthropic();
 
 const PIPELINE_STAGES = ['new', 'to_contact', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
+const ACTIVITY_TYPES = ['call', 'email', 'dm'];
 
 router.use(requireAuth);
 
@@ -225,7 +226,7 @@ router.get('/', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { pipeline_stage, owner_status } = req.body;
+  const { pipeline_stage, owner_status, email, notes } = req.body;
   const updates = {};
 
   if (pipeline_stage !== undefined) {
@@ -239,8 +240,16 @@ router.put('/:id', async (req, res) => {
     updates.owner_status = owner_status;
   }
 
+  if (email !== undefined) {
+    updates.email = email;
+  }
+
+  if (notes !== undefined) {
+    updates.notes = notes;
+  }
+
   if (Object.keys(updates).length === 0) {
-    return res.status(400).json({ error: 'pipeline_stage or owner_status is required' });
+    return res.status(400).json({ error: 'pipeline_stage, owner_status, email, or notes is required' });
   }
 
   const supabase = req.app.locals.supabase;
@@ -268,6 +277,101 @@ router.delete('/:id', async (req, res) => {
   }
 
   res.status(204).send();
+});
+
+router.get('/activity-summary', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const startOfToday = new Date();
+  startOfToday.setUTCHours(0, 0, 0, 0);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const { data, error } = await supabase
+    .from('lead_activities')
+    .select('type, occurred_at')
+    .eq('user_id', req.userId)
+    .gte('occurred_at', weekAgo.toISOString());
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  const today = { call: 0, email: 0, dm: 0 };
+  const week = { call: 0, email: 0, dm: 0 };
+
+  for (const activity of data) {
+    if (week[activity.type] !== undefined) week[activity.type] += 1;
+    if (today[activity.type] !== undefined && new Date(activity.occurred_at) >= startOfToday) {
+      today[activity.type] += 1;
+    }
+  }
+
+  res.json({ today, week });
+});
+
+router.get('/:id/activities', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: lead, error: leadError } = await supabase
+    .from('leads')
+    .select('id')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (leadError || !lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+
+  const { data, error } = await supabase
+    .from('lead_activities')
+    .select('*')
+    .eq('lead_id', lead.id)
+    .order('occurred_at', { ascending: false });
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ activities: data });
+});
+
+router.post('/:id/activities', async (req, res) => {
+  const { type, notes, occurred_at } = req.body;
+
+  if (!type || !ACTIVITY_TYPES.includes(type)) {
+    return res.status(400).json({ error: `type must be one of: ${ACTIVITY_TYPES.join(', ')}` });
+  }
+
+  const supabase = req.app.locals.supabase;
+
+  const { data: lead, error: leadError } = await supabase
+    .from('leads')
+    .select('id')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (leadError || !lead) {
+    return res.status(404).json({ error: 'Lead not found' });
+  }
+
+  const { data, error } = await supabase
+    .from('lead_activities')
+    .insert({
+      user_id: req.userId,
+      lead_id: lead.id,
+      type,
+      notes: notes || null,
+      ...(occurred_at ? { occurred_at } : {}),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.status(201).json({ activity: data });
 });
 
 module.exports = router;

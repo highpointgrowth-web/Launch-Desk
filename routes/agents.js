@@ -290,7 +290,7 @@ router.get('/:id/calls', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { system_prompt, greeting, voice, cal_api_key, cal_event_type_id } = req.body;
+  const { system_prompt, greeting, voice, cal_api_key, cal_event_type_id, monthly_charge } = req.body;
   const updates = {};
 
   if (system_prompt !== undefined) updates.system_prompt = system_prompt;
@@ -298,6 +298,7 @@ router.put('/:id', async (req, res) => {
   if (voice !== undefined) updates.voice = voice;
   if (cal_api_key !== undefined) updates.cal_api_key = cal_api_key;
   if (cal_event_type_id !== undefined) updates.cal_event_type_id = cal_event_type_id;
+  if (monthly_charge !== undefined) updates.monthly_charge = monthly_charge;
 
   if (Object.keys(updates).length === 0) {
     return res.status(400).json({ error: 'No updatable fields provided' });
