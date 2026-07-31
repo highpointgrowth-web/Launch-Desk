@@ -1328,6 +1328,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
           <div class="s-group">
             <div class="s-group-label">Plan & Billing</div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label" id="billing-plan-label">Plan</div><div class="s-meta" id="billing-plan-meta">Loading…</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="#" onclick="handleManagePlan(); return false;" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
+            <div id="billing-manage-note" class="hidden" style="padding:12px 20px;font-size:.78rem;color:var(--ink2);border-top:1px solid var(--border)"></div>
           </div>
 
           <div class="s-group">
@@ -2288,11 +2289,18 @@ async function loadTodaysActivity(){
 
 // ── STRIPE ──
 async function handleManagePlan(){
+  const noteEl = document.getElementById('billing-manage-note');
+  if(noteEl){ noteEl.classList.add('hidden'); noteEl.textContent = ''; }
+
   try {
     const { url } = await API.stripe.getPortal({ return_url: window.location.href });
     window.location.href = url;
   } catch (err) {
-    alert('Could not open billing portal: ' + err.message);
+    if(!noteEl) return;
+    noteEl.textContent = err.message === 'User has no Stripe customer on file'
+      ? 'To manage your billing contact highpointgrowth@gmail.com'
+      : 'Could not open billing portal: ' + err.message;
+    noteEl.classList.remove('hidden');
   }
 }
 
