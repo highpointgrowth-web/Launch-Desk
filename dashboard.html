@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <script src="api.js"></script>
 <meta charset="UTF-8">
@@ -59,13 +59,39 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .hidden{display:none !important}
 
 /* ── SHELL ── */
-.shell{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;overflow:hidden}
+.shell{display:grid;grid-template-columns:258px 1fr;height:100vh;overflow:hidden}
+.main-area{display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
 .content{overflow:auto;background:var(--bg);padding-bottom:8px}
 .content::-webkit-scrollbar{width:5px}
 .content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 20px 18px;text-decoration:none}
+.logo-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--indigo),var(--indigo-dark));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(79,70,229,.35);flex:none}
+.logo-text{font-weight:800;font-size:1.05rem;letter-spacing:-.03em;color:var(--ink)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:2px 12px 12px}
+.sidebar-nav::-webkit-scrollbar{width:4px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+.sidebar-section{margin-bottom:2px}
+.sidebar-section-header{display:flex;align-items:center;justify-content:space-between;padding:12px 8px 6px;cursor:pointer;user-select:none}
+.sidebar-section-header span{font-size:.64rem;font-weight:700;letter-spacing:.09em;color:var(--ink3)}
+.sidebar-section-header svg{transition:transform .2s ease;color:var(--ink3);flex:none}
+.sidebar-section.collapsed .sidebar-section-header svg{transform:rotate(-90deg)}
+.sidebar-section-items{display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.sidebar-section.collapsed .sidebar-section-items{display:none}
+.sidebar-item{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px 8px 7px;border-radius:9px;border:none;border-left:3px solid transparent;background:none;cursor:pointer;font-family:'Inter',system-ui,sans-serif;font-size:.83rem;font-weight:500;color:var(--ink2);text-align:left;transition:all .15s}
+.sidebar-item:hover{background:var(--bg2);color:var(--ink)}
+.sidebar-item.active{background:var(--indigo-light);color:var(--indigo);font-weight:600;border-left-color:var(--indigo)}
+.sidebar-item-icon{font-size:1rem;flex:none;width:20px;text-align:center;line-height:1}
+.sidebar-profile{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid var(--border);cursor:pointer;transition:background .15s;flex:none}
+.sidebar-profile:hover{background:var(--bg2)}
+.sidebar-profile-info{flex:1;min-width:0}
+.sidebar-profile-name{font-size:.82rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-profile-plan{font-size:.7rem;color:var(--ink3)}
+
 /* ── SIGNAL BAR ── */
-.signal-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:38px}
+.signal-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:44px;flex:none}
 .signal-left{display:flex;align-items:center;gap:20px}
 .signal-item{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:.67rem;color:var(--ink3);letter-spacing:.03em}
 .signal-item b{color:var(--ink2)}
@@ -76,27 +102,9 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .signal-right a{font-family:'IBM Plex Mono',monospace;font-size:.67rem;color:var(--ink3);text-decoration:none;letter-spacing:.03em}
 .signal-right a:hover{color:var(--indigo)}
 .signal-right .upgrade{color:var(--indigo);font-weight:500}
-
-/* ── TOP BAR (logo + user only) ── */
-.topbar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:52px}
-.nav-logo{display:flex;align-items:center;gap:9px;text-decoration:none}
-.logo-mark{width:26px;height:26px;border-radius:7px;background:var(--indigo);display:flex;align-items:center;justify-content:center}
-.logo-text{font-weight:700;font-size:.95rem;letter-spacing:-.025em;color:var(--ink)}
-.topbar-right{display:flex;align-items:center;gap:8px}
-.icon-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink2);border:1px solid var(--border);background:var(--surface2);transition:all .15s}
+.icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink2);border:1px solid var(--border);background:var(--surface2);transition:all .15s;flex:none}
 .icon-btn:hover{color:var(--indigo);border-color:var(--indigo-mid)}
-.user-pill{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border-radius:99px;border:1px solid var(--border);background:var(--surface);cursor:pointer;transition:all .15s}
-.user-pill:hover{border-color:var(--indigo-mid);box-shadow:0 0 0 3px var(--indigo-light)}
-.user-ava{width:24px;height:24px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.72rem;color:#fff}
-.user-label{font-size:.78rem;font-weight:500;color:var(--ink2)}
-
-/* ── BOTTOM NAV ── */
-.bottom-nav{background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 8px;height:60px}
-.nav-link{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;border-radius:10px;cursor:pointer;transition:all .15s;color:var(--ink3);border:none;background:none;font-family:'Inter',system-ui,sans-serif;border-top:2px solid transparent}
-.nav-link:hover{color:var(--ink2);background:var(--bg2)}
-.nav-link.active{color:var(--indigo);border-top-color:var(--indigo)}
-.nav-icon{font-size:1.15rem;line-height:1}
-.nav-label{font-size:.62rem;font-weight:600;letter-spacing:.01em;white-space:nowrap}
+.user-ava{width:24px;height:24px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.72rem;color:#fff;flex:none}
 
 /* ── PAGE WRAPPER ── */
 .page{display:none;padding:32px}
@@ -226,11 +234,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .empty h3{font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px}
 .empty p{font-size:.8rem;color:var(--ink3);max-width:260px;margin:0 auto 20px;line-height:1.6}
 
-/* ── MORE MENU ── */
-.more-menu{position:fixed;bottom:66px;right:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-md);padding:6px;display:flex;flex-direction:column;gap:2px;z-index:90;min-width:180px}
-.more-menu-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:500;color:var(--ink2);transition:all .15s}
-.more-menu-item:hover{background:var(--bg2);color:var(--ink)}
-
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,10,15,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
 .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);width:100%;max-width:420px;padding:24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto}
@@ -338,6 +341,76 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
 <div class="shell hidden" id="app-root">
 
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <a class="sidebar-logo" href="#" onclick="nav('dashboard',document.getElementById('nav-dashboard')); return false;">
+      <div class="logo-mark">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <span class="logo-text">LaunchDesk</span>
+    </a>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
+          <span>Sales Pipeline</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="sidebar-section-items">
+          <button class="sidebar-item" id="nav-leads" onclick="nav('leads',this)"><span class="sidebar-item-icon">🔍</span>Lead Finder</button>
+          <button class="sidebar-item" id="nav-crm" onclick="nav('crm',this)"><span class="sidebar-item-icon">🗂️</span>CRM</button>
+          <button class="sidebar-item" id="nav-clients" onclick="navToPage('clients',this)"><span class="sidebar-item-icon">👥</span>Clients</button>
+          <button class="sidebar-item" id="nav-coldcall" onclick="nav('coldcall',this)"><span class="sidebar-item-icon">📞</span>Cold Call</button>
+          <button class="sidebar-item" id="nav-meetings" onclick="navToPage('meetings',this)"><span class="sidebar-item-icon">📅</span>Booked Meetings</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
+          <span>AI &amp; Automation</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="sidebar-section-items">
+          <button class="sidebar-item" id="nav-agents" onclick="nav('agents',this)"><span class="sidebar-item-icon">🤖</span>Agents</button>
+          <button class="sidebar-item" id="nav-workflows" onclick="nav('workflows',this)"><span class="sidebar-item-icon">⚡</span>Workflows</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
+          <span>Business</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="sidebar-section-items">
+          <button class="sidebar-item" id="nav-proposals" onclick="navToPage('proposals',this)"><span class="sidebar-item-icon">📄</span>Proposals</button>
+          <button class="sidebar-item" id="nav-payments" onclick="navToPage('payments',this)"><span class="sidebar-item-icon">💰</span>Payments</button>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
+          <span>Other</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="sidebar-section-items">
+          <button class="sidebar-item active" id="nav-dashboard" onclick="nav('dashboard',this)"><span class="sidebar-item-icon">🏠</span>Dashboard</button>
+          <button class="sidebar-item" id="nav-playbook" onclick="nav('playbook',this)"><span class="sidebar-item-icon">📚</span>Playbook</button>
+          <button class="sidebar-item" id="nav-settings" onclick="nav('settings',this)"><span class="sidebar-item-icon">⚙️</span>Settings</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-profile" onclick="nav('settings',null)">
+      <div class="user-ava" id="sidebar-user-ava">?</div>
+      <div class="sidebar-profile-info">
+        <div class="sidebar-profile-name" id="sidebar-user-name">Loading…</div>
+        <div class="sidebar-profile-plan" id="sidebar-user-plan">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-area">
+
   <!-- SIGNAL BAR -->
   <div class="signal-bar">
     <div class="signal-left">
@@ -352,24 +425,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <a href="#">Docs</a>
       <a href="#">Changelog</a>
       <a href="#" class="upgrade">↑ Upgrade to Agency</a>
-    </div>
-  </div>
-
-  <!-- TOP BAR -->
-  <div class="topbar">
-    <a class="nav-logo" href="#">
-      <div class="logo-mark">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      </div>
-      <span class="logo-text">LaunchDesk</span>
-    </a>
-    <div class="topbar-right">
       <div class="icon-btn" title="Notifications">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      </div>
-      <div class="user-pill" onclick="nav('settings',null)">
-        <div class="user-ava">N</div>
-        <span class="user-label">You · Pro</span>
       </div>
     </div>
   </div>
@@ -415,7 +472,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="btn-row" style="margin-bottom:20px">
         <button class="btn btn-indigo" onclick="nav('leads',null)">🔍 Find Leads</button>
         <button class="btn btn-ghost" onclick="nav('coldcall',null)">📞 Cold Call</button>
-        <button class="btn btn-ghost" onclick="openMorePage('proposals')">📄 Send Proposal</button>
+        <button class="btn btn-ghost" onclick="navToPage('proposals', document.getElementById('nav-proposals'))">📄 Send Proposal</button>
       </div>
 
       <div class="dash-grid">
@@ -471,7 +528,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           </div>
 
           <div class="card card-pad">
-            <div class="card-header"><div class="card-title">Recent Proposals</div><span class="card-action" onclick="openMorePage('proposals')">View all →</span></div>
+            <div class="card-header"><div class="card-title">Recent Proposals</div><span class="card-action" onclick="navToPage('proposals', document.getElementById('nav-proposals'))">View all →</span></div>
             <div id="dashboard-recent-proposals">
               <div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No proposals yet.</div>
             </div>
@@ -1063,6 +1120,16 @@ Look more professional to customers</textarea></div>
 
     </div>
 
+    <!-- WORKFLOWS -->
+    <div class="page" id="page-workflows">
+      <div class="page-header"><div class="page-title">Workflows</div><div class="page-sub">Automate multi-step actions across leads, agents, and proposals</div></div>
+      <div class="card card-pad" style="text-align:center;padding:64px 32px">
+        <div style="font-size:2.2rem;margin-bottom:12px;opacity:.4">⚡</div>
+        <h3 style="font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px">Coming Soon</h3>
+        <p style="font-size:.8rem;color:var(--ink3);max-width:320px;margin:0 auto;line-height:1.6">Chain triggers and actions — like auto-sending a proposal when a lead is marked Won, or nudging a Cold Call follow-up after a no-answer. We're building this next.</p>
+      </div>
+    </div>
+
     <!-- CRM -->
     <div class="page" id="page-crm">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
@@ -1363,6 +1430,8 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
   </div>
 
+  </div><!-- /main-area -->
+
   <!-- ADD MEETING MODAL -->
   <div class="modal-overlay hidden" id="modal-add-meeting" onclick="if(event.target===this) closeAddMeetingModal()">
     <div class="modal-box">
@@ -1462,79 +1531,27 @@ Happy to. What's the biggest headache with missed calls for you right now — so
     </div>
   </div>
 
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
-    <button class="nav-link active" id="nav-dashboard" onclick="nav('dashboard',this)">
-      <span class="nav-icon">⚡</span>
-      <span class="nav-label">Dashboard</span>
-    </button>
-    <button class="nav-link" id="nav-leads" onclick="nav('leads',this)">
-      <span class="nav-icon">🔍</span>
-      <span class="nav-label">Leads</span>
-    </button>
-    <button class="nav-link" id="nav-agents" onclick="nav('agents',this)">
-      <span class="nav-icon">🤖</span>
-      <span class="nav-label">Agents</span>
-    </button>
-    <button class="nav-link" id="nav-crm" onclick="nav('crm',this)">
-      <span class="nav-icon">🗂️</span>
-      <span class="nav-label">CRM</span>
-    </button>
-    <button class="nav-link" id="nav-coldcall" onclick="nav('coldcall',this)">
-      <span class="nav-icon">📞</span>
-      <span class="nav-label">Cold Call</span>
-    </button>
-    <button class="nav-link" id="nav-playbook" onclick="nav('playbook',this)">
-      <span class="nav-icon">📚</span>
-      <span class="nav-label">Playbook</span>
-    </button>
-    <button class="nav-link" id="nav-settings" onclick="nav('settings',this)">
-      <span class="nav-icon">⚙️</span>
-      <span class="nav-label">Settings</span>
-    </button>
-    <button class="nav-link" id="nav-more" onclick="toggleMoreMenu(event)">
-      <span class="nav-icon">⋯</span>
-      <span class="nav-label">More</span>
-    </button>
-  </nav>
-
-  <div class="more-menu hidden" id="more-menu">
-    <div class="more-menu-item" onclick="openMorePage('meetings')">📅 Booked Meetings</div>
-    <div class="more-menu-item" onclick="openMorePage('clients')">👥 Clients</div>
-    <div class="more-menu-item" onclick="openMorePage('payments')">💰 Payments</div>
-    <div class="more-menu-item" onclick="openMorePage('proposals')">📄 Proposals</div>
-  </div>
-
 </div>
 
 <script>
 function nav(name, el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(n=>n.classList.remove('active'));
   const page=document.getElementById('page-'+name);
   if(page)page.classList.add('active');
-  const btn=document.getElementById('nav-'+name);
+  const btn=el || document.getElementById('nav-'+name);
   if(btn)btn.classList.add('active');
   document.querySelector('.content').scrollTop=0;
 }
 
-function toggleMoreMenu(event){
-  if(event) event.stopPropagation();
-  document.getElementById('more-menu').classList.toggle('hidden');
+function toggleSidebarSection(headerEl){
+  headerEl.parentElement.classList.toggle('collapsed');
 }
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('more-menu');
-  if(menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && e.target.id !== 'nav-more' && !e.target.closest('#nav-more')){
-    menu.classList.add('hidden');
-  }
-});
 
-const MORE_PAGES = { meetings: loadMeetingsPage, clients: loadClientsPage, payments: loadPaymentsPage, proposals: loadProposalsPage };
-function openMorePage(name){
-  document.getElementById('more-menu').classList.add('hidden');
-  nav(name, null);
-  document.getElementById('nav-more').classList.add('active');
-  const loader = MORE_PAGES[name];
+const PAGE_LOADERS = { meetings: loadMeetingsPage, clients: loadClientsPage, payments: loadPaymentsPage, proposals: loadProposalsPage };
+function navToPage(name, el){
+  nav(name, el);
+  const loader = PAGE_LOADERS[name];
   if(loader) loader();
 }
 function toggleCheck(el){
@@ -1901,12 +1918,26 @@ async function deployAgent(){
   }
 }
 
+function applyThemeVisualState(isDark){
+  const toggleEl = document.getElementById('theme-toggle');
+  const iconEl = document.getElementById('theme-icon');
+  if(toggleEl) toggleEl.classList.toggle('on', isDark);
+  if(iconEl) iconEl.textContent = isDark ? '☀️' : '🌙';
+}
+
+function initTheme(){
+  const stored = localStorage.getItem('launchdesk_theme');
+  const theme = stored || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  applyThemeVisualState(theme === 'dark');
+}
+
 function toggleTheme(){
-  const html=document.documentElement;
-  const isDark=html.getAttribute('data-theme')==='dark';
-  html.setAttribute('data-theme',isDark?'light':'dark');
-  document.getElementById('theme-toggle').classList.toggle('on',!isDark);
-  document.getElementById('theme-icon').textContent=isDark?'🌙':'☀️';
+  const isDarkNow = document.documentElement.getAttribute('data-theme') === 'dark';
+  const newTheme = isDarkNow ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('launchdesk_theme', newTheme);
+  applyThemeVisualState(newTheme === 'dark');
 }
 
 // ── AUTH ──
@@ -2004,6 +2035,15 @@ async function loadUserStats(){
 
     const nameEl = document.getElementById('settings-name');
     if(nameEl) nameEl.textContent = user.full_name || user.email;
+
+    const sidebarAvaEl = document.getElementById('sidebar-user-ava');
+    if(sidebarAvaEl) sidebarAvaEl.textContent = (displayName || '?').charAt(0).toUpperCase();
+
+    const sidebarNameEl = document.getElementById('sidebar-user-name');
+    if(sidebarNameEl) sidebarNameEl.textContent = user.agency_name || user.full_name || user.email;
+
+    const sidebarPlanEl = document.getElementById('sidebar-user-plan');
+    if(sidebarPlanEl) sidebarPlanEl.textContent = planInfo.label;
 
     const emailEl = document.getElementById('settings-email');
     if(emailEl) emailEl.textContent = user.email;
@@ -3189,6 +3229,7 @@ async function saveProposalTemplate(){
 
 // ── INIT ──
 function initApp(){
+  initTheme();
   if(API.getToken()){
     enterApp();
   } else {
