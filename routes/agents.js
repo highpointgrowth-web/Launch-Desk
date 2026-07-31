@@ -158,6 +158,10 @@ function deleteRetellAgent(agentId) {
   return retellFetch('DELETE', `/delete-agent/${agentId}`);
 }
 
+function deleteRetellLlm(llmId) {
+  return retellFetch('DELETE', `/delete-retell-llm/${llmId}`);
+}
+
 function buyRetellPhoneNumber(retellAgentId, areaCode) {
   return retellFetch('POST', '/create-phone-number', {
     inbound_agent_id: retellAgentId,
@@ -208,6 +212,7 @@ router.post('/build', async (req, res) => {
         greeting: greeting || null,
         system_prompt: systemPrompt,
         retell_agent_id: retellAgent.agent_id,
+        retell_llm_id: llm.llm_id,
         retell_phone_number: null,
         cal_api_key: cal_api_key || null,
         cal_event_type_id: cal_event_type_id || null,
@@ -319,7 +324,7 @@ router.delete('/:id', async (req, res) => {
 
   const { data: agent, error: fetchError } = await supabase
     .from('agents')
-    .select('retell_agent_id')
+    .select('retell_agent_id, retell_llm_id')
     .eq('id', req.params.id)
     .eq('user_id', req.userId)
     .single();
@@ -334,6 +339,14 @@ router.delete('/:id', async (req, res) => {
     } catch (err) {
       // Continue with local deletion even if the Retell-side delete fails
       // (e.g. the agent was already removed there).
+    }
+  }
+
+  if (agent.retell_llm_id) {
+    try {
+      await deleteRetellLlm(agent.retell_llm_id);
+    } catch (err) {
+      // Same as above - don't block local cleanup on a Retell-side failure.
     }
   }
 

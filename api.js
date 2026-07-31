@@ -71,6 +71,10 @@
       return request('POST', '/api/leads/scrape', { industry, location, radius });
     },
 
+    async create(lead) {
+      return request('POST', '/api/leads', lead);
+    },
+
     async getAll() {
       return request('GET', '/api/leads');
     },

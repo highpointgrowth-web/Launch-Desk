@@ -1717,17 +1717,16 @@ function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
+let leadSearchResults = [];
+
 function renderLeadResults(leads){
+  leadSearchResults = leads || [];
   const tbody = document.getElementById('leads-results-body');
-  if(!leads || !leads.length){
+  if(!leadSearchResults.length){
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No leads found. Try a different search.</td></tr>';
     return;
   }
-  tbody.innerHTML = leads.map((lead) => {
-    const stage = lead.pipeline_stage || 'new';
-    const actionCell = stage !== 'new'
-      ? `<span class="badge ${stageBadgeClass(stage)} b-dot">${escapeHtml(STAGE_LABELS[stage] || stage)}</span>`
-      : `<button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm('${lead.id}', this)">+ Add to CRM</button>`;
+  tbody.innerHTML = leadSearchResults.map((lead, index) => {
     return `
     <tr>
       <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
@@ -1735,7 +1734,7 @@ function renderLeadResults(leads){
       <td>${lead.rating ? `${lead.rating}⭐ · ${lead.review_count || 0} reviews` : '—'}</td>
       <td><span class="score">${lead.ai_score ?? '—'}</span></td>
       <td><span class="badge b-indigo">${escapeHtml((lead.recommended_agents && lead.recommended_agents[0]) || '—')}</span></td>
-      <td>${actionCell}</td>
+      <td><button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm(${index}, this)">+ Add to CRM</button></td>
     </tr>
   `;
   }).join('');
@@ -1887,11 +1886,13 @@ async function loadCRM(){
   }
 }
 
-async function handleAddToCrm(leadId, btn){
+async function handleAddToCrm(index, btn){
+  const lead = leadSearchResults[index];
+  if(!lead) return;
   btn.disabled = true;
   btn.textContent = 'Adding…';
   try {
-    await API.leads.update(leadId, { pipeline_stage: 'to_contact' });
+    await API.leads.create({ ...lead, pipeline_stage: 'to_contact' });
     btn.outerHTML = `<span class="badge ${stageBadgeClass('to_contact')} b-dot">${STAGE_LABELS.to_contact}</span>`;
     loadCRM();
   } catch (err) {

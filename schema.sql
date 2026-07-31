@@ -92,6 +92,7 @@ create table if not exists agents (
   greeting text,
   system_prompt text,
   retell_agent_id text,
+  retell_llm_id text,
   retell_phone_number text,
   cal_api_key text,
   cal_event_type_id text,

@@ -143,24 +143,70 @@ router.post('/scrape', async (req, res) => {
   try {
     const businesses = await buildBusinessList(industry, location, radius || 5000);
     const scoredLeads = await scoreLeads(businesses);
-
-    if (scoredLeads.length === 0) {
-      return res.json({ leads: [] });
-    }
-
-    const rows = scoredLeads.map((lead) => ({ ...lead, user_id: req.userId }));
-
-    const supabase = req.app.locals.supabase;
-    const { data, error } = await supabase.from('leads').insert(rows).select();
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json({ leads: data });
+    res.json({ leads: scoredLeads });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.post('/', async (req, res) => {
+  const {
+    business_name,
+    phone,
+    email,
+    website,
+    address,
+    city,
+    state,
+    rating,
+    review_count,
+    category,
+    ai_score,
+    ai_reasoning,
+    recommended_agents,
+    pipeline_stage,
+    owner_status,
+    notes,
+  } = req.body;
+
+  if (!business_name) {
+    return res.status(400).json({ error: 'business_name is required' });
+  }
+
+  if (pipeline_stage !== undefined && !PIPELINE_STAGES.includes(pipeline_stage)) {
+    return res.status(400).json({ error: `pipeline_stage must be one of: ${PIPELINE_STAGES.join(', ')}` });
+  }
+
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('leads')
+    .insert({
+      user_id: req.userId,
+      business_name,
+      phone: phone || null,
+      email: email || null,
+      website: website || null,
+      address: address || null,
+      city: city || null,
+      state: state || null,
+      rating: rating ?? null,
+      review_count: review_count ?? null,
+      category: category || null,
+      ai_score: ai_score ?? null,
+      ai_reasoning: ai_reasoning || null,
+      recommended_agents: recommended_agents || null,
+      pipeline_stage: pipeline_stage || 'to_contact',
+      owner_status: owner_status || null,
+      notes: notes || null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.status(201).json({ lead: data });
 });
 
 router.get('/', async (req, res) => {
