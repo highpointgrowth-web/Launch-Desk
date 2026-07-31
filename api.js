@@ -64,6 +64,16 @@
     async getMe() {
       return request('GET', '/api/auth/me');
     },
+
+    async updateMe({ full_name, agency_name, goal_weekly_revenue, goal_monthly_revenue, goal_yearly_revenue } = {}) {
+      return request('PUT', '/api/auth/me', {
+        full_name,
+        agency_name,
+        goal_weekly_revenue,
+        goal_monthly_revenue,
+        goal_yearly_revenue,
+      });
+    },
   };
 
   const leads = {
@@ -79,12 +89,24 @@
       return request('GET', '/api/leads');
     },
 
-    async update(id, { pipeline_stage, owner_status } = {}) {
-      return request('PUT', `/api/leads/${id}`, { pipeline_stage, owner_status });
+    async update(id, { pipeline_stage, owner_status, email, notes } = {}) {
+      return request('PUT', `/api/leads/${id}`, { pipeline_stage, owner_status, email, notes });
     },
 
     async delete(id) {
       return request('DELETE', `/api/leads/${id}`);
+    },
+
+    async getActivities(id) {
+      return request('GET', `/api/leads/${id}/activities`);
+    },
+
+    async createActivity(id, { type, notes, occurred_at } = {}) {
+      return request('POST', `/api/leads/${id}/activities`, { type, notes, occurred_at });
+    },
+
+    async getActivitySummary() {
+      return request('GET', '/api/leads/activity-summary');
     },
   };
 
@@ -109,13 +131,14 @@
       return request('GET', `/api/agents/${id}`);
     },
 
-    async update(id, { system_prompt, greeting, voice, cal_api_key, cal_event_type_id } = {}) {
+    async update(id, { system_prompt, greeting, voice, cal_api_key, cal_event_type_id, monthly_charge } = {}) {
       return request('PUT', `/api/agents/${id}`, {
         system_prompt,
         greeting,
         voice,
         cal_api_key,
         cal_event_type_id,
+        monthly_charge,
       });
     },
 
@@ -159,6 +182,50 @@
     async send(id) {
       return request('POST', `/api/proposals/${id}/send`);
     },
+
+    async getStats() {
+      return request('GET', '/api/proposals/stats');
+    },
+
+    async saveTemplate(proposal_template) {
+      return request('PUT', '/api/proposals/template', { proposal_template });
+    },
+  };
+
+  const meetings = {
+    async getAll() {
+      return request('GET', '/api/meetings');
+    },
+
+    async create({ business_name, meeting_date, meeting_time, notes, lead_id } = {}) {
+      return request('POST', '/api/meetings', { business_name, meeting_date, meeting_time, notes, lead_id });
+    },
+
+    async update(id, fields = {}) {
+      return request('PUT', `/api/meetings/${id}`, fields);
+    },
+
+    async delete(id) {
+      return request('DELETE', `/api/meetings/${id}`);
+    },
+  };
+
+  const todos = {
+    async getAll() {
+      return request('GET', '/api/todos');
+    },
+
+    async create(text) {
+      return request('POST', '/api/todos', { text });
+    },
+
+    async update(id, fields = {}) {
+      return request('PUT', `/api/todos/${id}`, fields);
+    },
+
+    async delete(id) {
+      return request('DELETE', `/api/todos/${id}`);
+    },
   };
 
   const dashboard = {
@@ -201,5 +268,7 @@
     proposals,
     dashboard,
     integrations,
+    meetings,
+    todos,
   };
 })(window);

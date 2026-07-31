@@ -226,6 +226,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .empty h3{font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px}
 .empty p{font-size:.8rem;color:var(--ink3);max-width:260px;margin:0 auto 20px;line-height:1.6}
 
+/* ── MORE MENU ── */
+.more-menu{position:fixed;bottom:66px;right:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-md);padding:6px;display:flex;flex-direction:column;gap:2px;z-index:90;min-width:180px}
+.more-menu-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:500;color:var(--ink2);transition:all .15s}
+.more-menu-item:hover{background:var(--bg2);color:var(--ink)}
+
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,10,15,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
 .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);width:100%;max-width:420px;padding:24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto}
@@ -407,6 +412,12 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         </div>
       </div>
 
+      <div class="btn-row" style="margin-bottom:20px">
+        <button class="btn btn-indigo" onclick="nav('leads',null)">🔍 Find Leads</button>
+        <button class="btn btn-ghost" onclick="nav('coldcall',null)">📞 Cold Call</button>
+        <button class="btn btn-ghost" onclick="openMorePage('proposals')">📄 Send Proposal</button>
+      </div>
+
       <div class="dash-grid">
         <div class="main-col">
 
@@ -456,6 +467,27 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Follow up with warm leads</span></div>
               <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Send proposals</span></div>
               <div class="check-item" onclick="toggleCheck(this)"><div class="checkbox"></div><span class="check-label">Review agent call logs</span></div>
+            </div>
+          </div>
+
+          <div class="card card-pad">
+            <div class="card-header"><div class="card-title">Recent Proposals</div><span class="card-action" onclick="openMorePage('proposals')">View all →</span></div>
+            <div id="dashboard-recent-proposals">
+              <div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No proposals yet.</div>
+            </div>
+          </div>
+
+          <div class="card card-pad">
+            <div class="card-header"><div class="card-title">My Agents</div><span class="card-action" onclick="nav('agents',null)">View all →</span></div>
+            <div id="dashboard-my-agents">
+              <div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No active agents yet.</div>
+            </div>
+          </div>
+
+          <div class="card card-pad">
+            <div class="card-header"><div class="card-title">Today's Activity</div></div>
+            <div id="dashboard-todays-activity" style="display:flex;flex-direction:column;gap:8px">
+              <div style="text-align:center;padding:8px;color:var(--ink3);font-size:.78rem">Loading…</div>
             </div>
           </div>
 
@@ -803,6 +835,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <button class="agent-tab" onclick="agentTab('business',this)">Business</button>
           <button class="agent-tab" onclick="agentTab('calendar',this)">Calendar</button>
           <button class="agent-tab" onclick="agentTab('phone',this)">Phone</button>
+          <button class="agent-tab" onclick="agentTab('billing',this)">Billing</button>
           <button class="agent-tab" onclick="agentTab('test',this)">🎙 Test Call</button>
           <button class="agent-tab" onclick="agentTab('aifix',this)">✨ AI Fix</button>
           <button class="agent-tab" onclick="agentTab('calls',this)">Call Logs</button>
@@ -923,6 +956,32 @@ Look more professional to customers</textarea></div>
           </div>
         </div>
 
+        <!-- BILLING TAB -->
+        <div class="agent-panel" id="atab-billing">
+          <div class="two-col">
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:16px">Client Billing</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="f-field"><label class="f-label">What you charge this client / month ($)</label><input class="f-input" id="agent-billing-charge" type="number" step="1" placeholder="e.g. 500" oninput="renderAgentBillingCalc()"></div>
+                <div class="f-field"><label class="f-label">Est. Retell cost / min ($)</label><input class="f-input" id="agent-billing-rate" type="number" step="0.01" value="0.10" oninput="renderAgentBillingCalc()"></div>
+                <div id="agent-billing-status" style="font-size:.75rem;min-height:1em"></div>
+                <button class="btn btn-indigo" style="align-self:flex-start" id="agent-billing-save-btn" onclick="saveAgentBilling()">Save Charge</button>
+              </div>
+            </div>
+            <div class="card card-pad">
+              <div class="card-title" style="margin-bottom:16px">Cost Breakdown</div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <div class="review-row"><span class="review-label">Total Call Minutes</span><span class="review-val" id="agent-billing-minutes">0</span></div>
+                <div class="review-row"><span class="review-label">Est. Retell Cost</span><span class="review-val" id="agent-billing-cost">$0.00</span></div>
+                <div class="review-row"><span class="review-label">You Charge</span><span class="review-val" id="agent-billing-charge-display">$0.00</span></div>
+                <div class="review-row"><span class="review-label">Profit</span><span class="review-val" id="agent-billing-profit">$0.00</span></div>
+                <div class="review-row"><span class="review-label">Margin</span><span class="review-val" id="agent-billing-margin">0%</span></div>
+              </div>
+              <div style="font-size:.72rem;color:var(--ink3);margin-top:12px">Retell cost/min is an estimate you can adjust — based on this agent's logged call minutes.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- TEST CALL TAB -->
         <div class="agent-panel" id="atab-test">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
@@ -1018,13 +1077,23 @@ Look more professional to customers</textarea></div>
         <div class="stat-cell"><div class="stat-label">Proposal</div><div class="stat-val" id="crm-stat-proposal" style="font-size:1.4rem">0</div></div>
         <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" id="crm-stat-won" style="font-size:1.4rem">0</div></div>
       </div>
-      <div class="card card-pad">
+      <div class="card card-pad" style="margin-bottom:20px">
         <table class="data-table">
-          <thead><tr><th>Business</th><th>Phone</th><th>Location</th><th>Score</th><th>Stage</th></tr></thead>
+          <thead><tr><th>Business</th><th>Phone</th><th>Email</th><th>Location</th><th>Score</th><th>Stage</th><th></th></tr></thead>
           <tbody id="crm-leads-body">
-            <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="card card-pad">
+        <div class="card-header"><div class="card-title">To-Do</div></div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <input class="f-input" id="todo-input" placeholder="Add a task…" style="flex:1" onkeydown="if(event.key==='Enter') handleAddTodo()">
+          <button class="btn btn-indigo" onclick="handleAddTodo()">+ Add</button>
+        </div>
+        <div class="check-stack" id="todo-list">
+          <div style="text-align:center;padding:16px;color:var(--ink3);font-size:.82rem">No tasks yet.</div>
+        </div>
       </div>
     </div>
 
@@ -1033,35 +1102,42 @@ Look more professional to customers</textarea></div>
       <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub">0 calls today · <span id="coldcall-queue-count">0 leads in queue</span></div></div>
       <div class="coldcall-layout">
         <div class="script-card">
-          <div class="card-header"><div class="card-title">Call Script</div><span class="card-action">Edit</span></div>
-          <div class="script-body">Hey <strong>[Name]</strong>, this is <strong>[Your Name]</strong> with LaunchDesk.
+          <div class="card-header"><div class="card-title">Call Script</div><span class="card-action" id="script-edit-toggle" onclick="toggleScriptEdit()">Edit</span></div>
+          <textarea class="script-body" id="script-textarea" readonly style="width:100%;border:none;background:transparent;resize:none;outline:none;font-family:inherit;min-height:340px">Hey [Name], this is [Your Name] with LaunchDesk.
 
 I noticed your business and wanted to reach out — we help home-service companies like yours never miss a call again. Our AI answers your phones, books jobs, and handles FAQs 24/7 so you capture every lead even when you're on a job site.
 
 Do you have 30 seconds to hear how it works?
 
-<strong>[If yes:]</strong>
+[If yes:]
 Most of our clients see 15–30% more booked appointments in the first month just from capturing calls they were missing before. We set it up, you just forward your number.
 
 Would a quick 15-minute call this week make sense so I can show you exactly how it'd work for your business?
 
-<strong>[Objection — not interested:]</strong>
+[Objection — not interested:]
 Totally get it. Is it because you already have call coverage handled, or just not top of mind right now?
 
-<strong>[Objection — send info:]</strong>
-Happy to. What's the biggest headache with missed calls for you right now — so I send the right thing?</div>
+[Objection — send info:]
+Happy to. What's the biggest headache with missed calls for you right now — so I send the right thing?</textarea>
         </div>
         <div style="display:flex;flex-direction:column;gap:16px">
           <div class="dial-card">
+            <div class="f-field" style="width:100%">
+              <label class="f-label">Or pick any lead</label>
+              <select class="f-input" id="coldcall-lead-select" onchange="handleColdCallLeadSelect()">
+                <option value="">— Auto (next in queue) —</option>
+              </select>
+            </div>
             <div style="text-align:center">
               <div style="font-size:.72rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px">Next Lead</div>
               <div style="font-size:1rem;font-weight:700;color:var(--ink);letter-spacing:-.01em;margin-bottom:4px" id="dial-business-name">Loading…</div>
               <div class="dial-number" id="dial-phone-number">—</div>
               <div style="margin-top:4px"><span class="badge b-indigo" id="dial-score" style="display:none">Score</span></div>
             </div>
-            <button class="call-btn">
+            <button class="call-btn" id="coldcall-call-btn" onclick="handleCallButtonClick()">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.1a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             </button>
+            <div id="coldcall-timer" style="font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:600;color:var(--ink3);display:none;margin-top:-8px">00:00</div>
             <div style="width:100%;display:flex;flex-direction:column;gap:8px">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <button class="btn btn-indigo" style="font-size:.78rem" id="coldcall-interested-btn" onclick="handleColdCallInterested()">✓ Interested</button>
@@ -1133,6 +1209,23 @@ Happy to. What's the biggest headache with missed calls for you right now — so
                 <div class="p-plan"><span class="badge b-indigo" id="settings-plan-badge">—</span></div>
               </div>
             </div>
+            <div style="padding:0 20px 20px;display:flex;flex-direction:column;gap:10px">
+              <div class="f-field"><label class="f-label">Display Name</label><input class="f-input" id="settings-display-name-input" placeholder="Your name"></div>
+              <div class="f-field"><label class="f-label">Agency Name</label><input class="f-input" id="settings-agency-name-input" placeholder="Your agency's name"></div>
+              <button class="btn btn-indigo" style="align-self:flex-start" id="settings-profile-save-btn" onclick="saveProfileFields()">Save Profile</button>
+              <div id="settings-profile-status" style="font-size:.75rem;min-height:1em"></div>
+            </div>
+          </div>
+
+          <div class="s-group">
+            <div class="s-group-label">Revenue Goals</div>
+            <div style="padding:14px 20px 20px;display:flex;flex-direction:column;gap:10px">
+              <div class="f-field"><label class="f-label">Weekly ($)</label><input class="f-input" id="settings-goal-weekly" type="number" step="1" placeholder="e.g. 1000"></div>
+              <div class="f-field"><label class="f-label">Monthly ($)</label><input class="f-input" id="settings-goal-monthly" type="number" step="1" placeholder="e.g. 4000"></div>
+              <div class="f-field"><label class="f-label">Yearly ($)</label><input class="f-input" id="settings-goal-yearly" type="number" step="1" placeholder="e.g. 48000"></div>
+              <button class="btn btn-indigo" style="align-self:flex-start" id="settings-goals-save-btn" onclick="saveGoals()">Save Goals</button>
+              <div id="settings-goals-status" style="font-size:.75rem;min-height:1em"></div>
+            </div>
           </div>
 
           <div class="s-group">
@@ -1170,6 +1263,151 @@ Happy to. What's the biggest headache with missed calls for you right now — so
       </div>
     </div>
 
+    <!-- BOOKED MEETINGS -->
+    <div class="page" id="page-meetings">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div><div class="page-title">Booked Meetings</div><div class="page-sub">Track upcoming and completed client meetings</div></div>
+        <button class="btn btn-indigo" onclick="openAddMeetingModal()">+ Add Meeting</button>
+      </div>
+      <div class="stat-strip" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+        <div class="stat-cell"><div class="stat-label">Upcoming</div><div class="stat-val" id="meetings-stat-upcoming">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Completed</div><div class="stat-val" id="meetings-stat-completed">0</div></div>
+        <div class="stat-cell"><div class="stat-label">Total</div><div class="stat-val" id="meetings-stat-total">0</div></div>
+      </div>
+      <div class="card card-pad">
+        <table class="data-table">
+          <thead><tr><th>Business</th><th>Date</th><th>Time</th><th>Notes</th><th>Status</th><th></th></tr></thead>
+          <tbody id="meetings-body">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No meetings yet. Click + Add Meeting to log one.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="page" id="page-clients">
+      <div class="page-header"><div class="page-title">Clients</div><div class="page-sub">Closed deals — leads marked Won, with their assigned agent</div></div>
+      <div class="card card-pad">
+        <table class="data-table">
+          <thead><tr><th>Business</th><th>Phone</th><th>Agent</th><th>Monthly Charge</th></tr></thead>
+          <tbody id="clients-body">
+            <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ink3)">No clients yet. Mark a lead as Won in CRM to see it here.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div class="page" id="page-payments">
+      <div class="page-header"><div class="page-title">Payments</div><div class="page-sub">Profit calculator & proposal payment history</div></div>
+      <div class="two-col" style="margin-bottom:20px">
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:16px">Profit Calculator</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="f-field"><label class="f-label">Agent</label><select class="f-input" id="pay-agent-select" onchange="handlePaymentsAgentChange()"><option value="">— Select an agent —</option></select></div>
+            <div class="f-field"><label class="f-label">Charge / month ($)</label><input class="f-input" id="pay-charge" type="number" step="1" placeholder="e.g. 500" oninput="renderProfitCalc()"></div>
+            <div class="f-field"><label class="f-label">Estimated call minutes / month</label><input class="f-input" id="pay-minutes" type="number" step="1" placeholder="e.g. 200" oninput="renderProfitCalc()"></div>
+            <div class="f-field"><label class="f-label">Est. Retell cost / min ($)</label><input class="f-input" id="pay-rate" type="number" step="0.01" value="0.10" oninput="renderProfitCalc()"></div>
+            <div style="font-size:.72rem;color:var(--ink3)">Retell cost/min is an estimate you can adjust — LaunchDesk doesn't pull real per-minute billing from Retell yet.</div>
+          </div>
+        </div>
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:16px">Result</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div class="review-row"><span class="review-label">Est. Retell Cost</span><span class="review-val" id="pay-cost">$0.00</span></div>
+            <div class="review-row"><span class="review-label">You Charge</span><span class="review-val" id="pay-charge-display">$0.00</span></div>
+            <div class="review-row"><span class="review-label">Profit</span><span class="review-val" id="pay-profit">$0.00</span></div>
+            <div class="review-row"><span class="review-label">Margin</span><span class="review-val" id="pay-margin">0%</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card card-pad">
+        <div class="card-title" style="margin-bottom:16px">Payment History</div>
+        <table class="data-table">
+          <thead><tr><th>Business</th><th>Sent</th><th>Status</th></tr></thead>
+          <tbody id="payments-history-body">
+            <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--ink3)">No sent proposals yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROPOSALS -->
+    <div class="page" id="page-proposals">
+      <div class="page-header"><div class="page-title">Proposals</div><div class="page-sub">Funnel performance across every proposal you've sent</div></div>
+      <div class="stat-strip" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+        <div class="stat-cell"><div class="stat-label">Total Sent</div><div class="stat-val" id="prop-stat-sent">0</div></div>
+        <div class="stat-cell"><div class="stat-label">View Rate</div><div class="stat-val" id="prop-stat-view-rate">0%</div></div>
+        <div class="stat-cell"><div class="stat-label">Close Rate</div><div class="stat-val" id="prop-stat-close-rate">0%</div></div>
+        <div class="stat-cell"><div class="stat-label">MRR Won</div><div class="stat-val" id="prop-stat-mrr">$0</div></div>
+      </div>
+      <div class="dash-grid">
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:16px">All Proposals</div>
+          <table class="data-table">
+            <thead><tr><th>Business</th><th>Sent</th><th>Status</th></tr></thead>
+            <tbody id="proposals-list-body">
+              <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--ink3)">No proposals yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card card-pad" style="align-self:start">
+          <div class="card-title" style="margin-bottom:12px">Default Template</div>
+          <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">Optional — guides the structure/style Claude follows when generating new proposals.</p>
+          <textarea class="f-input" id="proposal-template-input" rows="8" style="resize:none;width:100%;margin-bottom:10px" placeholder="e.g. Open with a one-line hook, then 3 bullet points on ROI, then a call to action…"></textarea>
+          <button class="btn btn-indigo" style="width:100%" id="proposal-template-save-btn" onclick="saveProposalTemplate()">Save Template</button>
+          <div id="proposal-template-status" style="font-size:.75rem;min-height:1em;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ADD MEETING MODAL -->
+  <div class="modal-overlay hidden" id="modal-add-meeting" onclick="if(event.target===this) closeAddMeetingModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">📅 Add Meeting</div>
+        <div class="modal-close" onclick="closeAddMeetingModal()">✕</div>
+      </div>
+      <div class="f-field"><label class="f-label">Business Name</label><input class="f-input" id="meeting-business-name" placeholder="e.g. Metro Plumbing Co."></div>
+      <div class="two-col">
+        <div class="f-field"><label class="f-label">Date</label><input class="f-input" id="meeting-date" type="date"></div>
+        <div class="f-field"><label class="f-label">Time</label><input class="f-input" id="meeting-time" type="time"></div>
+      </div>
+      <div class="f-field"><label class="f-label">Link to CRM Lead (optional)</label><select class="f-input" id="meeting-lead-select"><option value="">— None —</option></select></div>
+      <div class="f-field"><label class="f-label">Notes</label><textarea class="f-input" id="meeting-notes" rows="3" style="resize:none"></textarea></div>
+      <div class="modal-error" id="meeting-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAddMeetingModal()">Cancel</button>
+        <button class="btn btn-indigo" id="meeting-save-btn" onclick="saveMeeting()">Add Meeting</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG ACTIVITY MODAL -->
+  <div class="modal-overlay hidden" id="modal-log-activity" onclick="if(event.target===this) closeLogActivityModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">📝 Log Activity</div>
+        <div class="modal-close" onclick="closeLogActivityModal()">✕</div>
+      </div>
+      <div class="f-field">
+        <label class="f-label">Type</label>
+        <select class="f-input" id="activity-type">
+          <option value="call">📞 Call</option>
+          <option value="email">📧 Email</option>
+          <option value="dm">💬 DM</option>
+        </select>
+      </div>
+      <div class="f-field"><label class="f-label">When</label><input class="f-input" id="activity-occurred-at" type="datetime-local"></div>
+      <div class="f-field"><label class="f-label">Notes</label><textarea class="f-input" id="activity-notes" rows="3" style="resize:none"></textarea></div>
+      <div class="modal-error" id="activity-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeLogActivityModal()">Cancel</button>
+        <button class="btn btn-indigo" id="activity-save-btn" onclick="saveLeadActivity()">Log Activity</button>
+      </div>
+    </div>
   </div>
 
   <!-- INTEGRATION MODALS -->
@@ -1254,7 +1492,18 @@ Happy to. What's the biggest headache with missed calls for you right now — so
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">Settings</span>
     </button>
+    <button class="nav-link" id="nav-more" onclick="toggleMoreMenu(event)">
+      <span class="nav-icon">⋯</span>
+      <span class="nav-label">More</span>
+    </button>
   </nav>
+
+  <div class="more-menu hidden" id="more-menu">
+    <div class="more-menu-item" onclick="openMorePage('meetings')">📅 Booked Meetings</div>
+    <div class="more-menu-item" onclick="openMorePage('clients')">👥 Clients</div>
+    <div class="more-menu-item" onclick="openMorePage('payments')">💰 Payments</div>
+    <div class="more-menu-item" onclick="openMorePage('proposals')">📄 Proposals</div>
+  </div>
 
 </div>
 
@@ -1267,6 +1516,26 @@ function nav(name, el){
   const btn=document.getElementById('nav-'+name);
   if(btn)btn.classList.add('active');
   document.querySelector('.content').scrollTop=0;
+}
+
+function toggleMoreMenu(event){
+  if(event) event.stopPropagation();
+  document.getElementById('more-menu').classList.toggle('hidden');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('more-menu');
+  if(menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && e.target.id !== 'nav-more' && !e.target.closest('#nav-more')){
+    menu.classList.add('hidden');
+  }
+});
+
+const MORE_PAGES = { meetings: loadMeetingsPage, clients: loadClientsPage, payments: loadPaymentsPage, proposals: loadProposalsPage };
+function openMorePage(name){
+  document.getElementById('more-menu').classList.add('hidden');
+  nav(name, null);
+  document.getElementById('nav-more').classList.add('active');
+  const loader = MORE_PAGES[name];
+  if(loader) loader();
 }
 function toggleCheck(el){
   el.classList.toggle('done');
@@ -1284,6 +1553,7 @@ function showDetail(agent){
   document.getElementById('agents-detail').style.display='block';
   renderAgentCalendarTab();
   renderAgentPhoneTab();
+  renderAgentBillingTab();
   resetProposalTab();
 }
 function hideDetail(){
@@ -1386,6 +1656,67 @@ async function handleBuyPhone(){
     loadAgentsList();
   } catch (err) {
     if(statusEl) statusEl.textContent = err.message;
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+// ── AGENT BILLING TAB ──
+let agentBillingMinutes = 0;
+
+async function renderAgentBillingTab(){
+  const chargeInput = document.getElementById('agent-billing-charge');
+  if(!chargeInput || !currentAgent) return;
+
+  chargeInput.value = currentAgent.monthly_charge != null ? currentAgent.monthly_charge : '';
+  agentBillingMinutes = 0;
+  document.getElementById('agent-billing-minutes').textContent = '0';
+
+  try {
+    const { call_logs } = await API.agents.getCalls(currentAgent.id);
+    const totalSeconds = (call_logs || []).reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
+    agentBillingMinutes = totalSeconds / 60;
+    document.getElementById('agent-billing-minutes').textContent = agentBillingMinutes.toFixed(1);
+  } catch (err) {
+    console.error('Failed to load call logs for billing tab', err);
+  }
+
+  renderAgentBillingCalc();
+}
+
+function renderAgentBillingCalc(){
+  const charge = parseFloat(document.getElementById('agent-billing-charge').value) || 0;
+  const rate = parseFloat(document.getElementById('agent-billing-rate').value) || 0;
+  const cost = agentBillingMinutes * rate;
+  const profit = charge - cost;
+  const margin = charge > 0 ? (profit / charge) * 100 : 0;
+
+  document.getElementById('agent-billing-cost').textContent = '$' + cost.toFixed(2);
+  document.getElementById('agent-billing-charge-display').textContent = '$' + charge.toFixed(2);
+  const profitEl = document.getElementById('agent-billing-profit');
+  profitEl.textContent = '$' + profit.toFixed(2);
+  profitEl.style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
+  const marginEl = document.getElementById('agent-billing-margin');
+  marginEl.textContent = margin.toFixed(1) + '%';
+  marginEl.style.color = margin >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+async function saveAgentBilling(){
+  if(!currentAgent) return;
+  const monthly_charge = document.getElementById('agent-billing-charge').value || null;
+  const statusEl = document.getElementById('agent-billing-status');
+  const btn = document.getElementById('agent-billing-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  statusEl.textContent = '';
+  try {
+    const { agent } = await API.agents.update(currentAgent.id, { monthly_charge });
+    currentAgent = agent;
+    statusEl.textContent = '✓ Saved';
+    statusEl.style.color = 'var(--green)';
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.style.color = 'var(--red)';
+  } finally {
     btn.disabled = false; btn.textContent = original;
   }
 }
@@ -1603,6 +1934,8 @@ function enterApp(){
   loadDashboardStats();
   loadColdCallQueue();
   loadIntegrations();
+  loadTodos();
+  loadDashboardWidgets();
 }
 
 async function handleLogin(){
@@ -1685,8 +2018,65 @@ async function loadUserStats(){
     if(billingMetaEl) {
       billingMetaEl.textContent = `${planInfo.price} · ${user.scrape_credits_used} / ${user.scrape_credits_limit} scrapes used`;
     }
+
+    const displayNameInput = document.getElementById('settings-display-name-input');
+    if(displayNameInput) displayNameInput.value = user.full_name || '';
+
+    const agencyNameInput = document.getElementById('settings-agency-name-input');
+    if(agencyNameInput) agencyNameInput.value = user.agency_name || '';
+
+    const goalWeeklyInput = document.getElementById('settings-goal-weekly');
+    if(goalWeeklyInput) goalWeeklyInput.value = user.goal_weekly_revenue ?? '';
+
+    const goalMonthlyInput = document.getElementById('settings-goal-monthly');
+    if(goalMonthlyInput) goalMonthlyInput.value = user.goal_monthly_revenue ?? '';
+
+    const goalYearlyInput = document.getElementById('settings-goal-yearly');
+    if(goalYearlyInput) goalYearlyInput.value = user.goal_yearly_revenue ?? '';
   } catch (err) {
     console.error('Failed to load user stats', err);
+  }
+}
+
+async function saveProfileFields(){
+  const full_name = document.getElementById('settings-display-name-input').value.trim();
+  const agency_name = document.getElementById('settings-agency-name-input').value.trim();
+  const statusEl = document.getElementById('settings-profile-status');
+  const btn = document.getElementById('settings-profile-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  statusEl.textContent = '';
+  try {
+    await API.auth.updateMe({ full_name, agency_name });
+    statusEl.textContent = '✓ Saved';
+    statusEl.style.color = 'var(--green)';
+    loadUserStats();
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function saveGoals(){
+  const goal_weekly_revenue = document.getElementById('settings-goal-weekly').value || null;
+  const goal_monthly_revenue = document.getElementById('settings-goal-monthly').value || null;
+  const goal_yearly_revenue = document.getElementById('settings-goal-yearly').value || null;
+  const statusEl = document.getElementById('settings-goals-status');
+  const btn = document.getElementById('settings-goals-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  statusEl.textContent = '';
+  try {
+    await API.auth.updateMe({ goal_weekly_revenue, goal_monthly_revenue, goal_yearly_revenue });
+    statusEl.textContent = '✓ Saved';
+    statusEl.style.color = 'var(--green)';
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false; btn.textContent = original;
   }
 }
 
@@ -1699,6 +2089,66 @@ async function loadDashboardStats(){
     document.getElementById('stat-mrr').textContent = `$${stats.mrr}`;
   } catch (err) {
     console.error('Failed to load dashboard stats', err);
+  }
+}
+
+async function loadDashboardWidgets(){
+  try {
+    const { proposals } = await API.proposals.getAll();
+    const recentEl = document.getElementById('dashboard-recent-proposals');
+    const recent = (proposals || []).slice(0, 3);
+    if(!recent.length){
+      recentEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No proposals yet.</div>';
+    } else {
+      recentEl.innerHTML = recent.map((p) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:.82rem;font-weight:600;color:var(--ink)">${escapeHtml((p.leads && p.leads.business_name) || 'Unknown')}</span>
+          <span class="badge ${proposalStatusBadgeClass(p.status)}">${proposalStatusLabel(p.status)}</span>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Failed to load recent proposals widget', err);
+  }
+
+  try {
+    const { agents } = await API.agents.getAll();
+    const activeAgents = (agents || []).filter((a) => a.status === 'active');
+    const agentsEl = document.getElementById('dashboard-my-agents');
+    if(!activeAgents.length){
+      agentsEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No active agents yet.</div>';
+    } else {
+      agentsEl.innerHTML = activeAgents.slice(0, 5).map((a) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:.82rem;font-weight:600;color:var(--ink)">${escapeHtml(a.agent_name || 'Unnamed')} <span style="font-weight:400;color:var(--ink3)">· ${escapeHtml(a.business_name || '')}</span></span>
+          <span class="badge b-green b-dot">Live</span>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Failed to load my agents widget', err);
+  }
+
+  loadTodaysActivity();
+}
+
+async function loadTodaysActivity(){
+  try {
+    const { today, week } = await API.leads.getActivitySummary();
+    const el = document.getElementById('dashboard-todays-activity');
+    const rows = [
+      { label: '📞 Calls', today: today.call, week: week.call },
+      { label: '📧 Emails', today: today.email, week: week.email },
+      { label: '💬 DMs', today: today.dm, week: week.dm },
+    ];
+    el.innerHTML = rows.map((r) => `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:.82rem;color:var(--ink2)">${r.label}</span>
+        <span style="font-size:.82rem;font-weight:600;color:var(--ink)">${r.today} today <span style="font-weight:400;color:var(--ink3)">· ${r.week} this week</span></span>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error("Failed to load today's activity", err);
   }
 }
 
@@ -1860,15 +2310,17 @@ function renderCRMTable(leads){
   const tbody = document.getElementById('crm-leads-body');
   if(tbody){
     if(!total){
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>';
     } else {
       tbody.innerHTML = cachedCRMLeads.map((lead) => `
         <tr>
           <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
           <td>${escapeHtml(lead.phone || '—')}</td>
+          <td>${escapeHtml(lead.email || '—')}</td>
           <td>${escapeHtml([lead.city, lead.state].filter(Boolean).join(', ') || '—')}</td>
           <td><span class="score">${lead.ai_score ?? '—'}</span></td>
           <td>${renderStageSelect(lead)}</td>
+          <td><button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="openLogActivityModal('${lead.id}')">Log Activity</button></td>
         </tr>
       `).join('');
     }
@@ -1883,6 +2335,114 @@ async function loadCRM(){
     renderCRMTable(leads);
   } catch (err) {
     console.error('Failed to load CRM leads', err);
+  }
+}
+
+// ── LOG ACTIVITY ──
+let logActivityLeadId = null;
+
+function formatDatetimeLocal(date){
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function openLogActivityModal(leadId){
+  logActivityLeadId = leadId;
+  document.getElementById('activity-type').value = 'call';
+  document.getElementById('activity-occurred-at').value = formatDatetimeLocal(new Date());
+  document.getElementById('activity-notes').value = '';
+  document.getElementById('activity-modal-error').textContent = '';
+  document.getElementById('modal-log-activity').classList.remove('hidden');
+}
+
+function closeLogActivityModal(){
+  document.getElementById('modal-log-activity').classList.add('hidden');
+  logActivityLeadId = null;
+}
+
+async function saveLeadActivity(){
+  if(!logActivityLeadId) return;
+  const type = document.getElementById('activity-type').value;
+  const occurredAtLocal = document.getElementById('activity-occurred-at').value;
+  const notes = document.getElementById('activity-notes').value.trim();
+  const errorEl = document.getElementById('activity-modal-error');
+  errorEl.textContent = '';
+
+  const btn = document.getElementById('activity-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await API.leads.createActivity(logActivityLeadId, {
+      type,
+      notes: notes || undefined,
+      occurred_at: occurredAtLocal ? new Date(occurredAtLocal).toISOString() : undefined,
+    });
+    closeLogActivityModal();
+    loadTodaysActivity();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+// ── TO-DO ──
+let cachedTodos = [];
+
+async function loadTodos(){
+  try {
+    const { todos } = await API.todos.getAll();
+    cachedTodos = todos || [];
+    renderTodos();
+  } catch (err) {
+    console.error('Failed to load todos', err);
+  }
+}
+
+function renderTodos(){
+  const list = document.getElementById('todo-list');
+  if(!list) return;
+  if(!cachedTodos.length){
+    list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--ink3);font-size:.82rem">No tasks yet.</div>';
+    return;
+  }
+  list.innerHTML = cachedTodos.map((t) => `
+    <div class="check-item ${t.done ? 'done' : ''}" onclick="handleToggleTodo('${t.id}', ${!t.done})">
+      <div class="checkbox ${t.done ? 'checked' : ''}">${t.done ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>' : ''}</div>
+      <div class="check-label" style="flex:1">${escapeHtml(t.text)}</div>
+      <span onclick="event.stopPropagation(); handleDeleteTodo('${t.id}')" style="color:var(--ink3);cursor:pointer;padding:2px 6px">✕</span>
+    </div>
+  `).join('');
+}
+
+async function handleAddTodo(){
+  const input = document.getElementById('todo-input');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  try {
+    await API.todos.create(text);
+    await loadTodos();
+  } catch (err) {
+    alert('Failed to add task: ' + err.message);
+  }
+}
+
+async function handleToggleTodo(id, done){
+  try {
+    await API.todos.update(id, { done });
+    await loadTodos();
+  } catch (err) {
+    alert('Failed to update task: ' + err.message);
+  }
+}
+
+async function handleDeleteTodo(id){
+  try {
+    await API.todos.delete(id);
+    await loadTodos();
+  } catch (err) {
+    alert('Failed to delete task: ' + err.message);
   }
 }
 
@@ -2096,9 +2656,11 @@ async function handleGenerateProposal(){
 // ── COLD CALL ──
 let coldCallQueue = [];
 let coldCallIndex = 0;
+let allColdCallLeads = [];
+let manualColdCallLead = null;
 
 function currentColdCallLead(){
-  return coldCallQueue[coldCallIndex] || null;
+  return manualColdCallLead || coldCallQueue[coldCallIndex] || null;
 }
 
 function renderColdCallQueue(){
@@ -2133,11 +2695,27 @@ function renderColdCallQueue(){
   if(remainingEl) remainingEl.textContent = `${remaining} lead${remaining === 1 ? '' : 's'} in queue`;
 }
 
+function renderColdCallLeadSelect(){
+  const select = document.getElementById('coldcall-lead-select');
+  if(!select) return;
+  select.innerHTML = '<option value="">— Auto (next in queue) —</option>' +
+    allColdCallLeads.map((l) => `<option value="${l.id}">${escapeHtml(l.business_name || 'Unknown')}</option>`).join('');
+}
+
+function handleColdCallLeadSelect(){
+  const id = document.getElementById('coldcall-lead-select').value;
+  manualColdCallLead = id ? allColdCallLeads.find((l) => l.id === id) || null : null;
+  renderColdCallQueue();
+}
+
 async function loadColdCallQueue(){
   try {
     const { leads } = await API.leads.getAll();
-    coldCallQueue = (leads || []).filter((l) => l.pipeline_stage === 'to_contact' || l.pipeline_stage === 'contacted');
+    allColdCallLeads = leads || [];
+    coldCallQueue = allColdCallLeads.filter((l) => l.pipeline_stage === 'to_contact' || l.pipeline_stage === 'contacted');
     coldCallIndex = 0;
+    manualColdCallLead = null;
+    renderColdCallLeadSelect();
     renderColdCallQueue();
   } catch (err) {
     console.error('Failed to load cold call queue', err);
@@ -2146,6 +2724,9 @@ async function loadColdCallQueue(){
 
 function coldCallAdvance(){
   coldCallIndex += 1;
+  manualColdCallLead = null;
+  document.getElementById('coldcall-lead-select').value = '';
+  stopCallTimer();
   renderColdCallQueue();
 }
 
@@ -2174,6 +2755,51 @@ async function handleColdCallNoAnswer(){
 function handleColdCallSkip(){
   if(!currentColdCallLead()) return;
   coldCallAdvance();
+}
+
+// ── CALL TIMER ──
+let callTimerInterval = null;
+let callTimerSeconds = 0;
+
+function handleCallButtonClick(){
+  if(callTimerInterval){
+    stopCallTimer();
+    return;
+  }
+  callTimerSeconds = 0;
+  const timerEl = document.getElementById('coldcall-timer');
+  timerEl.style.display = 'block';
+  timerEl.textContent = '00:00';
+  callTimerInterval = setInterval(() => {
+    callTimerSeconds += 1;
+    const mins = String(Math.floor(callTimerSeconds / 60)).padStart(2, '0');
+    const secs = String(callTimerSeconds % 60).padStart(2, '0');
+    timerEl.textContent = `${mins}:${secs}`;
+  }, 1000);
+}
+
+function stopCallTimer(){
+  if(callTimerInterval){
+    clearInterval(callTimerInterval);
+    callTimerInterval = null;
+  }
+  const timerEl = document.getElementById('coldcall-timer');
+  if(timerEl) timerEl.style.display = 'none';
+}
+
+// ── CALL SCRIPT EDIT ──
+function toggleScriptEdit(){
+  const textarea = document.getElementById('script-textarea');
+  const toggle = document.getElementById('script-edit-toggle');
+  const isReadonly = textarea.hasAttribute('readonly');
+  if(isReadonly){
+    textarea.removeAttribute('readonly');
+    textarea.focus();
+    toggle.textContent = 'Done';
+  } else {
+    textarea.setAttribute('readonly', 'readonly');
+    toggle.textContent = 'Edit';
+  }
 }
 
 // ── INTEGRATIONS ──
@@ -2296,6 +2922,266 @@ async function saveEmailIntegration(){
     closeModal('email');
   } catch (err) {
     setModalError('email', err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+// ── PROPOSAL STATUS HELPERS ──
+function proposalStatusBadgeClass(status){
+  if(status === 'closed') return 'b-green';
+  if(status === 'viewed') return 'b-indigo';
+  if(status === 'sent') return 'b-amber';
+  return 'b-gray';
+}
+function proposalStatusLabel(status){
+  return { draft: 'Draft', sent: 'Sent', viewed: 'Viewed', closed: 'Closed' }[status] || status;
+}
+
+// ── BOOKED MEETINGS ──
+let cachedMeetings = [];
+
+async function loadMeetingsPage(){
+  try {
+    const { meetings } = await API.meetings.getAll();
+    cachedMeetings = meetings || [];
+    renderMeetings();
+  } catch (err) {
+    console.error('Failed to load meetings', err);
+  }
+}
+
+function renderMeetings(){
+  const upcoming = cachedMeetings.filter((m) => m.status === 'upcoming').length;
+  const completed = cachedMeetings.filter((m) => m.status === 'completed').length;
+  document.getElementById('meetings-stat-upcoming').textContent = upcoming;
+  document.getElementById('meetings-stat-completed').textContent = completed;
+  document.getElementById('meetings-stat-total').textContent = cachedMeetings.length;
+
+  const tbody = document.getElementById('meetings-body');
+  if(!cachedMeetings.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No meetings yet. Click + Add Meeting to log one.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = cachedMeetings.map((m) => `
+    <tr>
+      <td><span class="td-primary">${escapeHtml(m.business_name)}</span></td>
+      <td>${escapeHtml(m.meeting_date || '—')}</td>
+      <td>${escapeHtml(m.meeting_time || '—')}</td>
+      <td style="color:var(--ink3)">${escapeHtml(m.notes || '—')}</td>
+      <td><span class="badge ${m.status === 'completed' ? 'b-green' : 'b-indigo'}">${m.status === 'completed' ? 'Completed' : 'Upcoming'}</span></td>
+      <td>${m.status === 'upcoming' ? `<button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleMarkMeetingCompleted('${m.id}', this)">Mark Completed</button>` : ''}</td>
+    </tr>
+  `).join('');
+}
+
+async function handleMarkMeetingCompleted(id, btn){
+  btn.disabled = true;
+  try {
+    await API.meetings.update(id, { status: 'completed' });
+    await loadMeetingsPage();
+  } catch (err) {
+    alert('Failed to update meeting: ' + err.message);
+    btn.disabled = false;
+  }
+}
+
+async function openAddMeetingModal(){
+  document.getElementById('meeting-business-name').value = '';
+  document.getElementById('meeting-date').value = '';
+  document.getElementById('meeting-time').value = '';
+  document.getElementById('meeting-notes').value = '';
+  document.getElementById('meeting-modal-error').textContent = '';
+
+  const select = document.getElementById('meeting-lead-select');
+  select.innerHTML = '<option value="">— None —</option>';
+  try {
+    const { leads } = await API.leads.getAll();
+    (leads || []).forEach((lead) => {
+      const opt = document.createElement('option');
+      opt.value = lead.id;
+      opt.textContent = lead.business_name;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Failed to load leads for meeting modal', err);
+  }
+
+  document.getElementById('modal-add-meeting').classList.remove('hidden');
+}
+
+function closeAddMeetingModal(){
+  document.getElementById('modal-add-meeting').classList.add('hidden');
+}
+
+async function saveMeeting(){
+  const business_name = document.getElementById('meeting-business-name').value.trim();
+  const meeting_date = document.getElementById('meeting-date').value;
+  const meeting_time = document.getElementById('meeting-time').value;
+  const notes = document.getElementById('meeting-notes').value.trim();
+  const lead_id = document.getElementById('meeting-lead-select').value || undefined;
+  const errorEl = document.getElementById('meeting-modal-error');
+  errorEl.textContent = '';
+
+  if(!business_name || !meeting_date){
+    errorEl.textContent = 'Business name and date are required.';
+    return;
+  }
+
+  const btn = document.getElementById('meeting-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await API.meetings.create({
+      business_name,
+      meeting_date,
+      meeting_time: meeting_time || undefined,
+      notes: notes || undefined,
+      lead_id,
+    });
+    closeAddMeetingModal();
+    await loadMeetingsPage();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+// ── CLIENTS ──
+async function loadClientsPage(){
+  try {
+    const [{ leads }, { agents }] = await Promise.all([API.leads.getAll(), API.agents.getAll()]);
+    const wonLeads = (leads || []).filter((l) => l.pipeline_stage === 'won');
+    const tbody = document.getElementById('clients-body');
+
+    if(!wonLeads.length){
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ink3)">No clients yet. Mark a lead as Won in CRM to see it here.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = wonLeads.map((lead) => {
+      const agent = (agents || []).find((a) => a.lead_id === lead.id);
+      return `
+        <tr>
+          <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name)}</span></td>
+          <td>${escapeHtml(lead.phone || '—')}</td>
+          <td>${agent ? escapeHtml(agent.agent_name || 'Unnamed agent') : '<span style="color:var(--ink3)">No agent yet</span>'}</td>
+          <td>${agent && agent.monthly_charge != null ? '$' + Number(agent.monthly_charge).toLocaleString() + '/mo' : '<span style="color:var(--ink3)">—</span>'}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load clients', err);
+  }
+}
+
+// ── PAYMENTS ──
+let cachedAgentsForPayments = [];
+
+async function loadPaymentsPage(){
+  try {
+    const [{ agents }, { proposals }] = await Promise.all([API.agents.getAll(), API.proposals.getAll()]);
+    cachedAgentsForPayments = agents || [];
+
+    const select = document.getElementById('pay-agent-select');
+    select.innerHTML = '<option value="">— Select an agent —</option>' +
+      cachedAgentsForPayments.map((a) => `<option value="${a.id}">${escapeHtml(a.agent_name || a.business_name || 'Agent')}</option>`).join('');
+
+    const sentProposals = (proposals || []).filter((p) => p.status !== 'draft');
+    const tbody = document.getElementById('payments-history-body');
+    if(!sentProposals.length){
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--ink3)">No sent proposals yet.</td></tr>';
+    } else {
+      tbody.innerHTML = sentProposals.map((p) => `
+        <tr>
+          <td><span class="td-primary">${escapeHtml((p.leads && p.leads.business_name) || 'Unknown')}</span></td>
+          <td>${new Date(p.created_at).toLocaleDateString()}</td>
+          <td><span class="badge ${proposalStatusBadgeClass(p.status)}">${proposalStatusLabel(p.status)}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    renderProfitCalc();
+  } catch (err) {
+    console.error('Failed to load payments page', err);
+  }
+}
+
+function handlePaymentsAgentChange(){
+  const agentId = document.getElementById('pay-agent-select').value;
+  const agent = cachedAgentsForPayments.find((a) => a.id === agentId);
+  if(agent && agent.monthly_charge != null){
+    document.getElementById('pay-charge').value = agent.monthly_charge;
+  }
+  renderProfitCalc();
+}
+
+function renderProfitCalc(){
+  const charge = parseFloat(document.getElementById('pay-charge').value) || 0;
+  const minutes = parseFloat(document.getElementById('pay-minutes').value) || 0;
+  const rate = parseFloat(document.getElementById('pay-rate').value) || 0;
+  const cost = minutes * rate;
+  const profit = charge - cost;
+  const margin = charge > 0 ? (profit / charge) * 100 : 0;
+
+  document.getElementById('pay-cost').textContent = '$' + cost.toFixed(2);
+  document.getElementById('pay-charge-display').textContent = '$' + charge.toFixed(2);
+  const profitEl = document.getElementById('pay-profit');
+  profitEl.textContent = '$' + profit.toFixed(2);
+  profitEl.style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
+  const marginEl = document.getElementById('pay-margin');
+  marginEl.textContent = margin.toFixed(1) + '%';
+  marginEl.style.color = margin >= 0 ? 'var(--green)' : 'var(--red)';
+}
+
+// ── PROPOSALS PAGE ──
+async function loadProposalsPage(){
+  try {
+    const [stats, { proposals }, { user }] = await Promise.all([
+      API.proposals.getStats(),
+      API.proposals.getAll(),
+      API.auth.getMe(),
+    ]);
+
+    document.getElementById('prop-stat-sent').textContent = stats.total_sent;
+    document.getElementById('prop-stat-view-rate').textContent = Math.round(stats.view_rate * 100) + '%';
+    document.getElementById('prop-stat-close-rate').textContent = Math.round(stats.close_rate * 100) + '%';
+    document.getElementById('prop-stat-mrr').textContent = '$' + Number(stats.mrr_won).toLocaleString();
+
+    const tbody = document.getElementById('proposals-list-body');
+    if(!proposals || !proposals.length){
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:24px;color:var(--ink3)">No proposals yet.</td></tr>';
+    } else {
+      tbody.innerHTML = proposals.map((p) => `
+        <tr>
+          <td><span class="td-primary">${escapeHtml((p.leads && p.leads.business_name) || 'Unknown')}</span></td>
+          <td>${new Date(p.created_at).toLocaleDateString()}</td>
+          <td><span class="badge ${proposalStatusBadgeClass(p.status)}">${proposalStatusLabel(p.status)}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('proposal-template-input').value = (user && user.proposal_template) || '';
+  } catch (err) {
+    console.error('Failed to load proposals page', err);
+  }
+}
+
+async function saveProposalTemplate(){
+  const template = document.getElementById('proposal-template-input').value;
+  const statusEl = document.getElementById('proposal-template-status');
+  const btn = document.getElementById('proposal-template-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  statusEl.textContent = '';
+  try {
+    await API.proposals.saveTemplate(template || null);
+    statusEl.textContent = '✓ Saved';
+    statusEl.style.color = 'var(--green)';
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.style.color = 'var(--red)';
   } finally {
     btn.disabled = false; btn.textContent = original;
   }
