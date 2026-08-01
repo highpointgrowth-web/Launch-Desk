@@ -357,6 +357,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
     </a>
 
     <nav class="sidebar-nav">
+      <button class="sidebar-item active" id="nav-dashboard" onclick="nav('dashboard',this)" style="margin-bottom:8px"><span class="sidebar-item-icon">🏠</span>Dashboard</button>
+
       <div class="sidebar-section">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
           <span>Sales Pipeline</span>
@@ -399,7 +401,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="sidebar-section-items">
-          <button class="sidebar-item active" id="nav-dashboard" onclick="nav('dashboard',this)"><span class="sidebar-item-icon">🏠</span>Dashboard</button>
           <button class="sidebar-item" id="nav-playbook" onclick="nav('playbook',this)"><span class="sidebar-item-icon">📚</span>Playbook</button>
           <button class="sidebar-item" id="nav-settings" onclick="nav('settings',this)"><span class="sidebar-item-icon">⚙️</span>Settings</button>
         </div>
