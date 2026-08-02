@@ -252,7 +252,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 
 /* ── LEAD FORM ── */
-.find-form{display:grid;grid-template-columns:1fr 1fr 140px auto;gap:10px;align-items:end}
+.find-form{display:grid;grid-template-columns:1fr 1fr 140px 150px auto;gap:10px;align-items:end}
 .f-field{display:flex;flex-direction:column;gap:5px}
 .f-label{font-size:.67rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
 .f-input{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.55rem .85rem;font-size:.82rem;color:var(--ink);font-family:'Inter',system-ui,sans-serif;outline:none;transition:all .15s}
@@ -321,29 +321,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 </style>
 </head>
 <body>
-
-<!-- AUTH SCREEN -->
-<div id="auth-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)">
-  <div class="card card-pad" style="width:340px">
-    <div style="display:flex;align-items:center;gap:9px;margin-bottom:24px">
-      <div class="logo-mark">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      </div>
-      <span class="logo-text">LaunchDesk</span>
-    </div>
-    <div class="page-title" style="font-size:1.05rem;margin-bottom:4px">Log in or sign up</div>
-    <div class="page-sub" style="margin-bottom:20px">Access your LaunchDesk dashboard</div>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="auth-email" type="email" placeholder="you@business.com"></div>
-      <div class="f-field"><label class="f-label">Password</label><input class="f-input" id="auth-password" type="password" placeholder="••••••••"></div>
-    </div>
-    <div id="auth-error" class="hidden" style="margin-top:12px;padding:10px 12px;background:var(--red-bg);border-radius:8px;font-size:.78rem;color:var(--red)"></div>
-    <div class="btn-row" style="margin-top:18px">
-      <button class="btn btn-indigo" style="flex:1" id="auth-login-btn" onclick="handleLogin()">Log In</button>
-      <button class="btn btn-ghost" style="flex:1" id="auth-signup-btn" onclick="handleSignup()">Sign Up</button>
-    </div>
-  </div>
-</div>
 
 <div class="shell hidden" id="app-root">
 
@@ -575,6 +552,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div class="f-field"><label class="f-label">Industry</label><input class="f-input" id="lead-industry" placeholder="plumber, HVAC, electrical…"></div>
           <div class="f-field"><label class="f-label">Location</label><input class="f-input" id="lead-location" placeholder="Dallas, TX"></div>
           <div class="f-field"><label class="f-label">Radius</label><select class="f-input" id="lead-radius"><option value="10000">10 km</option><option value="25000">25 km</option><option value="50000">50 km</option><option value="100000" selected>100 km</option></select></div>
+          <div class="f-field">
+            <label class="f-label">Max Results</label>
+            <select class="f-input" id="lead-max-results"><option value="10">10 leads</option><option value="25" selected>25 leads</option><option value="50">50 leads</option><option value="100">100 leads</option></select>
+            <div style="font-size:.68rem;color:var(--ink3);margin-top:3px">Each result uses 1 scrape credit</div>
+          </div>
           <button class="btn btn-indigo" style="align-self:flex-end" id="lead-search-btn" onclick="handleLeadSearch()">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Find & Score
@@ -2033,24 +2015,14 @@ function toggleTheme(){
 }
 
 // ── AUTH ──
-function setAuthError(msg){
-  const el = document.getElementById('auth-error');
-  if(!msg){ el.classList.add('hidden'); el.textContent = ''; return; }
-  el.textContent = msg;
-  el.classList.remove('hidden');
-}
-
-function showAuthScreen(){
-  document.getElementById('app-root').classList.add('hidden');
-  document.getElementById('auth-screen').classList.remove('hidden');
+// Login/signup now live entirely on auth.html; this page only needs a
+// valid session to render, or to redirect out when it doesn't have one.
+function goToAuth(){
+  window.location.href = 'auth.html';
 }
 
 function enterApp(){
-  document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-root').classList.remove('hidden');
-  document.getElementById('auth-email').value = '';
-  document.getElementById('auth-password').value = '';
-  setAuthError('');
   loadUserStats();
   loadAgentsList();
   loadCRM();
@@ -2061,50 +2033,14 @@ function enterApp(){
   loadDashboardWidgets();
 }
 
-async function handleLogin(){
-  setAuthError('');
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  if(!email || !password){ setAuthError('Email and password are required.'); return; }
-  const btn = document.getElementById('auth-login-btn');
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Logging in…';
-  try {
-    await API.auth.login({ email, password });
-    enterApp();
-  } catch (err) {
-    setAuthError(err.message);
-  } finally {
-    btn.disabled = false; btn.textContent = original;
-  }
-}
-
-async function handleSignup(){
-  setAuthError('');
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  if(!email || !password){ setAuthError('Email and password are required.'); return; }
-  const btn = document.getElementById('auth-signup-btn');
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Signing up…';
-  try {
-    await API.auth.signup({ email, password });
-    await API.auth.login({ email, password });
-    enterApp();
-  } catch (err) {
-    setAuthError(err.message);
-  } finally {
-    btn.disabled = false; btn.textContent = original;
-  }
-}
-
 async function handleLogout(){
   try {
     await API.auth.logout();
   } catch (err) {
-    // token may already be invalid/expired — proceed to the login screen regardless
+    // token may already be invalid/expired — proceed to auth regardless
   }
-  showAuthScreen();
+  API.clearToken();
+  goToAuth();
 }
 
 const PLAN_INFO = {
@@ -2337,6 +2273,7 @@ async function handleLeadSearch(){
   const industry = document.getElementById('lead-industry').value.trim();
   const location = document.getElementById('lead-location').value.trim();
   const radius = parseInt(document.getElementById('lead-radius').value, 10);
+  const max_results = parseInt(document.getElementById('lead-max-results').value, 10);
 
   if(!industry || !location){
     alert('Industry and location are required.');
@@ -2349,7 +2286,7 @@ async function handleLeadSearch(){
   btn.textContent = 'Searching…';
 
   try {
-    const { leads } = await API.leads.scrape({ industry, location, radius });
+    const { leads } = await API.leads.scrape({ industry, location, radius, max_results });
     renderLeadResults(leads);
   } catch (err) {
     alert('Lead search failed: ' + err.message);
@@ -3336,7 +3273,7 @@ function initApp(){
   if(API.getToken()){
     enterApp();
   } else {
-    showAuthScreen();
+    goToAuth();
   }
 }
 initApp();

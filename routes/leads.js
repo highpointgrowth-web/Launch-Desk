@@ -7,6 +7,8 @@ const anthropic = new Anthropic();
 
 const PIPELINE_STAGES = ['new', 'to_contact', 'contacted', 'meeting', 'proposal', 'won', 'lost'];
 const ACTIVITY_TYPES = ['call', 'email', 'dm'];
+const MAX_RESULTS_OPTIONS = [10, 25, 50, 100];
+const DEFAULT_MAX_RESULTS = 25;
 
 router.use(requireAuth);
 
@@ -16,18 +18,37 @@ function extractCityState(addressComponents = []) {
   return { city, state };
 }
 
-async function searchPlaces(industry, location, radius) {
-  const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
-  url.searchParams.set('query', `${industry} in ${location}`);
-  url.searchParams.set('radius', String(radius));
-  url.searchParams.set('key', process.env.GOOGLE_PLACES_API_KEY);
+// Google Places Text Search caps each page at 20 results. Fetching more
+// than that means following next_page_token across pages, each of which
+// needs a short delay before the token is valid.
+async function searchPlaces(industry, location, radius, maxResults) {
+  const results = [];
+  let pageToken = null;
 
-  const res = await fetch(url);
-  const data = await res.json();
-  if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-    throw new Error(`Google Places search failed: ${data.status} ${data.error_message || ''}`);
+  while (results.length < maxResults) {
+    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
+    if (pageToken) {
+      url.searchParams.set('pagetoken', pageToken);
+    } else {
+      url.searchParams.set('query', `${industry} in ${location}`);
+      url.searchParams.set('radius', String(radius));
+    }
+    url.searchParams.set('key', process.env.GOOGLE_PLACES_API_KEY);
+
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      throw new Error(`Google Places search failed: ${data.status} ${data.error_message || ''}`);
+    }
+
+    results.push(...(data.results || []));
+
+    if (!data.next_page_token || results.length >= maxResults) break;
+    pageToken = data.next_page_token;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   }
-  return (data.results || []).slice(0, 20);
+
+  return results.slice(0, maxResults);
 }
 
 async function getPlaceDetails(placeId) {
@@ -47,8 +68,8 @@ async function getPlaceDetails(placeId) {
   return data.result;
 }
 
-async function buildBusinessList(industry, location, radius) {
-  const results = await searchPlaces(industry, location, radius);
+async function buildBusinessList(industry, location, radius, maxResults) {
+  const results = await searchPlaces(industry, location, radius, maxResults);
   const details = await Promise.all(results.map((r) => getPlaceDetails(r.place_id)));
 
   return details.map((d) => {
@@ -73,7 +94,7 @@ async function scoreLeads(businesses) {
 
   const response = await anthropic.messages.create({
     model: 'claude-opus-5',
-    max_tokens: 8000,
+    max_tokens: 16000, // headroom for up to 100 scored leads in one batch
     output_config: {
       effort: 'low',
       format: {
@@ -135,14 +156,16 @@ async function scoreLeads(businesses) {
 }
 
 router.post('/scrape', async (req, res) => {
-  const { industry, location, radius } = req.body;
+  const { industry, location, radius, max_results } = req.body;
 
   if (!industry || !location) {
     return res.status(400).json({ error: 'industry and location are required' });
   }
 
+  const maxResults = MAX_RESULTS_OPTIONS.includes(Number(max_results)) ? Number(max_results) : DEFAULT_MAX_RESULTS;
+
   try {
-    const businesses = await buildBusinessList(industry, location, radius || 5000);
+    const businesses = await buildBusinessList(industry, location, radius || 5000, maxResults);
     const scoredLeads = await scoreLeads(businesses);
     res.json({ leads: scoredLeads });
   } catch (err) {

@@ -27,6 +27,19 @@
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
+    // A 401 on a request that carried a token means the session itself is
+    // dead (expired/revoked) - distinct from a login/signup attempt failing
+    // with 401, which never sends a token in the first place. Only the
+    // former should force a redirect; the latter needs to surface its error
+    // on the current form instead.
+    if (res.status === 401 && token) {
+      clearToken();
+      if (!/\/auth\.html$/.test(global.location.pathname)) {
+        global.location.href = 'auth.html?expired=1';
+      }
+      throw new Error('Your session expired, please log in again.');
+    }
+
     if (res.status === 204) {
       return null;
     }
@@ -77,8 +90,8 @@
   };
 
   const leads = {
-    async scrape({ industry, location, radius }) {
-      return request('POST', '/api/leads/scrape', { industry, location, radius });
+    async scrape({ industry, location, radius, max_results }) {
+      return request('POST', '/api/leads/scrape', { industry, location, radius, max_results });
     },
 
     async create(lead) {

@@ -195,6 +195,10 @@ async function handleSignupSubmit(){
     btn.textContent = original;
   }
 }
+
+if(new URLSearchParams(window.location.search).get('expired') === '1'){
+  setError('login-error', 'Your session expired, please log in again.');
+}
 </script>
 
 </body>
