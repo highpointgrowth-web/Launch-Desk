@@ -74,6 +74,32 @@ router.post('/login', async (req, res) => {
   });
 });
 
+router.post('/refresh', async (req, res) => {
+  const { refresh_token } = req.body;
+
+  if (!refresh_token) {
+    return res.status(400).json({ error: 'refresh_token is required' });
+  }
+
+  // Same reasoning as /login: use a throwaway client so the refreshed
+  // session doesn't attach to the shared service-role client.
+  const authClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data, error } = await authClient.auth.refreshSession({ refresh_token });
+
+  if (error || !data.session) {
+    return res.status(401).json({ error: error?.message || 'Invalid or expired refresh token' });
+  }
+
+  res.json({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+    expires_in: data.session.expires_in,
+    user: data.user,
+  });
+});
+
 router.post('/logout', requireAuth, async (req, res) => {
   const supabase = req.app.locals.supabase;
   const { error } = await supabase.auth.admin.signOut(req.token, 'global');

@@ -1,6 +1,7 @@
 (function (global) {
   const API_BASE_URL = 'https://launchdesk-production-16fc.up.railway.app';
   const TOKEN_KEY = 'launchdesk_token';
+  const REFRESH_TOKEN_KEY = 'launchdesk_refresh_token';
 
   function getToken() {
     return localStorage.getItem(TOKEN_KEY);
@@ -10,11 +11,55 @@
     localStorage.setItem(TOKEN_KEY, token);
   }
 
-  function clearToken() {
-    localStorage.removeItem(TOKEN_KEY);
+  function getRefreshToken() {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
   }
 
-  async function request(method, path, body) {
+  function setRefreshToken(token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  }
+
+  function clearToken() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  }
+
+  // Concurrent 401s (e.g. several dashboard widgets loading at once) should
+  // all wait on one refresh attempt rather than firing a refresh each -
+  // Supabase rotates the refresh token on every use, so a second concurrent
+  // call would already be using a stale one and fail.
+  let refreshPromise = null;
+
+  function refreshSession() {
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        const refresh_token = getRefreshToken();
+        if (!refresh_token) {
+          throw new Error('No refresh token available');
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token }),
+        });
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.access_token) {
+          throw new Error(data?.error || 'Session refresh failed');
+        }
+
+        setToken(data.access_token);
+        setRefreshToken(data.refresh_token);
+        return data;
+      })().finally(() => {
+        refreshPromise = null;
+      });
+    }
+    return refreshPromise;
+  }
+
+  async function request(method, path, body, isRetry) {
     const headers = { 'Content-Type': 'application/json' };
     const token = getToken();
     if (token) {
@@ -27,12 +72,21 @@
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
-    // A 401 on a request that carried a token means the session itself is
-    // dead (expired/revoked) - distinct from a login/signup attempt failing
-    // with 401, which never sends a token in the first place. Only the
-    // former should force a redirect; the latter needs to surface its error
-    // on the current form instead.
+    // A 401 on a request that carried a token means the access token was
+    // rejected - distinct from a login/signup attempt failing with 401,
+    // which never sends a token in the first place (that still falls
+    // through to the normal error below). Try a silent refresh first so an
+    // old-but-not-fully-revoked session doesn't kick the user out; only a
+    // failed refresh (or no refresh token to try) forces the redirect.
     if (res.status === 401 && token) {
+      if (!isRetry) {
+        try {
+          await refreshSession();
+          return request(method, path, body, true);
+        } catch (refreshErr) {
+          // fall through to full logout below
+        }
+      }
       clearToken();
       if (!/\/auth\.html$/.test(global.location.pathname)) {
         global.location.href = 'auth.html?expired=1';
@@ -63,7 +117,14 @@
       if (data?.access_token) {
         setToken(data.access_token);
       }
+      if (data?.refresh_token) {
+        setRefreshToken(data.refresh_token);
+      }
       return data;
+    },
+
+    async refreshSession() {
+      return refreshSession();
     },
 
     async logout() {
