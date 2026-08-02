@@ -71,6 +71,9 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
 .auth-agree input{accent-color:var(--indigo);width:15px;height:15px;flex:none;margin-top:1px;cursor:pointer}
 .auth-agree a{color:var(--indigo);text-decoration:none}
 .auth-agree a:hover{text-decoration:underline}
+
+.auth-remember{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--ink2);cursor:pointer;user-select:none}
+.auth-remember input{accent-color:var(--indigo);width:15px;height:15px;flex:none;cursor:pointer}
 </style>
 </head>
 <body>
@@ -98,6 +101,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
   <div class="auth-panel active" id="panel-login">
     <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="login-email" type="email" placeholder="you@business.com" autocomplete="email"></div>
     <div class="f-field"><label class="f-label">Password</label><input class="f-input" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+    <label class="auth-remember">
+      <input type="checkbox" id="login-remember" checked>
+      <span>Remember me</span>
+    </label>
     <div class="auth-error" id="login-error"></div>
     <button class="auth-submit" id="login-submit" onclick="handleLoginSubmit()">Log In</button>
     <div class="auth-switch">Don't have an account? <a onclick="switchAuthTab('signup')">Sign up</a></div>
@@ -153,7 +160,8 @@ async function handleLoginSubmit(){
   btn.textContent = 'Logging in…';
 
   try {
-    await API.auth.login({ email, password });
+    const remember = document.getElementById('login-remember').checked;
+    await API.auth.login({ email, password, remember });
     window.location.href = 'dashboard.html';
   } catch (err) {
     setError('login-error', err.message);

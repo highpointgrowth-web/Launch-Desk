@@ -2,26 +2,45 @@
   const API_BASE_URL = 'https://launchdesk-production-16fc.up.railway.app';
   const TOKEN_KEY = 'launchdesk_token';
   const REFRESH_TOKEN_KEY = 'launchdesk_refresh_token';
+  const REMEMBER_KEY = 'launchdesk_remember';
+
+  // "Remember me" decides which Storage the actual tokens live in - checked
+  // (or never chosen yet) uses localStorage so the session survives closing
+  // the tab; unchecked uses sessionStorage so it's gone as soon as the tab
+  // closes. The choice itself is recorded in localStorage (a small,
+  // non-sensitive flag) so a fresh page load knows where to look - if the
+  // session was "don't remember", that lookup finds an empty sessionStorage
+  // once the tab that set it is gone, which is exactly the intended effect.
+  function getActiveStorage() {
+    return localStorage.getItem(REMEMBER_KEY) === '0' ? sessionStorage : localStorage;
+  }
+
+  function setRemember(remember) {
+    localStorage.setItem(REMEMBER_KEY, remember ? '1' : '0');
+  }
 
   function getToken() {
-    return localStorage.getItem(TOKEN_KEY);
+    return getActiveStorage().getItem(TOKEN_KEY);
   }
 
   function setToken(token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    getActiveStorage().setItem(TOKEN_KEY, token);
   }
 
   function getRefreshToken() {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+    return getActiveStorage().getItem(REFRESH_TOKEN_KEY);
   }
 
   function setRefreshToken(token) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    getActiveStorage().setItem(REFRESH_TOKEN_KEY, token);
   }
 
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(REMEMBER_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   }
 
   // Concurrent 401s (e.g. several dashboard widgets loading at once) should
@@ -112,8 +131,11 @@
       return request('POST', '/api/auth/signup', { email, password, full_name });
     },
 
-    async login({ email, password }) {
+    async login({ email, password, remember = true }) {
       const data = await request('POST', '/api/auth/login', { email, password });
+      // Set the storage choice before writing the tokens, since setToken/
+      // setRefreshToken route through getActiveStorage() to decide where.
+      setRemember(remember);
       if (data?.access_token) {
         setToken(data.access_token);
       }
