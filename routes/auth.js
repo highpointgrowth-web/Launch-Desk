@@ -151,6 +151,23 @@ router.put('/me', requireAuth, async (req, res) => {
   res.json({ user: data });
 });
 
+router.put('/password', requireAuth, async (req, res) => {
+  const { password } = req.body;
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'password must be at least 6 characters' });
+  }
+
+  const supabase = req.app.locals.supabase;
+  const { error } = await supabase.auth.admin.updateUserById(req.userId, { password });
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ message: 'Password updated' });
+});
+
 router.post('/forgot-password', async (req, res) => {
   const { email, redirect_to } = req.body;
 

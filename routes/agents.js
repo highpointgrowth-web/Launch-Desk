@@ -90,7 +90,7 @@ function cleanScrapedContent(markdown) {
   return cleanedLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-async function generateSystemPrompt(businessName, niche, scrapedContent) {
+async function generateSystemPrompt(businessName, niche, scrapedContent, extraContext) {
   const cleanedContent = cleanScrapedContent(scrapedContent).slice(0, 15000);
 
   const response = await anthropic.messages.create({
@@ -107,7 +107,9 @@ async function generateSystemPrompt(businessName, niche, scrapedContent) {
     messages: [
       {
         role: 'user',
-        content: `Business name: ${businessName}\nNiche/use case: ${niche}\n\nWebsite content:\n${cleanedContent}`,
+        content:
+          `Business name: ${businessName}\nNiche/use case: ${niche}\n\nWebsite content:\n${cleanedContent}` +
+          (extraContext ? `\n\nAdditional business details supplied by the agency (use these too):\n${extraContext}` : ''),
       },
     ],
   });
@@ -170,7 +172,18 @@ function buyRetellPhoneNumber(retellAgentId, areaCode) {
 }
 
 router.post('/build', async (req, res) => {
-  const { lead_id, niche, agent_name, voice, greeting, cal_api_key, cal_event_type_id } = req.body;
+  const {
+    lead_id,
+    niche,
+    agent_name,
+    voice,
+    greeting,
+    cal_api_key,
+    cal_event_type_id,
+    website_override,
+    extra_context,
+    transfer_number,
+  } = req.body;
 
   if (!lead_id || !niche || !agent_name || !voice) {
     return res.status(400).json({ error: 'lead_id, niche, agent_name, and voice are required' });
@@ -190,12 +203,13 @@ router.post('/build', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    if (!lead.website) {
-      return res.status(400).json({ error: 'Lead has no website to scrape' });
+    const websiteToScrape = website_override || lead.website;
+    if (!websiteToScrape) {
+      return res.status(400).json({ error: 'Lead has no website to scrape - provide one manually' });
     }
 
-    const scrapedContent = await scrapeWebsite(lead.website);
-    const systemPrompt = await generateSystemPrompt(lead.business_name, niche, scrapedContent);
+    const scrapedContent = await scrapeWebsite(websiteToScrape);
+    const systemPrompt = await generateSystemPrompt(lead.business_name, niche, scrapedContent, extra_context);
 
     const llm = await createRetellLlm(systemPrompt, greeting);
     const retellAgent = await createRetellAgent(agent_name, voice, llm.llm_id);
@@ -211,6 +225,7 @@ router.post('/build', async (req, res) => {
         voice,
         greeting: greeting || null,
         system_prompt: systemPrompt,
+        transfer_number: transfer_number || null,
         retell_agent_id: retellAgent.agent_id,
         retell_llm_id: llm.llm_id,
         retell_phone_number: null,
@@ -290,7 +305,7 @@ router.get('/:id/calls', async (req, res) => {
 });
 
 router.put('/:id', async (req, res) => {
-  const { system_prompt, greeting, voice, cal_api_key, cal_event_type_id, monthly_charge } = req.body;
+  const { system_prompt, greeting, voice, cal_api_key, cal_event_type_id, monthly_charge, transfer_number } = req.body;
   const updates = {};
 
   if (system_prompt !== undefined) updates.system_prompt = system_prompt;
@@ -299,6 +314,7 @@ router.put('/:id', async (req, res) => {
   if (cal_api_key !== undefined) updates.cal_api_key = cal_api_key;
   if (cal_event_type_id !== undefined) updates.cal_event_type_id = cal_event_type_id;
   if (monthly_charge !== undefined) updates.monthly_charge = monthly_charge;
+  if (transfer_number !== undefined) updates.transfer_number = transfer_number;
 
   if (Object.keys(updates).length === 0) {
     return res.status(400).json({ error: 'No updatable fields provided' });

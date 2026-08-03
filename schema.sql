@@ -96,6 +96,7 @@ create table if not exists agents (
   voice text,
   greeting text,
   system_prompt text,
+  transfer_number text,
   retell_agent_id text,
   retell_llm_id text,
   retell_phone_number text,
