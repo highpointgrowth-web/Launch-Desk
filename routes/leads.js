@@ -218,11 +218,40 @@ router.post('/scrape', async (req, res) => {
   }
 
   const maxResults = MAX_RESULTS_OPTIONS.includes(Number(max_results)) ? Number(max_results) : DEFAULT_MAX_RESULTS;
+  const supabase = req.app.locals.supabase;
+
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('scrape_credits_used, scrape_credits_limit')
+    .eq('id', req.userId)
+    .single();
+
+  if (userError || !user) {
+    return res.status(404).json({ error: 'User profile not found' });
+  }
+
+  if (user.scrape_credits_used >= user.scrape_credits_limit) {
+    return res.status(403).json({ error: "You've used all your scrape credits for this month." });
+  }
 
   try {
     const businesses = await buildBusinessList(industry, location, radius || 5000, maxResults);
     const scoredLeads = await scoreLeads(businesses);
     scoredLeads.sort((a, b) => (b.ai_score ?? -1) - (a.ai_score ?? -1));
+
+    if (scoredLeads.length > 0) {
+      const { error: creditError } = await supabase
+        .from('users')
+        .update({ scrape_credits_used: user.scrape_credits_used + scoredLeads.length })
+        .eq('id', req.userId);
+
+      if (creditError) {
+        // The scrape itself succeeded and the user already paid the API cost for
+        // it - don't withhold their results over a bookkeeping update failing.
+        console.error(`Failed to increment scrape_credits_used for user ${req.userId}: ${creditError.message}`);
+      }
+    }
+
     res.json({ leads: scoredLeads });
   } catch (err) {
     res.status(500).json({ error: err.message });

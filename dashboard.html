@@ -628,6 +628,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
             Find & Score
           </button>
         </div>
+        <div id="lead-search-error" style="font-size:.78rem;color:var(--red);margin-top:10px"></div>
       </div>
       <div class="card card-pad">
         <div class="card-header"><div class="card-title">Results</div><div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem" onclick="handleNewSearch()">New Search</button><span class="card-action" onclick="exportLeadResultsCsv()">Export CSV</span></div></div>
@@ -1116,10 +1117,14 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         <div class="stat-cell"><div class="stat-label">Won</div><div class="stat-val" id="crm-stat-won" style="font-size:1.4rem">0</div></div>
       </div>
       <div class="card card-pad" style="margin-bottom:20px">
+        <div id="crm-bulk-actions-bar" class="hidden" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:10px 14px;background:var(--red-bg);border-radius:8px">
+          <span style="font-size:.82rem;color:var(--ink2)"><b id="crm-selected-count">0</b> selected</span>
+          <button class="btn" style="background:var(--red);color:#fff;font-size:.78rem" onclick="handleDeleteSelectedLeads()">🗑 Delete Selected</button>
+        </div>
         <table class="data-table">
-          <thead><tr><th>Business</th><th>Phone</th><th>Email</th><th>Location</th><th>Score</th><th>Stage</th><th></th></tr></thead>
+          <thead><tr><th style="width:28px"><input type="checkbox" id="crm-select-all" onchange="toggleSelectAllCrmLeads(this)"></th><th>Business</th><th>Phone</th><th>Email</th><th>Location</th><th>Score</th><th>Stage</th><th></th></tr></thead>
           <tbody id="crm-leads-body">
-            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>
           </tbody>
         </table>
       </div>
@@ -2716,13 +2721,16 @@ function renderLeadResults(leads){
 }
 
 async function handleLeadSearch(){
+  const errorEl = document.getElementById('lead-search-error');
+  if(errorEl) errorEl.textContent = '';
+
   const industry = document.getElementById('lead-industry').value.trim();
   const location = document.getElementById('lead-location').value.trim();
   const radius = parseInt(document.getElementById('lead-radius').value, 10);
   const max_results = parseInt(document.getElementById('lead-max-results').value, 10);
 
   if(!industry || !location){
-    alert('Industry and location are required.');
+    if(errorEl) errorEl.textContent = 'Industry and location are required.';
     return;
   }
 
@@ -2734,8 +2742,9 @@ async function handleLeadSearch(){
   try {
     const { leads } = await API.leads.scrape({ industry, location, radius, max_results });
     renderLeadResults(leads);
+    loadUserStats(); // refresh the credit count in the signal bar
   } catch (err) {
-    alert('Lead search failed: ' + err.message);
+    if(errorEl) errorEl.textContent = err.message;
   } finally {
     btn.disabled = false;
     btn.innerHTML = original;
@@ -2851,8 +2860,56 @@ async function handleStageChange(selectEl){
   }
 }
 
+let selectedCrmLeadIds = new Set();
+
+function updateCrmBulkActionsBar(){
+  const bar = document.getElementById('crm-bulk-actions-bar');
+  const countEl = document.getElementById('crm-selected-count');
+  const selectAllEl = document.getElementById('crm-select-all');
+  const count = selectedCrmLeadIds.size;
+
+  if(countEl) countEl.textContent = count;
+  if(bar) bar.classList.toggle('hidden', count === 0);
+
+  if(selectAllEl){
+    const total = cachedCRMLeads.length;
+    selectAllEl.checked = total > 0 && count === total;
+    selectAllEl.indeterminate = count > 0 && count < total;
+  }
+}
+
+function handleCrmRowCheckboxChange(checkbox){
+  const leadId = checkbox.dataset.leadId;
+  if(checkbox.checked) selectedCrmLeadIds.add(leadId);
+  else selectedCrmLeadIds.delete(leadId);
+  updateCrmBulkActionsBar();
+}
+
+function toggleSelectAllCrmLeads(checkbox){
+  selectedCrmLeadIds = checkbox.checked ? new Set(cachedCRMLeads.map((l) => l.id)) : new Set();
+  document.querySelectorAll('.crm-row-checkbox').forEach((cb) => { cb.checked = checkbox.checked; });
+  updateCrmBulkActionsBar();
+}
+
+async function handleDeleteSelectedLeads(){
+  const ids = [...selectedCrmLeadIds];
+  if(!ids.length) return;
+  if(!confirm(`Delete ${ids.length} selected lead${ids.length === 1 ? '' : 's'}? This can't be undone.`)) return;
+
+  const results = await Promise.allSettled(ids.map((id) => API.leads.delete(id)));
+  const failed = results.filter((r) => r.status === 'rejected').length;
+
+  selectedCrmLeadIds = new Set();
+  await loadCRM();
+
+  if(failed){
+    alert(`Failed to delete ${failed} of ${ids.length} selected lead${ids.length === 1 ? '' : 's'}.`);
+  }
+}
+
 function renderCRMTable(leads){
   cachedCRMLeads = leads || [];
+  selectedCrmLeadIds = new Set();
   const total = cachedCRMLeads.length;
 
   const pageSub = document.getElementById('crm-page-sub');
@@ -2861,10 +2918,11 @@ function renderCRMTable(leads){
   const tbody = document.getElementById('crm-leads-body');
   if(tbody){
     if(!total){
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--ink3)">No leads yet. Add some from Lead Finder.</td></tr>';
     } else {
       tbody.innerHTML = cachedCRMLeads.map((lead) => `
         <tr>
+          <td><input type="checkbox" class="crm-row-checkbox" data-lead-id="${lead.id}" onchange="handleCrmRowCheckboxChange(this)"></td>
           <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
           <td>${escapeHtml(lead.phone || '—')}</td>
           <td>${escapeHtml(lead.email || '—')}</td>
@@ -2877,6 +2935,7 @@ function renderCRMTable(leads){
     }
   }
 
+  updateCrmBulkActionsBar();
   renderPipelineStats(cachedCRMLeads);
 }
 
