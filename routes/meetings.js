@@ -1,9 +1,11 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { requirePaidPlan } = require('../middleware/plan');
 
 const router = express.Router();
 
 router.use(requireAuth);
+router.use(requirePaidPlan);
 
 router.get('/', async (req, res) => {
   const supabase = req.app.locals.supabase;

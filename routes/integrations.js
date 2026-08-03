@@ -1,9 +1,11 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { requirePaidPlan } = require('../middleware/plan');
 
 const router = express.Router();
 
 router.use(requireAuth);
+router.use(requirePaidPlan);
 
 // Email secrets (app password / SMTP password) are write-only once saved -
 // email sending happens entirely server-side, so the client never needs them

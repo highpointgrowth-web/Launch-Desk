@@ -1,6 +1,7 @@
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireAuth } = require('../middleware/auth');
+const { requirePaidPlan } = require('../middleware/plan');
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -8,6 +9,7 @@ const anthropic = new Anthropic();
 const RETELL_BASE = 'https://api.retellai.com';
 
 router.use(requireAuth);
+router.use(requirePaidPlan);
 
 async function retellFetch(method, path, body) {
   const res = await fetch(`${RETELL_BASE}${path}`, {

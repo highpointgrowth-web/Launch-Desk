@@ -1,6 +1,7 @@
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireAuth } = require('../middleware/auth');
+const { requirePaidPlan } = require('../middleware/plan');
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -11,6 +12,7 @@ const MAX_RESULTS_OPTIONS = [10, 25, 50, 100];
 const DEFAULT_MAX_RESULTS = 25;
 
 router.use(requireAuth);
+router.use(requirePaidPlan);
 
 function extractCityState(addressComponents = []) {
   const city = addressComponents.find((c) => c.types.includes('locality'))?.long_name || null;

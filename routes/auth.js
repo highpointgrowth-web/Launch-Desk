@@ -30,9 +30,9 @@ router.post('/signup', async (req, res) => {
       id: authData.user.id,
       email,
       full_name: full_name || null,
-      plan: 'starter',
+      plan: 'inactive',
       scrape_credits_used: 0,
-      scrape_credits_limit: 100,
+      scrape_credits_limit: 0,
     })
     .select()
     .single();

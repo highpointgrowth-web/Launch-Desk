@@ -9,7 +9,7 @@ create table if not exists users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null unique,
   full_name text,
-  plan text not null default 'starter' check (plan in ('starter', 'pro', 'agency')),
+  plan text not null default 'inactive' check (plan in ('inactive', 'starter', 'pro', 'agency')),
   stripe_customer_id text,
   stripe_subscription_id text,
   scrape_credits_used integer not null default 0,

@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const nodemailer = require('nodemailer');
 const { requireAuth } = require('../middleware/auth');
+const { requirePaidPlan } = require('../middleware/plan');
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -31,6 +32,7 @@ router.get('/:id/pixel.png', async (req, res) => {
 });
 
 router.use(requireAuth);
+router.use(requirePaidPlan);
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
