@@ -630,7 +630,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         </div>
       </div>
       <div class="card card-pad">
-        <div class="card-header"><div class="card-title">Results</div><span class="card-action" onclick="exportLeadResultsCsv()">Export CSV</span></div>
+        <div class="card-header"><div class="card-title">Results</div><div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem" onclick="handleNewSearch()">New Search</button><span class="card-action" onclick="exportLeadResultsCsv()">Export CSV</span></div></div>
         <table class="data-table">
           <thead><tr><th>Business</th><th>Phone</th><th>Rating</th><th>AI Score</th><th>Recommended Agent</th><th>Status</th></tr></thead>
           <tbody id="leads-results-body">
@@ -2175,6 +2175,7 @@ function enterApp(){
   loadTodos();
   loadDashboardWidgets();
   loadDailyGoals();
+  loadLatestLeadSearch();
 }
 
 async function handleLogout(){
@@ -2695,13 +2696,19 @@ function exportLeadResultsCsv(){
 }
 
 function renderLeadResults(leads){
-  leadSearchResults = leads || [];
+  // Defensive sort - the backend already returns results score-sorted, but
+  // never trust that silently; render order should always reflect it.
+  leadSearchResults = (leads || []).slice().sort((a, b) => (b.ai_score ?? -1) - (a.ai_score ?? -1));
   const tbody = document.getElementById('leads-results-body');
   if(!leadSearchResults.length){
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No leads found. Try a different search.</td></tr>';
     return;
   }
-  tbody.innerHTML = leadSearchResults.map((lead, index) => {
+  tbody.innerHTML = leadSearchResults.map((lead) => {
+    const stage = lead.pipeline_stage || 'new';
+    const statusCell = stage === 'new'
+      ? `<button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm('${lead.id}', this)">+ Add to CRM</button>`
+      : `<span class="badge ${stageBadgeClass(stage)} b-dot">${escapeHtml(STAGE_LABELS[stage] || stage)}</span>`;
     return `
     <tr>
       <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
@@ -2709,7 +2716,7 @@ function renderLeadResults(leads){
       <td>${lead.rating ? `${lead.rating}⭐ · ${lead.review_count || 0} reviews` : '—'}</td>
       <td><span class="score">${lead.ai_score ?? '—'}</span></td>
       <td><span class="badge b-indigo">${escapeHtml((lead.recommended_agents && lead.recommended_agents[0]) || '—')}</span></td>
-      <td><button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm(${index}, this)">+ Add to CRM</button></td>
+      <td>${statusCell}</td>
     </tr>
   `;
   }).join('');
@@ -2740,6 +2747,24 @@ async function handleLeadSearch(){
     btn.disabled = false;
     btn.innerHTML = original;
   }
+}
+
+async function loadLatestLeadSearch(){
+  try {
+    const { leads } = await API.leads.getLatestSearch();
+    if(leads && leads.length) renderLeadResults(leads);
+  } catch (err) {
+    console.error('Failed to load latest lead search', err);
+  }
+}
+
+function handleNewSearch(){
+  leadSearchResults = [];
+  document.getElementById('leads-results-body').innerHTML =
+    '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">Use Find &amp; Score to search for leads.</td></tr>';
+  document.getElementById('lead-industry').value = '';
+  document.getElementById('lead-location').value = '';
+  document.getElementById('lead-industry').focus();
 }
 
 // ── CRM ──
@@ -3090,13 +3115,14 @@ async function handleDeleteTodo(id){
   }
 }
 
-async function handleAddToCrm(index, btn){
-  const lead = leadSearchResults[index];
+async function handleAddToCrm(leadId, btn){
+  const lead = leadSearchResults.find((l) => l.id === leadId);
   if(!lead) return;
   btn.disabled = true;
   btn.textContent = 'Adding…';
   try {
-    await API.leads.create({ ...lead, pipeline_stage: 'to_contact' });
+    await API.leads.update(leadId, { pipeline_stage: 'to_contact' });
+    lead.pipeline_stage = 'to_contact';
     btn.outerHTML = `<span class="badge ${stageBadgeClass('to_contact')} b-dot">${STAGE_LABELS.to_contact}</span>`;
     loadCRM();
   } catch (err) {

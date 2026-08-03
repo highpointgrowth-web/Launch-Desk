@@ -60,10 +60,12 @@ create table if not exists leads (
     check (pipeline_stage in ('new', 'to_contact', 'contacted', 'meeting', 'proposal', 'won', 'lost')),
   owner_status text,
   notes text,
+  scrape_batch_id uuid,
   created_at timestamptz not null default now()
 );
 
 create index if not exists leads_user_id_idx on leads(user_id);
+create index if not exists leads_scrape_batch_id_idx on leads(scrape_batch_id);
 
 alter table leads enable row level security;
 

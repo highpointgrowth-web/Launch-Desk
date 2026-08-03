@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireAuth } = require('../middleware/auth');
 
@@ -222,10 +223,63 @@ router.post('/scrape', async (req, res) => {
   try {
     const businesses = await buildBusinessList(industry, location, radius || 5000, maxResults);
     const scoredLeads = await scoreLeads(businesses);
-    res.json({ leads: scoredLeads });
+
+    if (scoredLeads.length === 0) {
+      return res.json({ leads: [] });
+    }
+
+    // Persist the batch so it survives navigating away/reloading - all rows
+    // share one scrape_batch_id so "your most recent search" can be reloaded
+    // as a coherent set instead of a mix of past searches.
+    const scrapeBatchId = crypto.randomUUID();
+    const rows = scoredLeads.map((lead) => ({ ...lead, user_id: req.userId, scrape_batch_id: scrapeBatchId }));
+
+    const supabase = req.app.locals.supabase;
+    const { data, error } = await supabase.from('leads').insert(rows).select();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    data.sort((a, b) => (b.ai_score ?? -1) - (a.ai_score ?? -1));
+    res.json({ leads: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.get('/latest-search', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: latest, error: latestError } = await supabase
+    .from('leads')
+    .select('scrape_batch_id')
+    .eq('user_id', req.userId)
+    .not('scrape_batch_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestError) {
+    return res.status(500).json({ error: latestError.message });
+  }
+
+  if (!latest) {
+    return res.json({ leads: [] });
+  }
+
+  const { data, error } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('user_id', req.userId)
+    .eq('scrape_batch_id', latest.scrape_batch_id)
+    .order('ai_score', { ascending: false, nullsFirst: false });
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ leads: data });
 });
 
 router.post('/', async (req, res) => {
