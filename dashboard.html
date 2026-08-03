@@ -59,18 +59,22 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .hidden{display:none !important}
 
 /* ── SHELL ── */
-.shell{display:grid;grid-template-columns:258px 1fr;height:100vh;overflow:hidden}
-.main-area{display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
-.content{overflow:auto;background:var(--bg);padding-bottom:8px;flex:1;display:flex;flex-direction:column;min-height:0}
+.shell{display:grid;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
+.body-row{display:grid;grid-template-columns:1fr 200px;overflow:hidden;min-height:0}
+.content{overflow-y:auto;background:var(--bg);padding-bottom:8px;display:flex;flex-direction:column;min-height:0}
 .content::-webkit-scrollbar{width:5px}
 .content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 
-/* ── SIDEBAR ── */
-.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.sidebar-logo{display:flex;align-items:center;gap:10px;padding:22px 20px 18px;text-decoration:none}
+/* ── TOP BAR ── */
+.topbar-full{display:flex;align-items:center;gap:24px;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:52px;flex:none}
+.topbar-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex:none}
+.topbar-pills{display:flex;align-items:center;gap:20px;margin-left:auto}
+
+/* ── SIDEBAR (right column) ── */
+.sidebar{order:2;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;min-height:0}
 .logo-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--indigo),var(--indigo-dark));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(167,139,250,.35);flex:none}
 .logo-text{font-weight:800;font-size:1.05rem;letter-spacing:-.03em;color:var(--ink)}
-.sidebar-nav{flex:1;overflow-y:auto;padding:2px 12px 12px}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px 12px 12px}
 .sidebar-nav::-webkit-scrollbar{width:4px}
 .sidebar-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 .sidebar-section{margin-bottom:2px}
@@ -84,24 +88,21 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .sidebar-item:hover{background:var(--bg2);color:var(--ink)}
 .sidebar-item.active{background:var(--indigo-light);color:var(--indigo);font-weight:600;border-left-color:var(--indigo)}
 .sidebar-item-icon{font-size:1rem;flex:none;width:20px;text-align:center;line-height:1}
-.sidebar-profile{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid var(--border);cursor:pointer;transition:background .15s;flex:none}
+.sidebar-profile{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;flex:none}
 .sidebar-profile:hover{background:var(--bg2)}
 .sidebar-profile-info{flex:1;min-width:0}
 .sidebar-profile-name{font-size:.82rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-profile-plan{font-size:.7rem;color:var(--ink3)}
+.sidebar-bottom-links{flex:none;padding:10px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:1px}
 
-/* ── SIGNAL BAR ── */
-.signal-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:44px;flex:none}
-.signal-left{display:flex;align-items:center;gap:20px}
+/* ── SIGNAL PILLS (in top bar) ── */
 .signal-item{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:.67rem;color:var(--ink3);letter-spacing:.03em}
 .signal-item b{color:var(--ink2)}
 .signal-item.live b{color:var(--indigo)}
 .pulse{width:6px;height:6px;border-radius:50%;background:var(--indigo);flex:none;animation:sig 1.8s infinite}
 @keyframes sig{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,.5)}50%{box-shadow:0 0 0 4px rgba(167,139,250,0)}}
-.signal-right{display:flex;align-items:center;gap:16px}
-.signal-right a{font-family:'IBM Plex Mono',monospace;font-size:.67rem;color:var(--ink3);text-decoration:none;letter-spacing:.03em}
-.signal-right a:hover{color:var(--indigo)}
-.signal-right .upgrade{color:var(--indigo);font-weight:500}
+.upgrade{font-family:'IBM Plex Mono',monospace;font-size:.67rem;text-decoration:none;letter-spacing:.03em;color:var(--indigo);font-weight:500}
+.upgrade:hover{text-decoration:underline}
 .icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink2);border:1px solid var(--border);background:var(--surface2);transition:all .15s;flex:none}
 .icon-btn:hover{color:var(--indigo);border-color:var(--indigo-mid)}
 .user-ava{width:24px;height:24px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.72rem;color:#fff;flex:none}
@@ -324,21 +325,51 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
 <div class="shell hidden" id="app-root">
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <a class="sidebar-logo" href="#" onclick="nav('dashboard',document.getElementById('nav-dashboard')); return false;">
+  <!-- TOP BAR -->
+  <div class="topbar-full">
+    <a class="topbar-logo" href="#" onclick="nav('dashboard',document.getElementById('nav-dashboard')); return false;">
       <div class="logo-mark">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
       </div>
       <span class="logo-text">LaunchDesk</span>
     </a>
+    <div class="topbar-pills">
+      <div class="signal-item live"><span class="pulse"></span><b id="signal-agents-live">0 agents live</b></div>
+      <div class="signal-item">Calls today: <b id="signal-calls-today">0</b></div>
+      <div class="signal-item">Pipeline: <b id="signal-pipeline">0 leads</b></div>
+      <div class="signal-item">MRR: <b>$0</b></div>
+      <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
+      <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
+      <a href="#" class="upgrade" id="signal-upgrade-link" onclick="handleUpgradeClick(); return false;">↑ Upgrade to Agency</a>
+    </div>
+  </div>
+
+  <div class="body-row">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-profile" onclick="nav('settings',null)">
+      <div class="user-ava" id="sidebar-user-ava">?</div>
+      <div class="sidebar-profile-info">
+        <div class="sidebar-profile-name" id="sidebar-user-name">Loading…</div>
+        <div class="sidebar-profile-plan" id="sidebar-user-plan">—</div>
+      </div>
+    </div>
 
     <nav class="sidebar-nav">
-      <button class="sidebar-item active" id="nav-dashboard" onclick="nav('dashboard',this)" style="margin-bottom:8px"><span class="sidebar-item-icon">🏠</span>Dashboard</button>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
+          <span>Main</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="sidebar-section-items">
+          <button class="sidebar-item active" id="nav-dashboard" onclick="nav('dashboard',this)"><span class="sidebar-item-icon">🏠</span>Dashboard</button>
+        </div>
+      </div>
 
       <div class="sidebar-section">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
-          <span>Sales Pipeline</span>
+          <span>Sales</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="sidebar-section-items">
@@ -352,7 +383,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
       <div class="sidebar-section">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
-          <span>AI &amp; Automation</span>
+          <span>AI</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </div>
         <div class="sidebar-section-items">
@@ -371,42 +402,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <button class="sidebar-item" id="nav-payments" onclick="navToPage('payments',this)"><span class="sidebar-item-icon">💰</span>Payments</button>
         </div>
       </div>
-
-      <div class="sidebar-section">
-        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
-          <span>Other</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-        </div>
-        <div class="sidebar-section-items">
-          <button class="sidebar-item" id="nav-playbook" onclick="nav('playbook',this)"><span class="sidebar-item-icon">📚</span>Playbook</button>
-          <button class="sidebar-item" id="nav-settings" onclick="nav('settings',this)"><span class="sidebar-item-icon">⚙️</span>Settings</button>
-        </div>
-      </div>
     </nav>
 
-    <div class="sidebar-profile" onclick="nav('settings',null)">
-      <div class="user-ava" id="sidebar-user-ava">?</div>
-      <div class="sidebar-profile-info">
-        <div class="sidebar-profile-name" id="sidebar-user-name">Loading…</div>
-        <div class="sidebar-profile-plan" id="sidebar-user-plan">—</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="main-area">
-
-  <!-- SIGNAL BAR -->
-  <div class="signal-bar">
-    <div class="signal-left">
-      <div class="signal-item live"><span class="pulse"></span><b id="signal-agents-live">0 agents live</b></div>
-      <div class="signal-item">Calls today: <b id="signal-calls-today">0</b></div>
-      <div class="signal-item">Pipeline: <b id="signal-pipeline">0 leads</b></div>
-      <div class="signal-item">MRR: <b>$0</b></div>
-      <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
-      <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
-    </div>
-    <div class="signal-right">
-      <a href="#" class="upgrade" id="signal-upgrade-link" onclick="handleUpgradeClick(); return false;">↑ Upgrade to Agency</a>
+    <div class="sidebar-bottom-links">
+      <button class="sidebar-item" id="nav-playbook" onclick="nav('playbook',this)"><span class="sidebar-item-icon">📚</span>Playbook</button>
+      <button class="sidebar-item" id="nav-settings" onclick="nav('settings',this)"><span class="sidebar-item-icon">⚙️</span>Settings</button>
     </div>
   </div>
 
@@ -1344,7 +1344,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
   </div>
 
-  </div><!-- /main-area -->
+  </div><!-- /body-row -->
 
   <input type="file" id="csv-import-input" accept=".csv" class="hidden" onchange="handleCsvFileSelected(event)">
 
