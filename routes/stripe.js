@@ -107,7 +107,7 @@ router.get('/portal', requireAuth, async (req, res) => {
   try {
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripe_customer_id,
-      return_url: req.query.return_url || process.env.APP_URL || 'http://localhost:3000',
+      return_url: req.query.return_url || process.env.FRONTEND_URL || 'http://localhost:3000',
     });
 
     res.json({ url: portalSession.url });
@@ -129,8 +129,10 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: req.userId,
-      success_url: `${process.env.APP_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.APP_URL}/billing/cancel`,
+      // APP_URL is the Railway backend (used for webhook_url elsewhere) - checkout
+      // redirects need the actual frontend, which is a separate static site.
+      success_url: `${process.env.FRONTEND_URL}/dashboard.html?checkout=success`,
+      cancel_url: `${process.env.FRONTEND_URL}/dashboard.html?checkout=cancel`,
     });
 
     res.json({ url: checkoutSession.url });
