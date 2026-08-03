@@ -208,6 +208,10 @@
     async getActivitySummary() {
       return request('GET', '/api/leads/activity-summary');
     },
+
+    async generateColdCallScript(id) {
+      return request('POST', `/api/leads/${id}/cold-call-script`);
+    },
   };
 
   const agents = {

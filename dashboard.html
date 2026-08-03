@@ -3196,6 +3196,59 @@ function currentColdCallLead(){
   return manualColdCallLead || coldCallQueue[coldCallIndex] || null;
 }
 
+// ── COLD CALL SCRIPT GENERATION ──
+const DEFAULT_COLD_CALL_SCRIPT = `Hey [Name], this is [Your Name] with LaunchDesk.
+
+I noticed your business and wanted to reach out — we help home-service companies like yours never miss a call again. Our AI answers your phones, books jobs, and handles FAQs 24/7 so you capture every lead even when you're on a job site.
+
+Do you have 30 seconds to hear how it works?
+
+[If yes:]
+Most of our clients see 15–30% more booked appointments in the first month just from capturing calls they were missing before. We set it up, you just forward your number.
+
+Would a quick 15-minute call this week make sense so I can show you exactly how it'd work for your business?
+
+[Objection — not interested:]
+Totally get it. Is it because you already have call coverage handled, or just not top of mind right now?
+
+[Objection — send info:]
+Happy to. What's the biggest headache with missed calls for you right now — so I send the right thing?`;
+
+let coldCallScriptCache = {};
+let coldCallScriptRequestId = 0;
+
+async function updateColdCallScript(){
+  const lead = currentColdCallLead();
+  const textarea = document.getElementById('script-textarea');
+
+  // Don't clobber a script the user is actively hand-editing.
+  if(!textarea.hasAttribute('readonly')) return;
+
+  if(!lead){
+    textarea.value = DEFAULT_COLD_CALL_SCRIPT;
+    return;
+  }
+
+  if(coldCallScriptCache[lead.id]){
+    textarea.value = coldCallScriptCache[lead.id];
+    return;
+  }
+
+  const requestId = ++coldCallScriptRequestId;
+  textarea.value = `✨ Writing a personalized script for ${lead.business_name || 'this business'}…`;
+
+  try {
+    const { script } = await API.leads.generateColdCallScript(lead.id);
+    if(requestId !== coldCallScriptRequestId) return; // a different lead was selected meanwhile
+    coldCallScriptCache[lead.id] = script;
+    textarea.value = script;
+  } catch (err) {
+    if(requestId !== coldCallScriptRequestId) return;
+    textarea.value = DEFAULT_COLD_CALL_SCRIPT;
+    console.error('Failed to generate cold call script', err);
+  }
+}
+
 function renderColdCallQueue(){
   const lead = currentColdCallLead();
   const nameEl = document.getElementById('dial-business-name');
@@ -3239,6 +3292,7 @@ function handleColdCallLeadSelect(){
   const id = document.getElementById('coldcall-lead-select').value;
   manualColdCallLead = id ? allColdCallLeads.find((l) => l.id === id) || null : null;
   renderColdCallQueue();
+  updateColdCallScript();
 }
 
 async function loadColdCallQueue(){
@@ -3250,6 +3304,7 @@ async function loadColdCallQueue(){
     manualColdCallLead = null;
     renderColdCallLeadSelect();
     renderColdCallQueue();
+    updateColdCallScript();
   } catch (err) {
     console.error('Failed to load cold call queue', err);
   }
@@ -3261,6 +3316,7 @@ function coldCallAdvance(){
   document.getElementById('coldcall-lead-select').value = '';
   stopCallTimer();
   renderColdCallQueue();
+  updateColdCallScript();
 }
 
 // ── SESSION STATS ──
@@ -3362,6 +3418,10 @@ function toggleScriptEdit(){
   } else {
     textarea.setAttribute('readonly', 'readonly');
     toggle.textContent = 'Edit';
+    // Manual tweaks stick for this lead for the rest of the session,
+    // instead of getting lost the moment you switch to another lead.
+    const lead = currentColdCallLead();
+    if(lead) coldCallScriptCache[lead.id] = textarea.value;
   }
 }
 
