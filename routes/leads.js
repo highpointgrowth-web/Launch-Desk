@@ -252,10 +252,61 @@ router.post('/scrape', async (req, res) => {
       }
     }
 
+    const { error: searchLogError } = await supabase.from('lead_searches').insert({
+      user_id: req.userId,
+      industry,
+      location,
+      radius: radius || 5000,
+      result_count: scoredLeads.length,
+      results: scoredLeads,
+    });
+
+    if (searchLogError) {
+      // Same reasoning as the credit-increment failure above - the scrape
+      // already succeeded, don't fail the response over a logging write.
+      console.error(`Failed to log lead search for user ${req.userId}: ${searchLogError.message}`);
+    }
+
     res.json({ leads: scoredLeads });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.get('/searches', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const startOfMonth = new Date();
+  startOfMonth.setUTCDate(1);
+  startOfMonth.setUTCHours(0, 0, 0, 0);
+
+  const { data, error } = await supabase
+    .from('lead_searches')
+    .select('id, industry, location, radius, result_count, created_at')
+    .eq('user_id', req.userId)
+    .gte('created_at', startOfMonth.toISOString())
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ searches: data });
+});
+
+router.get('/searches/:id', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('lead_searches')
+    .select('*')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (error || !data) {
+    return res.status(404).json({ error: 'Search not found' });
+  }
+
+  res.json({ search: data });
 });
 
 router.post('/', async (req, res) => {

@@ -630,6 +630,15 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         </div>
         <div id="lead-search-error" style="font-size:.78rem;color:var(--red);margin-top:10px"></div>
       </div>
+      <div class="card card-pad" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">Past Scrapes This Month</div></div>
+        <table class="data-table">
+          <thead><tr><th>#</th><th>Search</th><th>Date</th><th>Results</th><th>Radius</th><th></th></tr></thead>
+          <tbody id="lead-searches-body">
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink3)">No searches yet this month.</td></tr>
+          </tbody>
+        </table>
+      </div>
       <div class="card card-pad">
         <div class="card-header"><div class="card-title">Results</div><div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem" onclick="handleNewSearch()">New Search</button><span class="card-action" onclick="exportLeadResultsCsv()">Export CSV</span></div></div>
         <table class="data-table">
@@ -2180,6 +2189,7 @@ function enterApp(){
   loadTodos();
   loadDashboardWidgets();
   loadDailyGoals();
+  loadLeadSearches();
 }
 
 async function handleLogout(){
@@ -2743,6 +2753,7 @@ async function handleLeadSearch(){
     const { leads } = await API.leads.scrape({ industry, location, radius, max_results });
     renderLeadResults(leads);
     loadUserStats(); // refresh the credit count in the signal bar
+    loadLeadSearches(); // the search that just ran should appear in Past Scrapes
   } catch (err) {
     if(errorEl) errorEl.textContent = err.message;
   } finally {
@@ -2758,6 +2769,84 @@ function handleNewSearch(){
   document.getElementById('lead-industry').value = '';
   document.getElementById('lead-location').value = '';
   document.getElementById('lead-industry').focus();
+}
+
+// ── PAST SCRAPES ──
+let cachedLeadSearches = [];
+
+function formatSearchDateTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function renderLeadSearchesTable(){
+  const tbody = document.getElementById('lead-searches-body');
+  if(!tbody) return;
+  if(!cachedLeadSearches.length){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink3)">No searches yet this month.</td></tr>';
+    return;
+  }
+  const total = cachedLeadSearches.length;
+  tbody.innerHTML = cachedLeadSearches.map((s, index) => `
+    <tr>
+      <td>${total - index}</td>
+      <td><span class="td-primary">${escapeHtml(s.industry)} <span style="font-weight:400;color:var(--ink3)">in ${escapeHtml(s.location)}</span></span></td>
+      <td>${formatSearchDateTime(s.created_at)}</td>
+      <td>${s.result_count}</td>
+      <td>${s.radius ? (s.radius / 1000) + ' km' : '—'}</td>
+      <td style="text-align:right"><div class="btn-row" style="justify-content:flex-end;flex-wrap:nowrap">
+        <button class="btn btn-ghost" style="font-size:.72rem;padding:.3rem .6rem" onclick="handleViewPastSearch('${s.id}', this)">View</button>
+        <button class="btn btn-ghost" style="font-size:.72rem;padding:.3rem .6rem" onclick="handleExportPastSearch('${s.id}', this)">CSV</button>
+      </div></td>
+    </tr>
+  `).join('');
+}
+
+async function loadLeadSearches(){
+  try {
+    const { searches } = await API.leads.getSearches();
+    cachedLeadSearches = searches || [];
+    renderLeadSearchesTable();
+  } catch (err) {
+    console.error('Failed to load past lead searches', err);
+  }
+}
+
+async function handleViewPastSearch(id, btn){
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const { search } = await API.leads.getSearch(id);
+    renderLeadResults(search.results || []);
+    document.getElementById('leads-results-body').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    alert('Failed to load that search: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+async function handleExportPastSearch(id, btn){
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const { search } = await API.leads.getSearch(id);
+    const headers = ['Business', 'Phone', 'Website', 'Rating', 'Reviews', 'AI Score', 'Recommended Agent', 'City', 'State'];
+    const rows = (search.results || []).map((l) => [
+      l.business_name, l.phone, l.website, l.rating, l.review_count, l.ai_score,
+      (l.recommended_agents && l.recommended_agents[0]) || '', l.city, l.state,
+    ]);
+    const filename = `leadfinder-${search.industry}-${search.location}`.replace(/[^a-z0-9.-]+/gi, '_') + '.csv';
+    downloadCsv(filename, headers, rows);
+  } catch (err) {
+    alert('Failed to export that search: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
 }
 
 // ── CRM ──

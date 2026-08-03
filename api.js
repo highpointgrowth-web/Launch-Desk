@@ -181,6 +181,14 @@
       return request('POST', '/api/leads/scrape', { industry, location, radius, max_results });
     },
 
+    async getSearches() {
+      return request('GET', '/api/leads/searches');
+    },
+
+    async getSearch(id) {
+      return request('GET', `/api/leads/searches/${id}`);
+    },
+
     async create(lead) {
       return request('POST', '/api/leads', lead);
     },
