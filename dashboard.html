@@ -398,20 +398,15 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
   <!-- SIGNAL BAR -->
   <div class="signal-bar">
     <div class="signal-left">
-      <div class="signal-item live"><span class="pulse"></span><b>0 agents live</b></div>
-      <div class="signal-item">Calls today: <b>0</b></div>
+      <div class="signal-item live"><span class="pulse"></span><b id="signal-agents-live">0 agents live</b></div>
+      <div class="signal-item">Calls today: <b id="signal-calls-today">0</b></div>
       <div class="signal-item">Pipeline: <b id="signal-pipeline">0 leads</b></div>
       <div class="signal-item">MRR: <b>$0</b></div>
       <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
       <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
     </div>
     <div class="signal-right">
-      <a href="#">Docs</a>
-      <a href="#">Changelog</a>
-      <a href="#" class="upgrade">↑ Upgrade to Agency</a>
-      <div class="icon-btn" title="Notifications">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      </div>
+      <a href="#" class="upgrade" id="signal-upgrade-link" onclick="handleUpgradeClick(); return false;">↑ Upgrade to Agency</a>
     </div>
   </div>
 
@@ -465,20 +460,19 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div class="card card-pad">
             <div class="card-header">
               <div class="card-title">Daily Goals</div>
-              <span class="card-action">Edit</span>
             </div>
             <div class="goal-stack">
               <div class="goal-row">
-                <div class="goal-meta"><span class="goal-name">Cold Calls</span><span class="goal-frac">0 / 20</span></div>
-                <div class="goal-track"><div class="goal-fill" style="width:0%"></div></div>
+                <div class="goal-meta"><span class="goal-name">Cold Calls</span><span class="goal-frac" id="goal-coldcalls-frac">0 / 20</span></div>
+                <div class="goal-track"><div class="goal-fill" id="goal-coldcalls-fill" style="width:0%"></div></div>
               </div>
               <div class="goal-row">
-                <div class="goal-meta"><span class="goal-name">Proposals Sent</span><span class="goal-frac">0 / 5</span></div>
-                <div class="goal-track"><div class="goal-fill" style="width:0%"></div></div>
+                <div class="goal-meta"><span class="goal-name">Proposals Sent</span><span class="goal-frac" id="goal-proposals-frac">0 / 5</span></div>
+                <div class="goal-track"><div class="goal-fill" id="goal-proposals-fill" style="width:0%"></div></div>
               </div>
               <div class="goal-row">
-                <div class="goal-meta"><span class="goal-name">CRM Updates</span><span class="goal-frac">0 / 10</span></div>
-                <div class="goal-track"><div class="goal-fill" style="width:0%"></div></div>
+                <div class="goal-meta"><span class="goal-name">Leads Added</span><span class="goal-frac" id="goal-crm-frac">0 / 10</span></div>
+                <div class="goal-track"><div class="goal-fill" id="goal-crm-fill" style="width:0%"></div></div>
               </div>
             </div>
           </div>
@@ -564,7 +558,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         </div>
       </div>
       <div class="card card-pad">
-        <div class="card-header"><div class="card-title">Results</div><span class="card-action">Export CSV</span></div>
+        <div class="card-header"><div class="card-title">Results</div><span class="card-action" onclick="exportLeadResultsCsv()">Export CSV</span></div>
         <table class="data-table">
           <thead><tr><th>Business</th><th>Phone</th><th>Rating</th><th>AI Score</th><th>Recommended Agent</th><th>Status</th></tr></thead>
           <tbody id="leads-results-body">
@@ -629,7 +623,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div class="card card-pad">
             <div class="card-header">
               <div class="card-title">Select a Client</div>
-              <span class="card-action">+ Add new client manually</span>
+              <span class="card-action" onclick="openAddLeadModal()">+ Add new client manually</span>
             </div>
             <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Pick from your CRM — we'll pre-fill their business details automatically.</p>
             <div class="f-field" style="margin-bottom:16px">
@@ -695,32 +689,30 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
             <div class="card card-pad">
               <div class="card-header">
                 <div class="card-title">Business Knowledge</div>
-                <span class="card-action" id="scrape-btn" onclick="scrapeWebsite()">✨ Scrape website</span>
               </div>
-              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">Enter your client's website and we'll auto-generate their knowledge base, or fill it in manually.</p>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">This client's website is scraped automatically when you deploy in Step 4. Add anything extra below to help the AI represent them accurately — all of this is sent to Claude when writing the agent's prompt.</p>
               <div style="display:flex;flex-direction:column;gap:10px">
                 <div class="f-field">
                   <label class="f-label">Business Name</label>
                   <input class="f-input" id="biz-name" placeholder="e.g. Metro Plumbing Co.">
                 </div>
                 <div class="f-field">
-                  <label class="f-label">Website URL</label>
+                  <label class="f-label">Website URL (overrides the one on file, if any)</label>
                   <input class="f-input" id="biz-url" placeholder="https://metroplumbing.com">
                 </div>
                 <div class="f-field">
                   <label class="f-label">Services Offered</label>
-                  <textarea class="f-input" rows="2" placeholder="e.g. drain cleaning, water heater install, leak repair…" style="resize:none"></textarea>
+                  <textarea class="f-input" id="biz-services" rows="2" placeholder="e.g. drain cleaning, water heater install, leak repair…" style="resize:none"></textarea>
                 </div>
                 <div class="f-field">
                   <label class="f-label">Business Hours</label>
-                  <input class="f-input" placeholder="e.g. Mon–Fri 8am–6pm, 24/7 emergency">
+                  <input class="f-input" id="biz-hours" placeholder="e.g. Mon–Fri 8am–6pm, 24/7 emergency">
                 </div>
                 <div class="f-field">
                   <label class="f-label">Service Area</label>
-                  <input class="f-input" placeholder="e.g. Austin, TX and surrounding areas">
+                  <input class="f-input" id="biz-area" placeholder="e.g. Austin, TX and surrounding areas">
                 </div>
               </div>
-              <div id="scrape-status" style="display:none;margin-top:12px;padding:10px 12px;background:var(--green-bg);border-radius:8px;font-size:.78rem;color:var(--green)">✓ Website scraped — knowledge base generated</div>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;margin-top:16px">
@@ -753,15 +745,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
                   <label class="f-label">Greeting</label>
                   <textarea class="f-input" id="voice-greeting" rows="2" style="resize:none">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
                 </div>
-                <div class="f-field">
-                  <label class="f-label">Language</label>
-                  <select class="f-input">
-                    <option>English (US)</option>
-                    <option>English (UK)</option>
-                    <option>Spanish</option>
-                    <option>French</option>
-                  </select>
-                </div>
               </div>
             </div>
 
@@ -783,15 +766,15 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
                 </div>
                 <div class="f-field">
                   <label class="f-label">After-Hours Handling</label>
-                  <select class="f-input">
-                    <option>Take a message + send SMS confirmation</option>
+                  <select class="f-input" id="after-hours-select">
+                    <option>Take a message for callback</option>
                     <option>Book next available slot automatically</option>
                     <option>Emergency escalation to on-call number</option>
                   </select>
                 </div>
                 <div class="f-field">
-                  <label class="f-label">Escalation Number (optional)</label>
-                  <input class="f-input" placeholder="Number to transfer true emergencies">
+                  <label class="f-label">Transfer / Escalation Number (optional)</label>
+                  <input class="f-input" id="escalation-number" placeholder="Number to transfer true emergencies or human requests">
                 </div>
               </div>
             </div>
@@ -808,25 +791,21 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
             <div class="card card-pad">
               <div class="card-title" style="margin-bottom:16px">Review & Deploy</div>
               <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px">
-                <div class="review-row"><span class="review-label">Client</span><span class="review-val" id="rev-client">Metro Plumbing Co.</span></div>
-                <div class="review-row"><span class="review-label">Niche Template</span><span class="review-val" id="rev-niche">🔧 Plumbing</span></div>
-                <div class="review-row"><span class="review-label">Agent Name</span><span class="review-val">Sarah</span></div>
-                <div class="review-row"><span class="review-label">Voice</span><span class="review-val">Female — Friendly & Professional</span></div>
-                <div class="review-row"><span class="review-label">Calendar</span><span class="review-val">cal.com/metroplumbing/service</span></div>
-                <div class="review-row"><span class="review-label">After-Hours</span><span class="review-val">Take a message + SMS</span></div>
+                <div class="review-row"><span class="review-label">Client</span><span class="review-val" id="rev-client">—</span></div>
+                <div class="review-row"><span class="review-label">Niche Template</span><span class="review-val" id="rev-niche">—</span></div>
+                <div class="review-row"><span class="review-label">Agent Name</span><span class="review-val" id="rev-agent-name">—</span></div>
+                <div class="review-row"><span class="review-label">Voice</span><span class="review-val" id="rev-voice">—</span></div>
+                <div class="review-row"><span class="review-label">Calendar</span><span class="review-val" id="rev-calendar">—</span></div>
+                <div class="review-row"><span class="review-label">After-Hours</span><span class="review-val" id="rev-after-hours">—</span></div>
               </div>
               <div class="card-title" style="margin-bottom:12px">Phone Number</div>
-              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">Your client forwards their existing number to this dedicated agent line, or uses it directly.</p>
-              <div style="display:flex;gap:10px;align-items:center">
-                <div style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:.7rem 1rem;font-family:'IBM Plex Mono',monospace;font-size:.88rem;color:var(--ink2)">(512) 555-0100 — auto-assigned on deploy</div>
-                <button class="btn btn-ghost" style="font-size:.78rem">Choose area code</button>
-              </div>
+              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">Not included in this deploy. Once the agent is live, buy it a dedicated number from its Phone tab — your client can forward their existing line to it, or use it directly.</p>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:16px">
               <div class="card card-pad" style="background:var(--indigo);border-color:var(--indigo)">
                 <div style="color:#fff;font-weight:700;font-size:1rem;margin-bottom:6px">Ready to go live</div>
-                <div style="color:rgba(255,255,255,.7);font-size:.8rem;margin-bottom:20px;line-height:1.5">LaunchDesk will automatically create the agent on Retell, assign the number, and connect the calendar. Your client's agent will be live in under 60 seconds.</div>
+                <div style="color:rgba(255,255,255,.7);font-size:.8rem;margin-bottom:20px;line-height:1.5">LaunchDesk will automatically create the agent on Retell and connect its calendar. Your client's agent will be live in under 60 seconds — buy it a phone number afterward from its Phone tab.</div>
                 <button class="btn" id="deploy-agent-btn" style="background:#fff;color:var(--indigo);width:100%;font-size:.9rem;padding:.75rem" onclick="deployAgent()">🚀 Deploy Agent</button>
               </div>
               <div class="card card-pad">
@@ -838,11 +817,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
                   </div>
                   <div style="display:flex;gap:10px;font-size:.8rem">
                     <div style="width:20px;height:20px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">2</div>
-                    <div style="color:var(--ink2)">Phone number purchased and assigned</div>
+                    <div style="color:var(--ink2)">Cal.com calendar connected (if provided)</div>
                   </div>
                   <div style="display:flex;gap:10px;font-size:.8rem">
                     <div style="width:20px;height:20px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">3</div>
-                    <div style="color:var(--ink2)">Cal.com calendar connected for live booking</div>
+                    <div style="color:var(--ink2)">Buy it a phone number afterward, whenever you're ready</div>
                   </div>
                   <div style="display:flex;gap:10px;font-size:.8rem">
                     <div style="width:20px;height:20px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">4</div>
@@ -865,20 +844,19 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <button class="btn btn-ghost" style="padding:.4rem .8rem;font-size:.78rem" onclick="hideDetail()">← Agents</button>
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:10px">
-              <div class="page-title" style="font-size:1.1rem">Agent Name</div>
-              <span class="badge b-green b-dot">Live</span>
+              <div class="page-title" style="font-size:1.1rem" id="agent-detail-name">Agent</div>
+              <span class="badge b-dot" id="agent-detail-status-badge">—</span>
             </div>
-            <div class="page-sub">Configure your agent details</div>
+            <div class="page-sub" id="agent-detail-sub">Configure your agent details</div>
           </div>
           <div class="btn-row">
-            <button class="btn btn-ghost" style="font-size:.78rem;color:var(--red)">🗑 Delete</button>
+            <button class="btn btn-ghost" style="font-size:.78rem;color:var(--red)" id="agent-delete-btn" onclick="handleDeleteAgent()">🗑 Delete</button>
           </div>
         </div>
 
         <!-- agent tab bar -->
         <div class="agent-tabbar">
           <button class="agent-tab active" onclick="agentTab('prompt',this)">Prompt</button>
-          <button class="agent-tab" onclick="agentTab('business',this)">Business</button>
           <button class="agent-tab" onclick="agentTab('calendar',this)">Calendar</button>
           <button class="agent-tab" onclick="agentTab('phone',this)">Phone</button>
           <button class="agent-tab" onclick="agentTab('billing',this)">Billing</button>
@@ -890,77 +868,25 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
         <!-- PROMPT TAB -->
         <div class="agent-panel active" id="atab-prompt">
-          <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
-            <div style="display:flex;flex-direction:column;gap:16px">
-              <div class="card card-pad">
-                <div class="card-header"><div class="card-title">Welcome Message</div></div>
-                <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">The first thing your agent says when it picks up the call.</p>
-                <textarea class="f-input" rows="3" style="resize:none;width:100%">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
-              </div>
-              <div class="card card-pad">
-                <div class="card-header"><div class="card-title">Agent Instructions</div><span class="card-action">Save & Sync</span></div>
-                <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">Controls how the agent speaks — tone, behavior, escalation rules. Business facts live in the Business tab.</p>
-                <textarea class="f-input" rows="10" style="resize:none;width:100%;font-family:'IBM Plex Mono',monospace;font-size:.78rem">You are Sarah, a friendly and professional AI receptionist for Metro Plumbing Co., a plumbing company serving Austin, TX.
-
-Your job is to:
-1. Greet callers warmly and identify their needs
-2. Answer common questions about services, pricing ranges, and availability
-3. Book appointments using the calendar tool when callers are ready
-4. Transfer emergency calls immediately to the on-call technician
-
-Services: Drain cleaning, water heater repair/install, leak detection, pipe repair, sewer line service.
-
-Emergency: If caller mentions flooding, burst pipe, or no water — treat as emergency and offer immediate transfer.
-
-Tone: Warm, confident, helpful. Never say you're an AI unless directly asked. Keep responses concise.</textarea>
-              </div>
-              <div class="card card-pad">
-                <div class="card-header"><div class="card-title">Call Transfer</div></div>
-                <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">Transfer calls to this number when a caller requests a human or in an emergency.</p>
-                <input class="f-input" placeholder="e.g. (512) 555-0100 — leave blank to disable">
-              </div>
-              <div style="display:flex;gap:10px">
-                <button class="btn btn-indigo" style="flex:1">Save & Sync to Agent</button>
-              </div>
-            </div>
-            <div class="card card-pad" style="align-self:start">
-              <div class="card-title" style="margin-bottom:12px">✨ Generate with AI</div>
-              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:12px">Describe your client's business and desired behavior — AI will write the full prompt.</p>
-              <textarea class="f-input" rows="4" style="resize:none;width:100%;margin-bottom:10px" placeholder="e.g. Plumbing company in Austin TX, specializes in residential drain cleaning and water heater installs, 24/7 emergency service, books via Cal.com…"></textarea>
-              <button class="btn btn-ghost" style="width:100%">Generate Prompt with AI</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- BUSINESS TAB -->
-        <div class="agent-panel" id="atab-business">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:16px;max-width:720px">
             <div class="card card-pad">
-              <div class="card-header"><div class="card-title">Business Profile</div><span class="card-action">Save Profile</span></div>
-              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">Used for proposals, demos, and AI-generated pain points. Not directly part of the agent prompt.</p>
-              <div style="display:flex;flex-direction:column;gap:10px">
-                <div class="f-field"><label class="f-label">Business Name</label><input class="f-input" value=""></div>
-                <div class="f-field"><label class="f-label">Industry</label><input class="f-input" value=""></div>
-                <div class="f-field"><label class="f-label">Description</label><textarea class="f-input" rows="2" style="resize:none">Residential and commercial plumbing services in Austin, TX. Specializing in drain cleaning, water heaters, and emergency repairs.</textarea></div>
-                <div class="f-field"><label class="f-label">Target Customers</label><input class="f-input" value="Homeowners and small businesses in Austin, TX"></div>
-                <div class="f-field"><label class="f-label">Services (one per line)</label><textarea class="f-input" rows="3" style="resize:none">Drain cleaning
-Water heater repair & install
-Leak detection
-Pipe repair
-Sewer line service</textarea></div>
-              </div>
+              <div class="card-header"><div class="card-title">Welcome Message</div></div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">The first thing your agent says when it picks up the call.</p>
+              <textarea class="f-input" id="agent-prompt-greeting" rows="3" style="resize:none;width:100%"></textarea>
             </div>
             <div class="card card-pad">
-              <div class="card-header"><div class="card-title">AI Insights</div><span class="card-action">Regenerate</span></div>
-              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:14px">Auto-generated from your business profile. Used in proposals and demos.</p>
-              <div style="display:flex;flex-direction:column;gap:10px">
-                <div class="f-field"><label class="f-label">Pain Points</label><textarea class="f-input" rows="3" style="resize:none">Missing calls after hours and on weekends
-No system to handle multiple calls simultaneously
-Spending time on calls that could be automated</textarea></div>
-                <div class="f-field"><label class="f-label">Goals</label><textarea class="f-input" rows="3" style="resize:none">Never miss a lead again
-Book more appointments without hiring staff
-Look more professional to customers</textarea></div>
-              </div>
+              <div class="card-header"><div class="card-title">Agent Instructions</div></div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">Controls everything the agent knows and how it behaves on calls — generated automatically when the agent was built, editable here.</p>
+              <textarea class="f-input" id="agent-prompt-system" rows="14" style="resize:none;width:100%;font-family:'IBM Plex Mono',monospace;font-size:.78rem"></textarea>
+            </div>
+            <div class="card card-pad">
+              <div class="card-header"><div class="card-title">Call Transfer</div></div>
+              <p style="font-size:.78rem;color:var(--ink3);margin-bottom:10px">Mentioned in the prompt as the number to transfer to for emergencies or human requests. Leave blank to disable.</p>
+              <input class="f-input" id="agent-prompt-transfer" placeholder="e.g. (512) 555-0100">
+            </div>
+            <div id="agent-prompt-status" style="font-size:.75rem;min-height:1em"></div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-indigo" style="flex:1" id="agent-prompt-save-btn" onclick="saveAgentPrompt()">Save &amp; Sync to Agent</button>
             </div>
           </div>
         </div>
@@ -1035,40 +961,19 @@ Look more professional to customers</textarea></div>
 
         <!-- TEST CALL TAB -->
         <div class="agent-panel" id="atab-test">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
-            <div class="card card-pad" style="text-align:center;padding:40px">
-              <div style="font-size:2.5rem;margin-bottom:16px">🎙</div>
-              <div style="font-weight:700;font-size:1.05rem;margin-bottom:8px;color:var(--ink)">Test Your Agent Live</div>
-              <p style="font-size:.82rem;color:var(--ink3);max-width:280px;margin:0 auto 24px;line-height:1.6">Start a live web call to talk to your AI receptionist right now. See the full conversation transcript in real time.</p>
-              <button class="btn btn-indigo" style="font-size:.95rem;padding:.75rem 2rem">Start Test Call</button>
-              <div style="margin-top:16px;font-size:.75rem;color:var(--ink3)">Uses your browser microphone · No phone number needed</div>
-            </div>
-            <div class="card card-pad">
-              <div class="card-title" style="margin-bottom:12px">Live Transcript</div>
-              <div style="background:var(--bg2);border-radius:10px;padding:16px;min-height:200px;display:flex;align-items:center;justify-content:center">
-                <div style="text-align:center;color:var(--ink3);font-size:.82rem">Start a test call to see the transcript here in real time</div>
-              </div>
-            </div>
+          <div class="card card-pad" style="text-align:center;padding:64px 32px">
+            <div style="font-size:2.2rem;margin-bottom:12px;opacity:.4">🎙</div>
+            <h3 style="font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px">Coming Soon</h3>
+            <p style="font-size:.8rem;color:var(--ink3);max-width:320px;margin:0 auto;line-height:1.6">Talk to your agent live from the browser, mic and all, with a real-time transcript. We're building this next.</p>
           </div>
         </div>
 
         <!-- AI FIX TAB -->
         <div class="agent-panel" id="atab-aifix">
-          <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
-            <div class="card card-pad">
-              <div class="card-title" style="margin-bottom:6px">✨ AI Agent Fixer</div>
-              <p style="font-size:.82rem;color:var(--ink3);margin-bottom:16px">Describe a problem with your agent. LaunchDesk will analyze recent call transcripts, find the root cause, and suggest a fix — to the prompt or the knowledge base — for your approval before applying.</p>
-              <textarea class="f-input" rows="4" style="resize:none;width:100%;margin-bottom:12px" placeholder="e.g. The agent is quoting prices when callers ask — I don't want it to do that. Or: It's not handling emergency calls correctly…"></textarea>
-              <button class="btn btn-indigo">Diagnose & Fix</button>
-            </div>
-            <div class="card card-pad" style="align-self:start">
-              <div class="card-title" style="margin-bottom:12px">How AI Fix works</div>
-              <div style="display:flex;flex-direction:column;gap:12px">
-                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">1</div><div style="color:var(--ink2)">Describe the issue in plain English</div></div>
-                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">2</div><div style="color:var(--ink2)">AI reads your recent call transcripts to find patterns</div></div>
-                <div style="display:flex;gap:10px;font-size:.82rem"><div style="width:22px;height:22px;border-radius:50%;background:var(--indigo-light);color:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;flex:none">3</div><div style="color:var(--ink2)">AI proposes a fix — you approve before anything changes</div></div>
-              </div>
-            </div>
+          <div class="card card-pad" style="text-align:center;padding:64px 32px">
+            <div style="font-size:2.2rem;margin-bottom:12px;opacity:.4">✨</div>
+            <h3 style="font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px">Coming Soon</h3>
+            <p style="font-size:.8rem;color:var(--ink3);max-width:320px;margin:0 auto;line-height:1.6">Describe a problem in plain English and let AI read recent call transcripts to find the cause and propose a prompt fix for your approval. We're building this next.</p>
           </div>
         </div>
 
@@ -1077,7 +982,7 @@ Look more professional to customers</textarea></div>
           <div class="card card-pad">
             <div class="card-header">
               <div class="card-title">Call Logs</div>
-              <div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem">Export CSV</button><button class="btn btn-ghost" style="font-size:.75rem">Sync to Airtable</button></div>
+              <div class="btn-row"><button class="btn btn-ghost" style="font-size:.75rem" onclick="exportCallLogsCsv()">Export CSV</button></div>
             </div>
             <div id="call-logs-empty" style="text-align:center;padding:40px;color:var(--ink3)">
               <div style="font-size:1.8rem;margin-bottom:10px;opacity:.4">📞</div>
@@ -1128,7 +1033,7 @@ Look more professional to customers</textarea></div>
     <div class="page" id="page-crm">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
         <div><div class="page-title">CRM</div><div class="page-sub" id="crm-page-sub">0 leads · add your first from Lead Finder</div></div>
-        <div class="btn-row"><button class="btn btn-ghost">Import CSV</button><button class="btn btn-indigo">+ Add Lead</button></div>
+        <div class="btn-row"><button class="btn btn-ghost" onclick="document.getElementById('csv-import-input').click()">Import CSV</button><button class="btn btn-indigo" onclick="openAddLeadModal()">+ Add Lead</button></div>
       </div>
       <div class="stat-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
         <div class="stat-cell"><div class="stat-label">New</div><div class="stat-val" id="crm-stat-new" style="font-size:1.4rem">0</div></div>
@@ -1160,7 +1065,7 @@ Look more professional to customers</textarea></div>
 
     <!-- COLD CALL -->
     <div class="page" id="page-coldcall">
-      <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub">0 calls today · <span id="coldcall-queue-count">0 leads in queue</span></div></div>
+      <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub"><span id="coldcall-calls-today">0</span> calls this session · <span id="coldcall-queue-count">0 leads in queue</span></div></div>
       <div class="coldcall-layout">
         <div class="script-card">
           <div class="card-header"><div class="card-title">Call Script</div><span class="card-action" id="script-edit-toggle" onclick="toggleScriptEdit()">Edit</span></div>
@@ -1200,10 +1105,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             </button>
             <div id="coldcall-timer" style="font-family:'IBM Plex Mono',monospace;font-size:.95rem;font-weight:600;color:var(--ink3);display:none;margin-top:-8px">00:00</div>
             <div style="width:100%;display:flex;flex-direction:column;gap:8px">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                <button class="btn btn-indigo" style="font-size:.78rem" id="coldcall-interested-btn" onclick="handleColdCallInterested()">✓ Interested</button>
-                <button class="btn btn-ghost" style="font-size:.78rem">📅 Meeting</button>
-              </div>
+              <button class="btn btn-indigo" style="font-size:.78rem;width:100%" id="coldcall-interested-btn" onclick="handleColdCallInterested()">✓ Interested</button>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <button class="btn btn-ghost" style="font-size:.78rem" id="coldcall-noanswer-btn" onclick="handleColdCallNoAnswer()">📵 No Answer</button>
                 <button class="btn btn-ghost" style="font-size:.78rem" id="coldcall-skip-btn" onclick="handleColdCallSkip()">⏭ Skip</button>
@@ -1211,16 +1113,16 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             </div>
             <div style="width:100%">
               <div style="font-size:.67rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px">Call Notes</div>
-              <textarea style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.82rem;color:var(--ink);font-family:'Inter',system-ui,sans-serif;resize:none;outline:none;line-height:1.5;transition:border-color .15s" rows="3" placeholder="Type notes during the call…" onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+              <textarea id="coldcall-notes" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:.82rem;color:var(--ink);font-family:'Inter',system-ui,sans-serif;resize:none;outline:none;line-height:1.5;transition:border-color .15s" rows="3" placeholder="Type notes during the call…" onfocus="this.style.borderColor='var(--indigo)'" onblur="this.style.borderColor='var(--border)'"></textarea>
             </div>
           </div>
           <div class="card card-pad">
-            <div class="card-title" style="margin-bottom:12px">Today's Stats</div>
+            <div class="card-title" style="margin-bottom:12px">This Session</div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div class="am"><div class="am-val">0</div><div class="am-label">Calls</div></div>
-              <div class="am"><div class="am-val">0</div><div class="am-label">Interested</div></div>
-              <div class="am"><div class="am-val">0</div><div class="am-label">Meetings</div></div>
-              <div class="am"><div class="am-val">0</div><div class="am-label">No Answer</div></div>
+              <div class="am"><div class="am-val" id="coldcall-stat-calls">0</div><div class="am-label">Calls</div></div>
+              <div class="am"><div class="am-val" id="coldcall-stat-interested">0</div><div class="am-label">Interested</div></div>
+              <div class="am"><div class="am-val" id="coldcall-stat-noanswer">0</div><div class="am-label">No Answer</div></div>
+              <div class="am"><div class="am-val" id="coldcall-stat-skipped">0</div><div class="am-label">Skipped</div></div>
             </div>
           </div>
         </div>
@@ -1234,16 +1136,16 @@ Happy to. What's the biggest headache with missed calls for you right now — so
         <table class="data-table">
           <thead><tr><th>Module</th><th>Category</th><th></th></tr></thead>
           <tbody>
-            <tr><td><span class="td-primary">Cold Call Frameworks</span></td><td style="color:var(--ink3)">Sales & Outreach</td><td><span class="badge b-indigo">Popular</span></td></tr>
-            <tr><td><span class="td-primary">Offer Builder</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
-            <tr><td><span class="td-primary">Script Vault</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
-            <tr><td><span class="td-primary">Objection Library</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
-            <tr><td><span class="td-primary">Client Onboarding SOP</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
-            <tr><td><span class="td-primary">Pricing & Packaging Guide</span></td><td style="color:var(--ink3)">Sales & Outreach</td><td><span class="badge b-gray">Essential</span></td></tr>
-            <tr><td><span class="td-primary">Agency Growth Playbook</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
-            <tr><td><span class="td-primary">Proposal & Contract Templates</span></td><td style="color:var(--ink3)">Tools & Templates</td><td></td></tr>
-            <tr><td><span class="td-primary">ROI Calculator</span></td><td style="color:var(--ink3)">Tools & Templates</td><td></td></tr>
-            <tr><td><span class="td-primary">Niche Deep Dives — Plumbing, HVAC, Electrical</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
+            <tr onclick="openPlaybookModal('coldCallFrameworks')"><td><span class="td-primary">Cold Call Frameworks</span></td><td style="color:var(--ink3)">Sales & Outreach</td><td><span class="badge b-indigo">Popular</span></td></tr>
+            <tr onclick="openPlaybookModal('offerBuilder')"><td><span class="td-primary">Offer Builder</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr onclick="openPlaybookModal('scriptVault')"><td><span class="td-primary">Script Vault</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr onclick="openPlaybookModal('objectionLibrary')"><td><span class="td-primary">Objection Library</span></td><td style="color:var(--ink3)">Core Training</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr onclick="openPlaybookModal('onboardingSop')"><td><span class="td-primary">Client Onboarding SOP</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
+            <tr onclick="openPlaybookModal('pricingGuide')"><td><span class="td-primary">Pricing & Packaging Guide</span></td><td style="color:var(--ink3)">Sales & Outreach</td><td><span class="badge b-gray">Essential</span></td></tr>
+            <tr onclick="openPlaybookModal('growthPlaybook')"><td><span class="td-primary">Agency Growth Playbook</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
+            <tr onclick="openPlaybookModal('proposalTemplates')"><td><span class="td-primary">Proposal & Contract Templates</span></td><td style="color:var(--ink3)">Tools & Templates</td><td></td></tr>
+            <tr onclick="openPlaybookModal('roiCalculator')"><td><span class="td-primary">ROI Calculator</span></td><td style="color:var(--ink3)">Tools & Templates</td><td></td></tr>
+            <tr onclick="openPlaybookModal('nicheDeepDives')"><td><span class="td-primary">Niche Deep Dives — Plumbing, HVAC, Electrical</span></td><td style="color:var(--ink3)">Strategy & Growth</td><td><span class="badge b-green">New</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -1254,14 +1156,14 @@ Happy to. What's the biggest headache with missed calls for you right now — so
       <div class="page-header"><div class="page-title">Settings</div><div class="page-sub">Account, appearance & integrations</div></div>
       <div class="settings-layout">
         <div class="settings-nav">
-          <div class="s-nav-item active">Account</div>
-          <div class="s-nav-item">Appearance</div>
-          <div class="s-nav-item">Integrations</div>
-          <div class="s-nav-item">Billing</div>
-          <div class="s-nav-item">Support</div>
+          <div class="s-nav-item active" onclick="scrollToSettingsGroup('account', this)">Account</div>
+          <div class="s-nav-item" onclick="scrollToSettingsGroup('appearance', this)">Appearance</div>
+          <div class="s-nav-item" onclick="scrollToSettingsGroup('integrations', this)">Integrations</div>
+          <div class="s-nav-item" onclick="scrollToSettingsGroup('billing', this)">Billing</div>
+          <div class="s-nav-item" onclick="scrollToSettingsGroup('support', this)">Support</div>
         </div>
         <div class="settings-panels">
-          <div class="s-group">
+          <div class="s-group" id="s-group-account">
             <div class="profile-row">
               <div class="p-ava" id="settings-avatar">?</div>
               <div>
@@ -1289,7 +1191,7 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             </div>
           </div>
 
-          <div class="s-group">
+          <div class="s-group" id="s-group-appearance">
             <div class="s-group-label">Appearance</div>
             <div class="s-row" onclick="toggleTheme()">
               <div class="s-row-left">
@@ -1300,15 +1202,13 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             </div>
           </div>
 
-          <div class="s-group">
+          <div class="s-group" id="s-group-integrations">
             <div class="s-group-label">Integrations</div>
             <div class="s-row" onclick="openModal('cal')"><div class="s-row-left"><div class="s-icon">📅</div><div><div class="s-label">Cal.com (Default)</div><div class="s-meta">Pre-fills new agents — each client's agent can override this with its own calendar</div></div></div><div class="s-right"><span class="badge b-amber" id="integration-badge-cal">Not connected</span></div></div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">💳</div><div><div class="s-label">Stripe</div><div class="s-meta">Collect client payments</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
             <div class="s-row" onclick="openModal('email')"><div class="s-row-left"><div class="s-icon">📧</div><div><div class="s-label">Email</div><div class="s-meta">Send proposals from your address</div></div></div><div class="s-right"><span class="badge b-amber" id="integration-badge-email">Not connected</span></div></div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label">Zapier</div><div class="s-meta">Automate your workflow</div></div></div><div class="s-right"><span class="badge b-amber">Not connected</span></div></div>
           </div>
 
-          <div class="s-group">
+          <div class="s-group" id="s-group-billing">
             <div class="s-group-label">Plan & Billing</div>
             <div class="s-row"><div class="s-row-left"><div class="s-icon">⚡</div><div><div class="s-label" id="billing-plan-label">Plan</div><div class="s-meta" id="billing-plan-meta">Loading…</div></div></div><div class="s-right" style="color:var(--indigo)"><a href="#" onclick="handleManagePlan(); return false;" style="color:var(--indigo);text-decoration:none">Manage →</a></div></div>
             <div id="billing-manage-note" class="hidden" style="padding:12px 20px;font-size:.78rem;color:var(--ink2);border-top:1px solid var(--border)"></div>
@@ -1316,9 +1216,19 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
           <div class="s-group">
             <div class="s-group-label">Security</div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">🔑</div><div><div class="s-label">API Keys</div><div class="s-meta">Connect external tools</div></div></div><div class="s-right">→</div></div>
-            <div class="s-row"><div class="s-row-left"><div class="s-icon">🔒</div><div><div class="s-label">Change Password</div></div></div><div class="s-right">→</div></div>
+            <div class="s-row" onclick="openChangePasswordModal()"><div class="s-row-left"><div class="s-icon">🔒</div><div><div class="s-label">Change Password</div></div></div><div class="s-right">→</div></div>
             <div class="s-row" onclick="handleLogout()"><div class="s-row-left"><div class="s-icon">🚪</div><div><div class="s-label" style="color:var(--red)">Log Out</div></div></div></div>
+          </div>
+
+          <div class="s-group" id="s-group-support">
+            <div class="s-group-label">Support</div>
+            <div class="s-row" style="cursor:default">
+              <div class="s-row-left">
+                <div class="s-icon">✉️</div>
+                <div><div class="s-label">Contact Support</div><div class="s-meta">Questions, bugs, or billing issues</div></div>
+              </div>
+              <a href="mailto:highpointgrowth@gmail.com" style="color:var(--indigo);text-decoration:none;font-size:.78rem">highpointgrowth@gmail.com</a>
+            </div>
           </div>
         </div>
       </div>
@@ -1435,6 +1345,62 @@ Happy to. What's the biggest headache with missed calls for you right now — so
   </div>
 
   </div><!-- /main-area -->
+
+  <input type="file" id="csv-import-input" accept=".csv" class="hidden" onchange="handleCsvFileSelected(event)">
+
+  <!-- CHANGE PASSWORD MODAL -->
+  <div class="modal-overlay hidden" id="modal-change-password" onclick="if(event.target===this) closeChangePasswordModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">🔒 Change Password</div>
+        <div class="modal-close" onclick="closeChangePasswordModal()">✕</div>
+      </div>
+      <div class="f-field"><label class="f-label">New Password</label><input class="f-input" id="new-password-input" type="password" placeholder="At least 6 characters"></div>
+      <div class="f-field"><label class="f-label">Confirm New Password</label><input class="f-input" id="confirm-password-input" type="password" placeholder="Re-enter new password"></div>
+      <div class="modal-error" id="change-password-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeChangePasswordModal()">Cancel</button>
+        <button class="btn btn-indigo" id="change-password-save-btn" onclick="saveNewPassword()">Update Password</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYBOOK CONTENT MODAL -->
+  <div class="modal-overlay hidden" id="modal-playbook" onclick="if(event.target===this) closePlaybookModal()">
+    <div class="modal-box" style="max-width:600px">
+      <div class="modal-header">
+        <div class="modal-title" id="playbook-modal-title">Module</div>
+        <div class="modal-close" onclick="closePlaybookModal()">✕</div>
+      </div>
+      <div id="playbook-modal-body" style="font-size:.84rem;color:var(--ink2);line-height:1.75;max-height:60vh;overflow-y:auto;white-space:pre-wrap"></div>
+    </div>
+  </div>
+
+  <!-- ADD LEAD MODAL -->
+  <div class="modal-overlay hidden" id="modal-add-lead" onclick="if(event.target===this) closeAddLeadModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">🏢 Add Lead</div>
+        <div class="modal-close" onclick="closeAddLeadModal()">✕</div>
+      </div>
+      <div class="f-field"><label class="f-label">Business Name</label><input class="f-input" id="add-lead-business-name" placeholder="e.g. Metro Plumbing Co."></div>
+      <div class="two-col">
+        <div class="f-field"><label class="f-label">Phone</label><input class="f-input" id="add-lead-phone" placeholder="(512) 555-0100"></div>
+        <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="add-lead-email" type="email" placeholder="contact@business.com"></div>
+      </div>
+      <div class="f-field"><label class="f-label">Website</label><input class="f-input" id="add-lead-website" placeholder="https://business.com"></div>
+      <div class="two-col">
+        <div class="f-field"><label class="f-label">City</label><input class="f-input" id="add-lead-city" placeholder="Austin"></div>
+        <div class="f-field"><label class="f-label">State</label><input class="f-input" id="add-lead-state" placeholder="TX"></div>
+      </div>
+      <div class="f-field"><label class="f-label">Category</label><input class="f-input" id="add-lead-category" placeholder="e.g. plumber"></div>
+      <div class="modal-error" id="add-lead-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeAddLeadModal()">Cancel</button>
+        <button class="btn btn-indigo" id="add-lead-save-btn" onclick="saveManualLead()">Add Lead</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ADD MEETING MODAL -->
   <div class="modal-overlay hidden" id="modal-add-meeting" onclick="if(event.target===this) closeAddMeetingModal()">
@@ -1572,10 +1538,74 @@ function showDetail(agent){
   document.getElementById('agents-list').style.display='none';
   document.getElementById('agents-builder').style.display='none';
   document.getElementById('agents-detail').style.display='block';
+
+  if(currentAgent){
+    document.getElementById('agent-detail-name').textContent = currentAgent.agent_name || 'Unnamed Agent';
+    document.getElementById('agent-detail-sub').textContent = `${currentAgent.business_name || 'Unknown business'} · ${currentAgent.niche || '—'}`;
+    const statusBadge = document.getElementById('agent-detail-status-badge');
+    const statusClass = currentAgent.status === 'active' ? 'b-green' : currentAgent.status === 'building' ? 'b-amber' : 'b-gray';
+    statusBadge.className = `badge b-dot ${statusClass}`;
+    statusBadge.textContent = currentAgent.status || 'building';
+  }
+
+  renderAgentPromptTab();
   renderAgentCalendarTab();
   renderAgentPhoneTab();
   renderAgentBillingTab();
   resetProposalTab();
+}
+
+function renderAgentPromptTab(){
+  if(!currentAgent) return;
+  document.getElementById('agent-prompt-greeting').value = currentAgent.greeting || '';
+  document.getElementById('agent-prompt-system').value = currentAgent.system_prompt || '';
+  document.getElementById('agent-prompt-transfer').value = currentAgent.transfer_number || '';
+  document.getElementById('agent-prompt-status').textContent = '';
+}
+
+async function saveAgentPrompt(){
+  if(!currentAgent) return;
+  const greeting = document.getElementById('agent-prompt-greeting').value.trim();
+  const system_prompt = document.getElementById('agent-prompt-system').value.trim();
+  const transfer_number = document.getElementById('agent-prompt-transfer').value.trim();
+  const statusEl = document.getElementById('agent-prompt-status');
+  const btn = document.getElementById('agent-prompt-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  statusEl.textContent = '';
+  statusEl.style.color = '';
+
+  try {
+    const { agent } = await API.agents.update(currentAgent.id, { greeting, system_prompt, transfer_number });
+    currentAgent = agent;
+    btn.textContent = 'Syncing to Retell…';
+    await API.agents.sync(currentAgent.id);
+    statusEl.textContent = '✓ Saved and synced to the live agent';
+    statusEl.style.color = 'var(--green)';
+  } catch (err) {
+    statusEl.textContent = err.message;
+    statusEl.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function handleDeleteAgent(){
+  if(!currentAgent) return;
+  if(!confirm(`Delete ${currentAgent.agent_name || 'this agent'}? This removes it from Retell and can't be undone.`)) return;
+
+  const btn = document.getElementById('agent-delete-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Deleting…';
+
+  try {
+    await API.agents.delete(currentAgent.id);
+    hideDetail();
+    loadAgentsList();
+  } catch (err) {
+    alert('Failed to delete agent: ' + err.message);
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 function hideDetail(){
   document.getElementById('agents-detail').style.display='none';
@@ -1837,6 +1867,20 @@ function goStep(n){
       else if(i<n) step.classList.add('done');
     }
   }
+  if(n===4) updateReviewStep();
+}
+
+function updateReviewStep(){
+  const agentName = document.getElementById('voice-agent-name').value.trim();
+  document.getElementById('rev-agent-name').textContent = agentName || '—';
+
+  const voiceSelect = document.getElementById('voice-select');
+  document.getElementById('rev-voice').textContent = voiceSelect.options[voiceSelect.selectedIndex].text;
+
+  const eventTypeId = document.getElementById('cal-event-type-id').value.trim();
+  document.getElementById('rev-calendar').textContent = eventTypeId ? `Event type ${eventTypeId}` : 'Not connected';
+
+  document.getElementById('rev-after-hours').textContent = document.getElementById('after-hours-select').value;
 }
 let cachedLeads = [];
 
@@ -1892,6 +1936,8 @@ function selectClient(el, leadId){
   // Pre-fill step 2
   const bizName = document.getElementById('biz-name');
   if(bizName) bizName.value = name;
+  const bizUrl = document.getElementById('biz-url');
+  if(bizUrl) bizUrl.value = lead.website || '';
   // Pre-select niche
   if(niche) selectNiche(niche.toLowerCase());
   // Pre-fill review
@@ -1940,14 +1986,6 @@ function selectNicheFromDropdown(val){
   if(revNiche) revNiche.textContent = val ? (document.getElementById('niche-select').options[document.getElementById('niche-select').selectedIndex].text) : '—';
 }
 function selectNiche(n){ selectedNiche = n; }
-function scrapeWebsite(){
-  const btn = document.getElementById('scrape-btn');
-  btn.textContent = '⏳ Scraping…';
-  setTimeout(()=>{
-    btn.textContent = '✨ Scrape website';
-    document.getElementById('scrape-status').style.display='block';
-  }, 2000);
-}
 async function deployAgent(){
   if(!selectedClient || !selectedClient.id){
     alert('Select a client in Step 1 first.');
@@ -1959,6 +1997,16 @@ async function deployAgent(){
   const greeting = document.getElementById('voice-greeting').value.trim();
   const calApiKey = document.getElementById('cal-api-key').value.trim();
   const calEventTypeId = document.getElementById('cal-event-type-id').value.trim();
+  const websiteOverride = document.getElementById('biz-url').value.trim();
+  const escalationNumber = document.getElementById('escalation-number').value.trim();
+
+  const extraContextParts = [
+    document.getElementById('biz-services').value.trim() && `Services offered: ${document.getElementById('biz-services').value.trim()}`,
+    document.getElementById('biz-hours').value.trim() && `Business hours: ${document.getElementById('biz-hours').value.trim()}`,
+    document.getElementById('biz-area').value.trim() && `Service area: ${document.getElementById('biz-area').value.trim()}`,
+    `After-hours handling: ${document.getElementById('after-hours-select').value}`,
+    escalationNumber && `Transfer emergencies or human requests to: ${escalationNumber}`,
+  ].filter(Boolean);
 
   if(!agentName){
     alert('Agent name is required.');
@@ -1979,6 +2027,9 @@ async function deployAgent(){
       greeting,
       cal_api_key: calApiKey || undefined,
       cal_event_type_id: calEventTypeId || undefined,
+      website_override: websiteOverride || undefined,
+      extra_context: extraContextParts.length ? extraContextParts.join('\n') : undefined,
+      transfer_number: escalationNumber || undefined,
     });
 
     btn.textContent = '✅ Agent Live!';
@@ -2031,6 +2082,7 @@ function enterApp(){
   loadIntegrations();
   loadTodos();
   loadDashboardWidgets();
+  loadDailyGoals();
 }
 
 async function handleLogout(){
@@ -2105,8 +2157,24 @@ async function loadUserStats(){
 
     const goalYearlyInput = document.getElementById('settings-goal-yearly');
     if(goalYearlyInput) goalYearlyInput.value = user.goal_yearly_revenue ?? '';
+
+    const upgradeLinkEl = document.getElementById('signal-upgrade-link');
+    if(upgradeLinkEl) upgradeLinkEl.classList.toggle('hidden', user.plan === 'agency');
   } catch (err) {
     console.error('Failed to load user stats', err);
+  }
+}
+
+async function handleUpgradeClick(){
+  const link = document.getElementById('signal-upgrade-link');
+  const original = link.textContent;
+  link.textContent = 'Loading…';
+  try {
+    const { url } = await API.stripe.createCheckout({ plan: 'agency' });
+    window.location.href = url;
+  } catch (err) {
+    alert('Could not start checkout: ' + err.message);
+    link.textContent = original;
   }
 }
 
@@ -2152,10 +2220,59 @@ async function saveGoals(){
   }
 }
 
+function scrollToSettingsGroup(name, el){
+  document.querySelectorAll('.s-nav-item').forEach((n) => n.classList.remove('active'));
+  el.classList.add('active');
+  const target = document.getElementById(`s-group-${name}`);
+  if(target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function openChangePasswordModal(){
+  document.getElementById('new-password-input').value = '';
+  document.getElementById('confirm-password-input').value = '';
+  document.getElementById('change-password-modal-error').textContent = '';
+  document.getElementById('modal-change-password').classList.remove('hidden');
+}
+
+function closeChangePasswordModal(){
+  document.getElementById('modal-change-password').classList.add('hidden');
+}
+
+async function saveNewPassword(){
+  const password = document.getElementById('new-password-input').value;
+  const confirm = document.getElementById('confirm-password-input').value;
+  const errorEl = document.getElementById('change-password-modal-error');
+  errorEl.textContent = '';
+
+  if(!password || password.length < 6){
+    errorEl.textContent = 'Password must be at least 6 characters.';
+    return;
+  }
+  if(password !== confirm){
+    errorEl.textContent = 'Passwords do not match.';
+    return;
+  }
+
+  const btn = document.getElementById('change-password-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Updating…';
+  try {
+    await API.auth.changePassword(password);
+    closeChangePasswordModal();
+    alert('Password updated.');
+  } catch (err) {
+    errorEl.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
 async function loadDashboardStats(){
   try {
     const stats = await API.dashboard.getStats();
     document.getElementById('stat-calls-today').textContent = stats.calls_today;
+    const signalCallsEl = document.getElementById('signal-calls-today');
+    if(signalCallsEl) signalCallsEl.textContent = stats.calls_today;
     document.getElementById('stat-meetings').textContent = stats.meetings;
     document.getElementById('stat-clients').textContent = stats.clients;
     document.getElementById('stat-mrr').textContent = `$${stats.mrr}`;
@@ -2224,6 +2341,42 @@ async function loadTodaysActivity(){
   }
 }
 
+const DAILY_GOAL_TARGETS = { coldcalls: 20, proposals: 5, crm: 10 };
+
+function isToday(dateString){
+  if(!dateString) return false;
+  const d = new Date(dateString);
+  const now = new Date();
+  return d.getUTCFullYear() === now.getUTCFullYear() && d.getUTCMonth() === now.getUTCMonth() && d.getUTCDate() === now.getUTCDate();
+}
+
+function setGoalProgress(prefix, count, target){
+  const fracEl = document.getElementById(`goal-${prefix}-frac`);
+  const fillEl = document.getElementById(`goal-${prefix}-fill`);
+  if(fracEl) fracEl.textContent = `${count} / ${target}`;
+  if(fillEl) fillEl.style.width = `${Math.min(100, (count / target) * 100)}%`;
+}
+
+async function loadDailyGoals(){
+  try {
+    const [{ today }, { proposals }, { leads }] = await Promise.all([
+      API.leads.getActivitySummary(),
+      API.proposals.getAll(),
+      API.leads.getAll(),
+    ]);
+
+    setGoalProgress('coldcalls', today.call, DAILY_GOAL_TARGETS.coldcalls);
+
+    const proposalsSentToday = (proposals || []).filter((p) => p.status !== 'draft' && isToday(p.created_at)).length;
+    setGoalProgress('proposals', proposalsSentToday, DAILY_GOAL_TARGETS.proposals);
+
+    const leadsAddedToday = (leads || []).filter((l) => isToday(l.created_at)).length;
+    setGoalProgress('crm', leadsAddedToday, DAILY_GOAL_TARGETS.crm);
+  } catch (err) {
+    console.error('Failed to load daily goals', err);
+  }
+}
+
 // ── STRIPE ──
 async function handleManagePlan(){
   const noteEl = document.getElementById('billing-manage-note');
@@ -2241,12 +2394,182 @@ async function handleManagePlan(){
   }
 }
 
+// ── CSV EXPORT ──
+function csvCell(value){
+  const str = value == null ? '' : String(value);
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+function downloadCsv(filename, headers, rows){
+  const lines = [headers.join(','), ...rows.map((row) => row.map(csvCell).join(','))];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ── PLAYBOOK ──
+const PLAYBOOK_CONTENT = {
+  coldCallFrameworks: {
+    title: 'Cold Call Frameworks',
+    body: `The 4-part cold call structure that works for local service businesses:
+
+1. Pattern interrupt (5 sec) — Skip the generic "Hi, how are you today" opener. Lead with their business name and a specific observation: "Hey, this is [You] — I was looking at [Business]'s Google listing and noticed you're getting a lot of 5-star reviews."
+
+2. Permission + reason for call (10 sec) — Ask for 30 seconds, then state why you're calling in one sentence. Don't pitch yet.
+
+3. Value-first pitch (20-30 sec) — Lead with the outcome (missed calls recovered, appointments booked), not the technology. Nobody wants "an AI voice agent" — they want "never missing a job again."
+
+4. Soft close to a meeting — Ask for a specific 15-minute slot, not "are you interested?" Two options beat one: "Would Tuesday or Thursday afternoon work better?"
+
+Use the Call Script tab in Cold Call Station as your base — customize the [brackets] for each niche.`,
+  },
+  offerBuilder: {
+    title: 'Offer Builder',
+    body: `How to price and package your AI receptionist offer:
+
+Starter package — 1 agent, business hours coverage, FAQ + booking. Position as "never miss a call again" for $200-400/mo.
+
+Growth package — Adds after-hours coverage, lead qualification, and CRM sync. $500-800/mo.
+
+Pro package — Multiple agents/locations, custom integrations, monthly reporting calls. $1,000+/mo.
+
+Always price on value delivered (missed-call recovery, staff time saved), not your cost to run it. Use the Payments page's profit calculator to check your margin before you quote a number.`,
+  },
+  scriptVault: {
+    title: 'Script Vault',
+    body: `Beyond the cold call opener, keep these scripts ready:
+
+Voicemail drop (15 sec): "Hey [Name], this is [You] with [Agency]. Quick one — I help businesses like yours stop losing jobs to missed calls with an AI phone agent. I'll text you a 90-second demo, take a look when you get a sec."
+
+Follow-up text (after no answer): "Hey [Name], tried you a couple times — no worries if now's not the time. Here's a quick example of what I do: [link]. Text back if you want to chat."
+
+Demo call opener: "Before I show you anything, tell me — what usually happens when you can't get to the phone during a job?" Let them describe the pain before you show the fix.`,
+  },
+  objectionLibrary: {
+    title: 'Objection Library',
+    body: `Common objections and how to handle them:
+
+"We already have someone answering." → "Totally get it. Most of my clients had that too — this isn't a replacement, it's a backup for after-hours and when your team's slammed. What happens on your busiest days when calls stack up?"
+
+"Sounds expensive." → Reframe around the cost of ONE missed job: "What's an average job worth to you? Most owners find this pays for itself after one recovered call a month."
+
+"I don't trust AI talking to my customers." → Offer the test call: "Fair — let me have it call you right now so you can hear it yourself before deciding anything."
+
+"Send me some info." → Don't just email and hope. "Happy to — while I've got you, what's the biggest headache with missed calls right now so I send the right thing?" Get a callback commitment before you hang up.`,
+  },
+  onboardingSop: {
+    title: 'Client Onboarding SOP',
+    body: `Once a client signs, follow this sequence:
+
+1. Kickoff (same day) — Confirm business hours, services, and any special call-handling rules (emergencies, pricing questions, etc.).
+
+2. Build (Day 1-2) — Use the Agent Builder: pick the niche template, let it scrape their website, add anything the site's missing in the Business Knowledge fields, connect their Cal.com calendar.
+
+3. Review call (Day 2-3) — Walk the client through the generated prompt together, adjust tone/wording, confirm the greeting.
+
+4. Go live (Day 3) — Buy the agent's phone number from its Phone tab, have the client forward their existing line to it or start using it directly.
+
+5. Check-in (Day 10) — Review the first week of Call Logs together, tune anything that's misfiring in the Prompt tab.
+
+Log each step as an activity on the lead in CRM so you've got a record of what's been done.`,
+  },
+  pricingGuide: {
+    title: 'Pricing & Packaging Guide',
+    body: `How to talk price without discounting yourself:
+
+Anchor high, then justify. Lead with the Pro package price, then explain what's included — most prospects will ask about the cheaper tier themselves once they see the range.
+
+Never quote a price before showing value. Walk through the Cold Call Frameworks' step 3 (value-first pitch) or run an actual test call before naming a number.
+
+Bundle setup into the monthly fee. A separate "setup fee" gives people an easy reason to say no. Fold it into month one instead.
+
+Use the Payments page to sanity-check every quote — plug in your target charge and estimated call minutes and make sure the margin still works before you commit to a number.`,
+  },
+  growthPlaybook: {
+    title: 'Agency Growth Playbook',
+    body: `Once you've closed your first few clients:
+
+Niche down before you scale up. It's easier to close 10 plumbers with one proven script and case study than 10 businesses across 10 industries. Use the Niche Deep Dives once you've picked a lane.
+
+Turn your first client into a case study. A specific, believable number ("recovered 14 missed calls in the first month") closes more deals than any feature list.
+
+Systemize before you hire. Everything in this Playbook — the scripts, the onboarding SOP, the pricing guide — is what you hand to a future salesperson or VA. Write down what's working as you go.
+
+Track your pipeline weekly. Use the CRM stage counts and the Daily Goals card on your Dashboard to see where deals are stalling — new leads, no follow-up, or proposals that never get sent.`,
+  },
+  proposalTemplates: {
+    title: 'Proposal & Contract Templates',
+    body: `LaunchDesk generates a tailored proposal for any lead from the CRM (or from an agent's Proposal tab) — it pulls in their real rating, review count, and category to ground the pitch in specifics instead of generic copy.
+
+Before sending, customize the tone with your own template: go to the Proposals page and use the Default Template editor to describe the structure and style you want Claude to follow (e.g., "open with a one-line hook, then 3 bullet points on ROI, then a clear call to action") — every proposal you generate afterward will follow it.
+
+On the contract side: keep terms simple — month-to-month with a 30-day notice beats a long lock-in for closing speed. Prospects say yes faster when the downside risk feels small.`,
+  },
+  roiCalculator: {
+    title: 'ROI Calculator',
+    body: `The quick math that closes deals — use it live on a call:
+
+Missed-call recovery: (average missed calls/week) × (close rate, usually 20-30%) × (average job value) × 4 = monthly revenue at risk.
+
+Example: 5 missed calls/week × 25% close rate × $300 average job × 4 weeks = $1,500/month left on the table.
+
+After-hours value: most home-service businesses get 15-20% of their call volume outside business hours. If nobody's answering those, that's pure upside from day one.
+
+Staff time saved: if a receptionist or the owner is fielding routine FAQ calls, estimate hours/week × their hourly rate — that's a second, separate ROI angle beyond booked jobs.
+
+For a real per-client number, use the Payments page's profit calculator — it factors in your actual charge, your LaunchDesk subscription cost share, and any other costs.`,
+  },
+  nicheDeepDives: {
+    title: 'Niche Deep Dives — Plumbing, HVAC, Electrical',
+    body: `What's different about pitching and building agents for the trades:
+
+Plumbing — Emergency calls (burst pipes, no water) need immediate transfer, not just a callback promise. Make sure the agent treats water-related keywords as urgent in the prompt.
+
+HVAC — Highly seasonal call volume (AC in summer, heat in winter). Lead the pitch with "never miss a call during your busiest season" rather than a flat missed-call number.
+
+Electrical — Callers often can't describe the problem precisely ("something's sparking"). The agent should default to treating anything safety-related as an emergency and transfer rather than trying to diagnose over the phone.
+
+Across all three: review count and rating matter a lot for lead scoring — trades businesses live and die by local reputation, so a 4.5+ rating with 100+ reviews is a strong buying signal worth prioritizing in your CRM.`,
+  },
+};
+
+function openPlaybookModal(key){
+  const entry = PLAYBOOK_CONTENT[key];
+  if(!entry) return;
+  document.getElementById('playbook-modal-title').textContent = entry.title;
+  document.getElementById('playbook-modal-body').textContent = entry.body;
+  document.getElementById('modal-playbook').classList.remove('hidden');
+}
+
+function closePlaybookModal(){
+  document.getElementById('modal-playbook').classList.add('hidden');
+}
+
 // ── LEAD FINDER ──
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
 let leadSearchResults = [];
+
+function exportLeadResultsCsv(){
+  if(!leadSearchResults.length){
+    alert('No results to export - run a search first.');
+    return;
+  }
+  const headers = ['Business', 'Phone', 'Website', 'Rating', 'Reviews', 'AI Score', 'Recommended Agent', 'City', 'State'];
+  const rows = leadSearchResults.map((l) => [
+    l.business_name, l.phone, l.website, l.rating, l.review_count, l.ai_score,
+    (l.recommended_agents && l.recommended_agents[0]) || '', l.city, l.state,
+  ]);
+  downloadCsv('leadfinder-results.csv', headers, rows);
+}
 
 function renderLeadResults(leads){
   leadSearchResults = leads || [];
@@ -2418,6 +2741,108 @@ async function loadCRM(){
   }
 }
 
+// ── ADD LEAD ──
+function openAddLeadModal(){
+  document.getElementById('add-lead-business-name').value = '';
+  document.getElementById('add-lead-phone').value = '';
+  document.getElementById('add-lead-email').value = '';
+  document.getElementById('add-lead-website').value = '';
+  document.getElementById('add-lead-city').value = '';
+  document.getElementById('add-lead-state').value = '';
+  document.getElementById('add-lead-category').value = '';
+  document.getElementById('add-lead-modal-error').textContent = '';
+  document.getElementById('modal-add-lead').classList.remove('hidden');
+}
+
+function closeAddLeadModal(){
+  document.getElementById('modal-add-lead').classList.add('hidden');
+}
+
+async function saveManualLead(){
+  const business_name = document.getElementById('add-lead-business-name').value.trim();
+  const errorEl = document.getElementById('add-lead-modal-error');
+  errorEl.textContent = '';
+
+  if(!business_name){
+    errorEl.textContent = 'Business name is required.';
+    return;
+  }
+
+  const btn = document.getElementById('add-lead-save-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    await API.leads.create({
+      business_name,
+      phone: document.getElementById('add-lead-phone').value.trim() || undefined,
+      email: document.getElementById('add-lead-email').value.trim() || undefined,
+      website: document.getElementById('add-lead-website').value.trim() || undefined,
+      city: document.getElementById('add-lead-city').value.trim() || undefined,
+      state: document.getElementById('add-lead-state').value.trim() || undefined,
+      category: document.getElementById('add-lead-category').value.trim() || undefined,
+      pipeline_stage: 'to_contact',
+    });
+    closeAddLeadModal();
+    loadCRM();
+    if(document.getElementById('client-list')) loadClientList();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+// ── CSV IMPORT ──
+function parseCsv(text){
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length);
+  if(!lines.length) return [];
+  const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+  return lines.slice(1).map((line) => {
+    const cells = line.split(',').map((c) => c.trim());
+    const row = {};
+    headers.forEach((h, i) => { row[h] = cells[i] || ''; });
+    return row;
+  });
+}
+
+async function handleCsvFileSelected(event){
+  const file = event.target.files[0];
+  event.target.value = '';
+  if(!file) return;
+
+  const text = await file.text();
+  const rows = parseCsv(text);
+  const withName = rows.filter((r) => r.business_name);
+
+  if(!withName.length){
+    alert('No usable rows found - the CSV needs a "business_name" column.');
+    return;
+  }
+
+  let succeeded = 0;
+  let failed = 0;
+  for(const row of withName){
+    try {
+      await API.leads.create({
+        business_name: row.business_name,
+        phone: row.phone || undefined,
+        email: row.email || undefined,
+        website: row.website || undefined,
+        city: row.city || undefined,
+        state: row.state || undefined,
+        category: row.category || undefined,
+        pipeline_stage: 'to_contact',
+      });
+      succeeded += 1;
+    } catch (err) {
+      failed += 1;
+    }
+  }
+
+  alert(`Import complete: ${succeeded} added${failed ? `, ${failed} failed` : ''}.`);
+  loadCRM();
+}
+
 // ── LOG ACTIVITY ──
 let logActivityLeadId = null;
 
@@ -2547,6 +2972,11 @@ let cachedAgents = [];
 
 function renderAgentsList(agents){
   cachedAgents = agents || [];
+  const liveEl = document.getElementById('signal-agents-live');
+  if(liveEl){
+    const liveCount = cachedAgents.filter((a) => a.status === 'active').length;
+    liveEl.textContent = `${liveCount} agent${liveCount === 1 ? '' : 's'} live`;
+  }
   const emptyState = document.getElementById('agents-empty-state');
   const grid = document.getElementById('agents-list-cards');
 
@@ -2596,7 +3026,26 @@ async function manageAgentById(agentId){
   }
 }
 
+let cachedCallLogs = [];
+
+function exportCallLogsCsv(){
+  if(!cachedCallLogs.length){
+    alert('No call logs to export yet.');
+    return;
+  }
+  const headers = ['Date', 'Duration (seconds)', 'Outcome', 'Booked', 'Transcript'];
+  const rows = cachedCallLogs.map((log) => [
+    log.created_at ? new Date(log.created_at).toISOString() : '',
+    log.duration_seconds ?? '',
+    log.outcome || '',
+    log.booked ? 'Yes' : 'No',
+    log.transcript || '',
+  ]);
+  downloadCsv(`call-logs-${currentAgent ? currentAgent.id : 'agent'}.csv`, headers, rows);
+}
+
 function renderCallLogs(callLogs){
+  cachedCallLogs = callLogs || [];
   const empty = document.getElementById('call-logs-empty');
   const table = document.getElementById('call-logs-table');
   const tbody = document.getElementById('call-logs-body');
@@ -2810,11 +3259,37 @@ function coldCallAdvance(){
   renderColdCallQueue();
 }
 
+// ── SESSION STATS ──
+const coldCallStats = { calls: 0, interested: 0, noanswer: 0, skipped: 0 };
+
+function bumpColdCallStat(key){
+  coldCallStats[key] += 1;
+  const el = document.getElementById(`coldcall-stat-${key}`);
+  if(el) el.textContent = coldCallStats[key];
+  if(key === 'calls'){
+    const headerEl = document.getElementById('coldcall-calls-today');
+    if(headerEl) headerEl.textContent = coldCallStats.calls;
+  }
+}
+
+async function logColdCallActivity(leadId){
+  const notesEl = document.getElementById('coldcall-notes');
+  const notes = notesEl.value.trim();
+  try {
+    await API.leads.createActivity(leadId, { type: 'call', notes: notes || undefined });
+  } catch (err) {
+    console.error('Failed to log cold call activity', err);
+  }
+  notesEl.value = '';
+}
+
 async function handleColdCallInterested(){
   const lead = currentColdCallLead();
   if(!lead) return;
   try {
     await API.leads.update(lead.id, { pipeline_stage: 'meeting' });
+    await logColdCallActivity(lead.id);
+    bumpColdCallStat('interested');
     coldCallAdvance();
   } catch (err) {
     alert('Failed to update lead: ' + err.message);
@@ -2826,6 +3301,8 @@ async function handleColdCallNoAnswer(){
   if(!lead) return;
   try {
     await API.leads.update(lead.id, { pipeline_stage: 'contacted' });
+    await logColdCallActivity(lead.id);
+    bumpColdCallStat('noanswer');
     coldCallAdvance();
   } catch (err) {
     alert('Failed to update lead: ' + err.message);
@@ -2834,6 +3311,7 @@ async function handleColdCallNoAnswer(){
 
 function handleColdCallSkip(){
   if(!currentColdCallLead()) return;
+  bumpColdCallStat('skipped');
   coldCallAdvance();
 }
 
@@ -2846,6 +3324,7 @@ function handleCallButtonClick(){
     stopCallTimer();
     return;
   }
+  bumpColdCallStat('calls');
   callTimerSeconds = 0;
   const timerEl = document.getElementById('coldcall-timer');
   timerEl.style.display = 'block';

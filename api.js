@@ -170,6 +170,10 @@
         goal_yearly_revenue,
       });
     },
+
+    async changePassword(password) {
+      return request('PUT', '/api/auth/password', { password });
+    },
   };
 
   const leads = {
@@ -207,7 +211,18 @@
   };
 
   const agents = {
-    async build({ lead_id, niche, agent_name, voice, greeting, cal_api_key, cal_event_type_id }) {
+    async build({
+      lead_id,
+      niche,
+      agent_name,
+      voice,
+      greeting,
+      cal_api_key,
+      cal_event_type_id,
+      website_override,
+      extra_context,
+      transfer_number,
+    }) {
       return request('POST', '/api/agents/build', {
         lead_id,
         niche,
@@ -216,6 +231,9 @@
         greeting,
         cal_api_key,
         cal_event_type_id,
+        website_override,
+        extra_context,
+        transfer_number,
       });
     },
 
@@ -227,7 +245,7 @@
       return request('GET', `/api/agents/${id}`);
     },
 
-    async update(id, { system_prompt, greeting, voice, cal_api_key, cal_event_type_id, monthly_charge } = {}) {
+    async update(id, { system_prompt, greeting, voice, cal_api_key, cal_event_type_id, monthly_charge, transfer_number } = {}) {
       return request('PUT', `/api/agents/${id}`, {
         system_prompt,
         greeting,
@@ -235,6 +253,7 @@
         cal_api_key,
         cal_event_type_id,
         monthly_charge,
+        transfer_number,
       });
     },
 
