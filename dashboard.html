@@ -61,7 +61,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 /* ── SHELL ── */
 .shell{display:grid;grid-template-columns:258px 1fr;height:100vh;overflow:hidden}
 .main-area{display:flex;flex-direction:column;height:100vh;overflow:hidden;min-width:0}
-.content{overflow:auto;background:var(--bg);padding-bottom:8px}
+.content{overflow:auto;background:var(--bg);padding-bottom:8px;flex:1;display:flex;flex-direction:column;min-height:0}
 .content::-webkit-scrollbar{width:5px}
 .content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
 
@@ -107,7 +107,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .user-ava{width:24px;height:24px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.72rem;color:#fff;flex:none}
 
 /* ── APP FOOTER ── */
-.app-footer{display:flex;align-items:center;justify-content:space-between;margin-top:40px;padding:16px 28px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink3)}
+.app-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;flex:none;padding:40px 28px 16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--ink3)}
 .app-footer-links{display:flex;gap:16px}
 .app-footer-links a{color:var(--ink3);text-decoration:none;transition:color .15s}
 .app-footer-links a:hover{color:var(--indigo)}
@@ -539,7 +539,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
     <!-- LEADS -->
     <div class="page" id="page-leads">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
-        <div><div class="page-title">Lead Finder</div><div class="page-sub">Scrape Google Maps · AI-scored and ranked · 180 / 1,000 scrapes used</div></div>
+        <div><div class="page-title">Lead Finder</div><div class="page-sub" id="leads-page-sub">Scrape Google Maps · AI-scored and ranked</div></div>
       </div>
       <div class="card card-pad" style="margin-bottom:20px">
         <div class="find-form">
@@ -2108,11 +2108,15 @@ async function loadUserStats(){
   try {
     const { user } = await API.auth.getMe();
     cachedUser = user;
-    document.getElementById('signal-plan').textContent = user.plan;
-    document.getElementById('signal-credits').textContent = `${user.scrape_credits_used} / ${user.scrape_credits_limit}`;
 
     const planInfo = PLAN_INFO[user.plan] || { label: user.plan, price: '' };
     const displayName = user.full_name || user.email;
+
+    document.getElementById('signal-plan').textContent = planInfo.label;
+    document.getElementById('signal-credits').textContent = `${user.scrape_credits_used} / ${user.scrape_credits_limit}`;
+
+    const leadsSubEl = document.getElementById('leads-page-sub');
+    if(leadsSubEl) leadsSubEl.textContent = `Scrape Google Maps · AI-scored and ranked · ${user.scrape_credits_used} / ${user.scrape_credits_limit} scrapes used`;
 
     const avatarEl = document.getElementById('settings-avatar');
     if(avatarEl) avatarEl.textContent = (displayName || '?').charAt(0).toUpperCase();
