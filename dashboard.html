@@ -2175,7 +2175,6 @@ function enterApp(){
   loadTodos();
   loadDashboardWidgets();
   loadDailyGoals();
-  loadLatestLeadSearch();
 }
 
 async function handleLogout(){
@@ -2704,22 +2703,16 @@ function renderLeadResults(leads){
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No leads found. Try a different search.</td></tr>';
     return;
   }
-  tbody.innerHTML = leadSearchResults.map((lead) => {
-    const stage = lead.pipeline_stage || 'new';
-    const statusCell = stage === 'new'
-      ? `<button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm('${lead.id}', this)">+ Add to CRM</button>`
-      : `<span class="badge ${stageBadgeClass(stage)} b-dot">${escapeHtml(STAGE_LABELS[stage] || stage)}</span>`;
-    return `
+  tbody.innerHTML = leadSearchResults.map((lead, index) => `
     <tr>
       <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
       <td>${escapeHtml(lead.phone || '—')}</td>
       <td>${lead.rating ? `${lead.rating}⭐ · ${lead.review_count || 0} reviews` : '—'}</td>
       <td><span class="score">${lead.ai_score ?? '—'}</span></td>
       <td><span class="badge b-indigo">${escapeHtml((lead.recommended_agents && lead.recommended_agents[0]) || '—')}</span></td>
-      <td>${statusCell}</td>
+      <td><button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleAddToCrm(${index}, this)">+ Add to CRM</button></td>
     </tr>
-  `;
-  }).join('');
+  `).join('');
 }
 
 async function handleLeadSearch(){
@@ -2746,15 +2739,6 @@ async function handleLeadSearch(){
   } finally {
     btn.disabled = false;
     btn.innerHTML = original;
-  }
-}
-
-async function loadLatestLeadSearch(){
-  try {
-    const { leads } = await API.leads.getLatestSearch();
-    if(leads && leads.length) renderLeadResults(leads);
-  } catch (err) {
-    console.error('Failed to load latest lead search', err);
   }
 }
 
@@ -3115,16 +3099,19 @@ async function handleDeleteTodo(id){
   }
 }
 
-async function handleAddToCrm(leadId, btn){
-  const lead = leadSearchResults.find((l) => l.id === leadId);
+async function handleAddToCrm(index, btn){
+  const lead = leadSearchResults[index];
   if(!lead) return;
   btn.disabled = true;
   btn.textContent = 'Adding…';
   try {
-    await API.leads.update(leadId, { pipeline_stage: 'to_contact' });
-    lead.pipeline_stage = 'to_contact';
-    btn.outerHTML = `<span class="badge ${stageBadgeClass('to_contact')} b-dot">${STAGE_LABELS.to_contact}</span>`;
-    loadCRM();
+    const { already_exists } = await API.leads.create({ ...lead, pipeline_stage: 'to_contact' });
+    if(already_exists){
+      btn.outerHTML = `<span class="badge b-gray b-dot">Already in CRM</span>`;
+    } else {
+      btn.outerHTML = `<span class="badge ${stageBadgeClass('to_contact')} b-dot">${STAGE_LABELS.to_contact}</span>`;
+      loadCRM();
+    }
   } catch (err) {
     alert('Failed to add lead to CRM: ' + err.message);
     btn.disabled = false;
