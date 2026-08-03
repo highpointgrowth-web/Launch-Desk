@@ -136,14 +136,52 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
 /* ── STAT ROW ── */
 .stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:24px}
-.stat-cell{padding:20px 20px 16px;border-right:1px solid var(--border);position:relative}
+.stat-cell{padding:20px 20px 18px;border-right:1px solid var(--border);border-left:3px solid transparent;position:relative}
 .stat-cell:last-child{border-right:none}
-.stat-cell.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--indigo)}
-.stat-label{font-size:.68rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
-.stat-val{font-size:1.7rem;font-weight:700;letter-spacing:-.04em;color:var(--ink);line-height:1}
+.stat-cell.active{border-left-color:var(--indigo);background:var(--indigo-light)}
+.stat-icon{font-size:.85rem;opacity:.7;margin-bottom:8px}
+.stat-label{font-size:.68rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);margin-bottom:7px}
+.stat-val{font-size:2.05rem;font-weight:800;letter-spacing:-.05em;color:var(--ink);line-height:1}
 .stat-cell.active .stat-val{color:var(--indigo)}
-.stat-note{font-size:.72rem;color:var(--ink3);margin-top:5px}
+.stat-note{font-size:.72rem;color:var(--ink3);margin-top:6px}
 .stat-note b{color:var(--indigo)}
+
+/* ── DASHBOARD WELCOME ── */
+.dash-welcome{margin-bottom:22px;animation:dashFadeUp .5s ease both}
+.dash-welcome-title{font-size:1.6rem;font-weight:800;letter-spacing:-.03em;color:var(--ink)}
+.dash-welcome-sub{font-size:.85rem;color:var(--ink3);margin-top:4px}
+@keyframes dashFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── QUICK ACTIONS ── */
+.quick-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;animation:dashFadeUp .5s ease .1s both}
+.quick-action-card{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:18px 20px;border-radius:14px;border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow);cursor:pointer;transition:all .18s;text-align:left;font-family:'Inter',system-ui,sans-serif}
+.quick-action-card:hover{border-color:var(--indigo-mid);transform:translateY(-2px);box-shadow:0 10px 28px rgba(167,139,250,.18)}
+.quick-action-icon{width:36px;height:36px;border-radius:10px;background:var(--indigo-light);display:flex;align-items:center;justify-content:center;font-size:1.05rem;margin-bottom:8px}
+.quick-action-label{font-size:.92rem;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.quick-action-desc{font-size:.75rem;color:var(--ink3)}
+
+/* ── PIPELINE BAR ── */
+.pipeline-bar{display:flex;width:100%;height:10px;border-radius:99px;overflow:hidden;background:var(--bg2);margin-bottom:14px}
+.pipeline-bar-seg{height:100%;transition:width .5s ease}
+.pipeline-legend{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.pipeline-legend-item{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--ink2)}
+.pipeline-legend-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.pipeline-legend-count{margin-left:auto;font-weight:700;color:var(--ink)}
+
+/* ── DASHBOARD EMPTY STATE ── */
+.dash-empty{text-align:center;padding:26px 12px}
+.dash-empty-icon{font-size:1.7rem;margin-bottom:8px;opacity:.55}
+.dash-empty-title{font-size:.86rem;font-weight:700;color:var(--ink);margin-bottom:3px}
+.dash-empty-sub{font-size:.76rem;color:var(--ink3);line-height:1.5;max-width:240px;margin:0 auto}
+.dash-empty .btn{margin-top:14px}
+
+/* ── DASHBOARD AGENT/PROPOSAL ROWS ── */
+.dash-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.dash-row:last-child{border-bottom:none}
+.dash-row-ava{width:28px;height:28px;border-radius:8px;background:var(--indigo-light);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex:none}
+.dash-row-info{flex:1;min-width:0}
+.dash-row-title{font-size:.82rem;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-row-meta{font-size:.72rem;color:var(--ink3);margin-top:1px}
 
 /* ── GOALS ── */
 .goal-stack{display:flex;flex-direction:column;gap:16px}
@@ -415,43 +453,66 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
+      <div class="dash-welcome">
+        <div class="dash-welcome-title">Welcome back, <span id="dash-welcome-name">there</span>.</div>
+        <div class="dash-welcome-sub" id="dash-welcome-sub">Let's make today count.</div>
+      </div>
+
       <div class="stat-strip">
         <div class="stat-cell active">
+          <div class="stat-icon">📞</div>
           <div class="stat-label">Calls Today</div>
           <div class="stat-val" id="stat-calls-today">0</div>
           <div class="stat-note">Goal: <b>20</b></div>
         </div>
         <div class="stat-cell">
+          <div class="stat-icon">📅</div>
           <div class="stat-label">Meetings</div>
           <div class="stat-val" id="stat-meetings">0</div>
           <div class="stat-note">in pipeline</div>
         </div>
         <div class="stat-cell">
+          <div class="stat-icon">🏢</div>
           <div class="stat-label">Clients</div>
           <div class="stat-val" id="stat-clients">0</div>
           <div class="stat-note">active</div>
         </div>
         <div class="stat-cell">
+          <div class="stat-icon">💰</div>
           <div class="stat-label">MRR</div>
           <div class="stat-val" id="stat-mrr">$0</div>
           <div class="stat-note">monthly recurring</div>
         </div>
         <div class="stat-cell">
+          <div class="stat-icon">📈</div>
           <div class="stat-label">Revenue</div>
           <div class="stat-val">$0</div>
           <div class="stat-note">all time</div>
         </div>
         <div class="stat-cell">
+          <div class="stat-icon">📄</div>
           <div class="stat-label">Proposals</div>
           <div class="stat-val">0</div>
           <div class="stat-note">sent today</div>
         </div>
       </div>
 
-      <div class="btn-row" style="margin-bottom:20px">
-        <button class="btn btn-indigo" onclick="nav('leads',null)">🔍 Find Leads</button>
-        <button class="btn btn-ghost" onclick="nav('coldcall',null)">📞 Cold Call</button>
-        <button class="btn btn-ghost" onclick="navToPage('proposals', document.getElementById('nav-proposals'))">📄 Send Proposal</button>
+      <div class="quick-actions">
+        <button class="quick-action-card" onclick="nav('leads',null)">
+          <div class="quick-action-icon">🔍</div>
+          <div class="quick-action-label">Find Leads</div>
+          <div class="quick-action-desc">Scrape & score new businesses</div>
+        </button>
+        <button class="quick-action-card" onclick="nav('coldcall',null)">
+          <div class="quick-action-icon">📞</div>
+          <div class="quick-action-label">Start Calling</div>
+          <div class="quick-action-desc">Jump into your dial queue</div>
+        </button>
+        <button class="quick-action-card" onclick="goToBuildAgent()">
+          <div class="quick-action-icon">🤖</div>
+          <div class="quick-action-label">Build Agent</div>
+          <div class="quick-action-desc">Deploy a new AI receptionist</div>
+        </button>
       </div>
 
       <div class="dash-grid">
@@ -483,10 +544,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <span class="card-action" onclick="nav('crm',null)">View all →</span>
             </div>
             <div id="dashboard-pipeline-card">
-              <div style="text-align:center;padding:32px;color:var(--ink3)">
-                <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
-                <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
-                <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+              <div class="dash-empty">
+                <div class="dash-empty-icon">🎯</div>
+                <div class="dash-empty-title">Your pipeline is empty</div>
+                <div class="dash-empty-sub">Find your first lead in 60 seconds.</div>
+                <button class="btn btn-indigo" onclick="nav('leads',null)">🔍 Find Leads</button>
               </div>
             </div>
           </div>
@@ -508,14 +570,24 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div class="card card-pad">
             <div class="card-header"><div class="card-title">Recent Proposals</div><span class="card-action" onclick="navToPage('proposals', document.getElementById('nav-proposals'))">View all →</span></div>
             <div id="dashboard-recent-proposals">
-              <div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No proposals yet.</div>
+              <div class="dash-empty">
+                <div class="dash-empty-icon">📄</div>
+                <div class="dash-empty-title">No proposals yet</div>
+                <div class="dash-empty-sub">Turn a lead into a client — send your first proposal.</div>
+                <button class="btn btn-ghost" onclick="nav('crm',null)">🗂️ Go to CRM</button>
+              </div>
             </div>
           </div>
 
           <div class="card card-pad">
             <div class="card-header"><div class="card-title">My Agents</div><span class="card-action" onclick="nav('agents',null)">View all →</span></div>
             <div id="dashboard-my-agents">
-              <div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No active agents yet.</div>
+              <div class="dash-empty">
+                <div class="dash-empty-icon">🤖</div>
+                <div class="dash-empty-title">No agents live yet</div>
+                <div class="dash-empty-sub">Deploy your first AI receptionist.</div>
+                <button class="btn btn-ghost" onclick="goToBuildAgent()">🤖 Build Agent</button>
+              </div>
             </div>
           </div>
 
@@ -2072,8 +2144,28 @@ function goToAuth(){
   window.location.href = 'auth.html';
 }
 
+const GREETING_SUBTITLES = {
+  morning: ["Let's find your next client.", 'Fresh leads are waiting.', 'Time to make some calls.'],
+  afternoon: ['Keep the momentum going.', "Let's close a few deals.", 'Halfway there — keep pushing.'],
+  evening: ['Wrap up strong today.', 'One more call before you clock out?', "Let's finish the day on top."],
+};
+
+function renderDashboardGreeting(){
+  const hour = new Date().getHours();
+  const period = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
+  const options = GREETING_SUBTITLES[period];
+  const subEl = document.getElementById('dash-welcome-sub');
+  if(subEl) subEl.textContent = options[Math.floor(Math.random() * options.length)];
+}
+
+function goToBuildAgent(){
+  nav('agents', document.getElementById('nav-agents'));
+  showBuilder();
+}
+
 function enterApp(){
   document.getElementById('app-root').classList.remove('hidden');
+  renderDashboardGreeting();
   loadUserStats();
   loadAgentsList();
   loadCRM();
@@ -2129,6 +2221,12 @@ async function loadUserStats(){
 
     const sidebarNameEl = document.getElementById('sidebar-user-name');
     if(sidebarNameEl) sidebarNameEl.textContent = user.agency_name || user.full_name || user.email;
+
+    const welcomeNameEl = document.getElementById('dash-welcome-name');
+    if(welcomeNameEl){
+      const firstName = (user.full_name || user.email || '').trim().split(/[\s@]+/)[0];
+      welcomeNameEl.textContent = firstName || 'there';
+    }
 
     const sidebarPlanEl = document.getElementById('sidebar-user-plan');
     if(sidebarPlanEl) sidebarPlanEl.textContent = planInfo.label;
@@ -2291,11 +2389,21 @@ async function loadDashboardWidgets(){
     const recentEl = document.getElementById('dashboard-recent-proposals');
     const recent = (proposals || []).slice(0, 3);
     if(!recent.length){
-      recentEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No proposals yet.</div>';
+      recentEl.innerHTML = `
+        <div class="dash-empty">
+          <div class="dash-empty-icon">📄</div>
+          <div class="dash-empty-title">No proposals yet</div>
+          <div class="dash-empty-sub">Turn a lead into a client — send your first proposal.</div>
+          <button class="btn btn-ghost" onclick="nav('crm',null)">🗂️ Go to CRM</button>
+        </div>
+      `;
     } else {
       recentEl.innerHTML = recent.map((p) => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:.82rem;font-weight:600;color:var(--ink)">${escapeHtml((p.leads && p.leads.business_name) || 'Unknown')}</span>
+        <div class="dash-row">
+          <div class="dash-row-ava">📄</div>
+          <div class="dash-row-info">
+            <div class="dash-row-title">${escapeHtml((p.leads && p.leads.business_name) || 'Unknown')}</div>
+          </div>
           <span class="badge ${proposalStatusBadgeClass(p.status)}">${proposalStatusLabel(p.status)}</span>
         </div>
       `).join('');
@@ -2309,11 +2417,22 @@ async function loadDashboardWidgets(){
     const activeAgents = (agents || []).filter((a) => a.status === 'active');
     const agentsEl = document.getElementById('dashboard-my-agents');
     if(!activeAgents.length){
-      agentsEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--ink3);font-size:.78rem">No active agents yet.</div>';
+      agentsEl.innerHTML = `
+        <div class="dash-empty">
+          <div class="dash-empty-icon">🤖</div>
+          <div class="dash-empty-title">No agents live yet</div>
+          <div class="dash-empty-sub">Deploy your first AI receptionist.</div>
+          <button class="btn btn-ghost" onclick="goToBuildAgent()">🤖 Build Agent</button>
+        </div>
+      `;
     } else {
       agentsEl.innerHTML = activeAgents.slice(0, 5).map((a) => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <span style="font-size:.82rem;font-weight:600;color:var(--ink)">${escapeHtml(a.agent_name || 'Unnamed')} <span style="font-weight:400;color:var(--ink3)">· ${escapeHtml(a.business_name || '')}</span></span>
+        <div class="dash-row">
+          <div class="dash-row-ava">🤖</div>
+          <div class="dash-row-info">
+            <div class="dash-row-title">${escapeHtml(a.agent_name || 'Unnamed')}</div>
+            <div class="dash-row-meta">${escapeHtml(a.business_name || '')}</div>
+          </div>
           <span class="badge b-green b-dot">Live</span>
         </div>
       `).join('');
@@ -2662,19 +2781,35 @@ function renderPipelineStats(leads){
   if(dashCard){
     if(!total){
       dashCard.innerHTML = `
-        <div style="text-align:center;padding:32px;color:var(--ink3)">
-          <div style="font-size:1.5rem;margin-bottom:8px;opacity:.4">🗂️</div>
-          <div style="font-size:.82rem;font-weight:600;color:var(--ink2);margin-bottom:4px">No leads yet</div>
-          <div style="font-size:.75rem">Use Lead Finder to find and score businesses, then add them to your pipeline.</div>
+        <div class="dash-empty">
+          <div class="dash-empty-icon">🎯</div>
+          <div class="dash-empty-title">Your pipeline is empty</div>
+          <div class="dash-empty-sub">Find your first lead in 60 seconds.</div>
+          <button class="btn btn-indigo" onclick="nav('leads',null)">🔍 Find Leads</button>
         </div>
       `;
     } else {
+      // Condensed into the 4 buckets a funnel overview actually needs -
+      // "lost" leads intentionally excluded, matching how a funnel chart
+      // wouldn't include a "lost" stage either.
+      const buckets = [
+        { label: 'New', count: counts.new + counts.to_contact, color: 'var(--ink3)' },
+        { label: 'Contacted', count: counts.contacted, color: 'var(--amber)' },
+        { label: 'Meeting', count: counts.meeting + counts.proposal, color: 'var(--indigo)' },
+        { label: 'Won', count: counts.won, color: 'var(--green)' },
+      ];
+      const bucketTotal = buckets.reduce((sum, b) => sum + b.count, 0) || 1;
+
       dashCard.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:10px">
-          ${PIPELINE_STAGES.filter((s) => s !== 'lost').map((stage) => `
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem">
-              <span style="color:var(--ink2)">${STAGE_LABELS[stage]}</span>
-              <span class="badge ${stageBadgeClass(stage)} b-dot">${counts[stage]}</span>
+        <div class="pipeline-bar">
+          ${buckets.map((b) => `<div class="pipeline-bar-seg" style="width:${(b.count / bucketTotal) * 100}%;background:${b.color}" title="${b.label}: ${b.count}"></div>`).join('')}
+        </div>
+        <div class="pipeline-legend">
+          ${buckets.map((b) => `
+            <div class="pipeline-legend-item">
+              <span class="pipeline-legend-dot" style="background:${b.color}"></span>
+              ${b.label}
+              <span class="pipeline-legend-count">${b.count}</span>
             </div>
           `).join('')}
         </div>
