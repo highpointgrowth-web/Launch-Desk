@@ -46,17 +46,46 @@ async function handleCheckoutCompleted(supabase, session) {
 }
 
 async function handleSubscriptionDeleted(supabase, subscription) {
+  // No free tier: a canceled subscription means no access, not the old
+  // free-starter default.
   const { error } = await supabase
     .from('users')
     .update({
-      plan: 'starter',
-      scrape_credits_limit: 100,
+      plan: 'inactive',
+      scrape_credits_limit: 0,
       stripe_subscription_id: null,
     })
     .eq('stripe_customer_id', subscription.customer);
 
   if (error) {
     throw new Error(`Failed to downgrade user after subscription deletion: ${error.message}`);
+  }
+}
+
+async function handleSubscriptionUpdated(supabase, subscription) {
+  // Only react to a subscription that's actually in force - other status
+  // transitions (past_due, unpaid, etc.) aren't a plan change and are best
+  // left alone rather than guessed at here.
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') return;
+
+  const price = subscription.items.data[0]?.price;
+  const planInfo = price && PLAN_BY_AMOUNT[price.unit_amount];
+  if (!planInfo) {
+    console.warn(`No plan mapping for subscription update (customer=${subscription.customer})`);
+    return;
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      plan: planInfo.plan,
+      scrape_credits_limit: planInfo.scrape_credits_limit,
+      stripe_subscription_id: subscription.id,
+    })
+    .eq('stripe_customer_id', subscription.customer);
+
+  if (error) {
+    throw new Error(`Failed to update user plan after subscription update: ${error.message}`);
   }
 }
 
@@ -76,6 +105,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(supabase, event.data.object);
+        break;
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(supabase, event.data.object);
         break;
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(supabase, event.data.object);
