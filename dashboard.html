@@ -1194,7 +1194,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="coldcall-layout">
         <div class="script-card">
           <div class="card-header"><div class="card-title">Call Script</div><span class="card-action" id="script-edit-toggle" onclick="toggleScriptEdit()">Edit</span></div>
-          <textarea class="script-body" id="script-textarea" readonly style="width:100%;border:none;background:transparent;resize:none;outline:none;font-family:inherit;min-height:340px">Hey [Name], this is [Your Name] with LaunchDesk.
+          <textarea class="script-body" id="script-textarea" readonly style="width:100%;border:none;background:transparent;resize:none;outline:none;font-family:inherit;min-height:340px">Hey [Name], this is [Your Name] with [Your Agency].
 
 I noticed your business and wanted to reach out — we help home-service companies like yours never miss a call again. Our AI answers your phones, books jobs, and handles FAQs 24/7 so you capture every lead even when you're on a job site.
 
@@ -2981,6 +2981,7 @@ async function handleStageChange(selectEl){
     if(lead) lead.pipeline_stage = newStage;
     selectEl.className = `badge ${stageBadgeClass(newStage)} b-dot`;
     renderPipelineStats(cachedCRMLeads);
+    loadColdCallQueue();
   } catch (err) {
     alert('Failed to update stage: ' + err.message);
   } finally {
@@ -3029,6 +3030,7 @@ async function handleDeleteSelectedLeads(){
 
   selectedCrmLeadIds = new Set();
   await loadCRM();
+  loadColdCallQueue();
 
   if(failed){
     alert(`Failed to delete ${failed} of ${ids.length} selected lead${ids.length === 1 ? '' : 's'}.`);
@@ -3119,6 +3121,7 @@ async function saveManualLead(){
     });
     closeAddLeadModal();
     loadCRM();
+    loadColdCallQueue();
     if(document.getElementById('client-list')) loadClientList();
   } catch (err) {
     errorEl.textContent = err.message;
@@ -3176,6 +3179,7 @@ async function handleCsvFileSelected(event){
 
   alert(`Import complete: ${succeeded} added${failed ? `, ${failed} failed` : ''}.`);
   loadCRM();
+  loadColdCallQueue();
 }
 
 // ── LOG ACTIVITY ──
@@ -3298,6 +3302,7 @@ async function handleAddToCrm(index, btn){
     } else {
       btn.outerHTML = `<span class="badge ${stageBadgeClass('to_contact')} b-dot">${STAGE_LABELS.to_contact}</span>`;
       loadCRM();
+      loadColdCallQueue();
     }
   } catch (err) {
     alert('Failed to add lead to CRM: ' + err.message);
@@ -3532,7 +3537,7 @@ function currentColdCallLead(){
 }
 
 // ── COLD CALL SCRIPT GENERATION ──
-const DEFAULT_COLD_CALL_SCRIPT = `Hey [Name], this is [Your Name] with LaunchDesk.
+const DEFAULT_COLD_CALL_SCRIPT = `Hey [Name], this is [Your Name] with [Your Agency].
 
 I noticed your business and wanted to reach out — we help home-service companies like yours never miss a call again. Our AI answers your phones, books jobs, and handles FAQs 24/7 so you capture every lead even when you're on a job site.
 

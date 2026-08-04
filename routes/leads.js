@@ -157,20 +157,25 @@ async function scoreLeads(businesses) {
   });
 }
 
-async function generateColdCallScript(lead) {
+async function generateColdCallScript(lead, agencyName) {
+  // LaunchDesk is the internal tool the caller uses, not the business the
+  // prospect should hear about - the caller represents their own agency.
+  const callerAgency = agencyName || '[Your Agency]';
+
   const response = await anthropic.messages.create({
     model: 'claude-opus-5',
     max_tokens: 1200,
     output_config: { effort: 'low' },
     system:
-      'You write short, natural-sounding cold call scripts for LaunchDesk, an agency that sells AI voice ' +
-      'receptionist agents to local businesses. Given one specific business, write a personalized cold call ' +
-      "script the caller can read from - it must mention the business's actual name, their trade/category, " +
-      'their location, and reference a specific, relevant pain point for that kind of business (e.g. missed ' +
-      'calls during jobs, no after-hours coverage, no-shows). Structure it as: an opener, a short value pitch, ' +
-      'one line for a "not interested" objection, and one line for a "send me info" objection. Keep it ' +
-      'conversational and under 150 words total. Respond with only the script text - no preamble, no ' +
-      'explanation, no markdown formatting.',
+      'You write short, natural-sounding cold call scripts for a local AI-receptionist agency. The caller works ' +
+      `for "${callerAgency}" - always use that exact name when the caller introduces themselves or their ` +
+      'company, and use the placeholder "[Your Name]" for the caller\'s own personal name, since you don\'t ' +
+      "know it. Given one specific business, write a personalized cold call script the caller can read from - " +
+      "it must mention the business's actual name, their trade/category, their location, and reference a " +
+      'specific, relevant pain point for that kind of business (e.g. missed calls during jobs, no after-hours ' +
+      'coverage, no-shows). Structure it as: an opener, a short value pitch, one line for a "not interested" ' +
+      'objection, and one line for a "send me info" objection. Keep it conversational and under 150 words ' +
+      'total. Respond with only the script text - no preamble, no explanation, no markdown formatting.',
     messages: [
       {
         role: 'user',
@@ -205,7 +210,9 @@ router.post('/:id/cold-call-script', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    const script = await generateColdCallScript(lead);
+    const { data: user } = await supabase.from('users').select('agency_name').eq('id', req.userId).single();
+
+    const script = await generateColdCallScript(lead, user && user.agency_name);
     res.json({ script });
   } catch (err) {
     res.status(500).json({ error: err.message });
