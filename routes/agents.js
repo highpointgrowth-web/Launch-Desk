@@ -8,6 +8,10 @@ const anthropic = new Anthropic();
 
 const RETELL_BASE = 'https://api.retellai.com';
 
+// Pro and Agency are unlimited (no entry here); only Starter is capped,
+// matching what the marketing page promises.
+const PLAN_AGENT_LIMITS = { starter: 1 };
+
 router.use(requireAuth);
 router.use(requirePaidPlan);
 
@@ -194,6 +198,29 @@ router.post('/build', async (req, res) => {
   const supabase = req.app.locals.supabase;
 
   try {
+    const { data: user, error: userError } = await supabase.from('users').select('plan').eq('id', req.userId).single();
+    if (userError || !user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    const agentLimit = PLAN_AGENT_LIMITS[user.plan];
+    if (agentLimit != null) {
+      const { count, error: countError } = await supabase
+        .from('agents')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', req.userId);
+
+      if (countError) {
+        return res.status(500).json({ error: countError.message });
+      }
+
+      if (count >= agentLimit) {
+        return res.status(403).json({
+          error: `Your plan is limited to ${agentLimit} AI agent${agentLimit === 1 ? '' : 's'} - upgrade to Pro for unlimited agents.`,
+        });
+      }
+    }
+
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select('*')
