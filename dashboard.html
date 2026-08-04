@@ -377,7 +377,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         <div style="font-weight:700;font-size:1.05rem">Starter</div>
         <div style="color:var(--ink2);font-size:.8rem;margin-top:4px">100 scrapes/mo</div>
       </div>
-      <div style="font-size:1.6rem;font-weight:800">$10<span style="font-size:.8rem;font-weight:500;color:var(--ink2)">/mo</span></div>
+      <div style="font-size:1.6rem;font-weight:800">$19<span style="font-size:.8rem;font-weight:500;color:var(--ink2)">/mo</span></div>
       <button class="btn btn-indigo" onclick="handlePaywallCheckout('starter', this)">Get Starter</button>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px">
@@ -2242,11 +2242,11 @@ async function handleLogout(){
 }
 
 const PLAN_INFO = {
-  starter: { label: 'Starter', price: '$10/mo' },
+  starter: { label: 'Starter', price: '$19/mo' },
   pro: { label: 'Pro', price: '$49/mo' },
   agency: { label: 'Agency', price: '$99/mo' },
 };
-const PLAN_PRICES = { starter: 10, pro: 49, agency: 99 };
+const PLAN_PRICES = { starter: 19, pro: 49, agency: 99 };
 
 let cachedUser = null;
 
@@ -2574,7 +2574,7 @@ async function handleManagePlan(){
 }
 
 const CHANGE_PLAN_OPTIONS = [
-  { plan: 'starter', label: 'Starter', price: '$10/mo' },
+  { plan: 'starter', label: 'Starter', price: '$19/mo' },
   { plan: 'pro', label: 'Pro', price: '$49/mo' },
   { plan: 'agency', label: 'Agency', price: '$99/mo' },
 ];

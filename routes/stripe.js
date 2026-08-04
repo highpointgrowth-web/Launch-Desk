@@ -6,7 +6,7 @@ const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const PLAN_BY_AMOUNT = {
-  1000: { plan: 'starter', scrape_credits_limit: 100 },
+  1900: { plan: 'starter', scrape_credits_limit: 100 },
   4900: { plan: 'pro', scrape_credits_limit: 1000 },
   9900: { plan: 'agency', scrape_credits_limit: 2500 },
 };
