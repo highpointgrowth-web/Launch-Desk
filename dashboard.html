@@ -2557,17 +2557,51 @@ async function loadDailyGoals(){
 // ── STRIPE ──
 async function handleManagePlan(){
   const noteEl = document.getElementById('billing-manage-note');
-  if(noteEl){ noteEl.classList.add('hidden'); noteEl.textContent = ''; }
+  if(noteEl){ noteEl.classList.add('hidden'); noteEl.innerHTML = ''; }
 
   try {
     const { url } = await API.stripe.getPortal({ return_url: window.location.href });
     window.location.href = url;
   } catch (err) {
     if(!noteEl) return;
-    noteEl.textContent = err.message === 'User has no Stripe customer on file'
-      ? 'To manage your billing contact highpointgrowth@gmail.com'
-      : 'Could not open billing portal: ' + err.message;
+    if(err.message === 'User has no Stripe customer on file'){
+      renderPlanPicker(noteEl);
+    } else {
+      noteEl.textContent = 'Could not open billing portal: ' + err.message;
+    }
     noteEl.classList.remove('hidden');
+  }
+}
+
+const CHANGE_PLAN_OPTIONS = [
+  { plan: 'starter', label: 'Starter', price: '$10/mo' },
+  { plan: 'pro', label: 'Pro', price: '$49/mo' },
+  { plan: 'agency', label: 'Agency', price: '$99/mo' },
+];
+
+function renderPlanPicker(noteEl){
+  noteEl.innerHTML = `
+    <div style="margin-bottom:10px">Pick a plan to set up billing:</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${CHANGE_PLAN_OPTIONS.map((o) => `
+        <button class="btn btn-indigo" style="font-size:.76rem;padding:.45rem .9rem" onclick="handleChangePlanCheckout('${o.plan}', this)">${o.label} — ${o.price}</button>
+      `).join('')}
+    </div>
+    <div id="billing-plan-picker-error" style="color:var(--red);font-size:.76rem;margin-top:8px"></div>
+  `;
+}
+
+async function handleChangePlanCheckout(plan, btn){
+  const errEl = document.getElementById('billing-plan-picker-error');
+  if(errEl) errEl.textContent = '';
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Redirecting…';
+  try {
+    const { url } = await API.stripe.createCheckout({ plan });
+    window.location.href = url;
+  } catch (err) {
+    if(errEl) errEl.textContent = err.message;
+    btn.disabled = false; btn.textContent = original;
   }
 }
 
