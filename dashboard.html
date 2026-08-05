@@ -417,8 +417,14 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="signal-item">MRR: <b>$0</b></div>
       <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
       <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
+      <div class="signal-item" style="cursor:pointer" onclick="nav('settings',null)">Balance: <b id="signal-balance">$0.00</b></div>
       <a href="#" class="upgrade" id="signal-upgrade-link" onclick="handleUpgradeClick(); return false;">↑ Upgrade to Agency</a>
     </div>
+  </div>
+
+  <div id="global-balance-banner" class="hidden" style="background:var(--red-bg,#450a0a);color:var(--red);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:.82rem;font-weight:600">
+    <span id="global-balance-banner-text">⚠ Your call balance is low.</span>
+    <button class="btn btn-indigo" style="font-size:.74rem;padding:.35rem .8rem" onclick="nav('settings',null)">Add Funds</button>
   </div>
 
   <div class="body-row">
@@ -495,6 +501,29 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="dash-welcome">
         <div class="dash-welcome-title">Welcome back, <span id="dash-welcome-name">there</span>.</div>
         <div class="dash-welcome-sub" id="dash-welcome-sub">Let's make today count.</div>
+      </div>
+
+      <div id="dash-walkthrough" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+        <div class="stat-cell dash-step" id="dash-step-1" style="text-align:left;cursor:pointer" onclick="nav('leads', document.getElementById('nav-leads'))">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="stat-icon">🔍</div><span class="dash-step-check" id="dash-step-1-check"></span></div>
+          <div class="stat-label" style="margin-top:8px">1. Find a lead</div>
+          <div class="stat-note">Scrape businesses in Lead Finder</div>
+        </div>
+        <div class="stat-cell dash-step" id="dash-step-2" style="text-align:left;cursor:pointer" onclick="goToBuildAgent()">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="stat-icon">🤖</div><span class="dash-step-check" id="dash-step-2-check"></span></div>
+          <div class="stat-label" style="margin-top:8px">2. Build an agent</div>
+          <div class="stat-note">Deploy an AI receptionist</div>
+        </div>
+        <div class="stat-cell dash-step" id="dash-step-3" style="text-align:left;cursor:pointer" onclick="nav('crm', document.getElementById('nav-crm'))">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="stat-icon">📄</div><span class="dash-step-check" id="dash-step-3-check"></span></div>
+          <div class="stat-label" style="margin-top:8px">3. Send a proposal</div>
+          <div class="stat-note">Pitch a lead in the CRM</div>
+        </div>
+        <div class="stat-cell dash-step" id="dash-step-4" style="text-align:left;cursor:pointer" onclick="nav('crm', document.getElementById('nav-crm'))">
+          <div style="display:flex;justify-content:space-between;align-items:center"><div class="stat-icon">💰</div><span class="dash-step-check" id="dash-step-4-check"></span></div>
+          <div class="stat-label" style="margin-top:8px">4. Get paid</div>
+          <div class="stat-note">Mark a lead Won in CRM</div>
+        </div>
       </div>
 
       <div class="stat-strip">
@@ -2241,6 +2270,21 @@ function goToBuildAgent(){
   showBuilder();
 }
 
+function renderGlobalBalanceBanner(balanceCents){
+  const banner = document.getElementById('global-balance-banner');
+  if(!banner) return;
+  const textEl = document.getElementById('global-balance-banner-text');
+  if(balanceCents <= 0){
+    if(textEl) textEl.textContent = '⚠ Balance is $0 — agents have stopped taking calls.';
+    banner.classList.remove('hidden');
+  } else if(balanceCents <= 500){
+    if(textEl) textEl.textContent = '⚠ Your call balance is low — add funds to avoid missed calls.';
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
 function enterApp(){
   document.getElementById('app-root').classList.remove('hidden');
   renderDashboardGreeting();
@@ -2254,6 +2298,7 @@ function enterApp(){
   loadDashboardWidgets();
   loadDailyGoals();
   loadLeadSearches();
+  loadDashboardWalkthrough();
 }
 
 async function handleLogout(){
@@ -2320,13 +2365,22 @@ async function loadUserStats(){
     if(billingLabelEl) billingLabelEl.textContent = `${planInfo.label} Plan`;
 
     const balanceCents = user.usage_balance_cents || 0;
+    const balanceStr = '$' + (balanceCents / 100).toFixed(2);
+
     const balanceEl = document.getElementById('usage-balance-display');
     if(balanceEl){
-      balanceEl.textContent = '$' + (balanceCents / 100).toFixed(2);
+      balanceEl.textContent = balanceStr;
       balanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink)';
     }
     const lowWarningEl = document.getElementById('usage-balance-low-warning');
     if(lowWarningEl) lowWarningEl.classList.toggle('hidden', balanceCents > 500);
+
+    const signalBalanceEl = document.getElementById('signal-balance');
+    if(signalBalanceEl){
+      signalBalanceEl.textContent = balanceStr;
+      signalBalanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--indigo)';
+    }
+    renderGlobalBalanceBanner(balanceCents);
 
     const billingMetaEl = document.getElementById('billing-plan-meta');
     if(billingMetaEl) {
@@ -2454,6 +2508,40 @@ async function saveNewPassword(){
     errorEl.textContent = err.message;
   } finally {
     btn.disabled = false; btn.textContent = original;
+  }
+}
+
+function setDashStepDone(stepNum, done){
+  const check = document.getElementById(`dash-step-${stepNum}-check`);
+  const cell = document.getElementById(`dash-step-${stepNum}`);
+  if(check) check.textContent = done ? '✓' : '';
+  if(check) check.style.color = 'var(--green)';
+  if(cell) cell.style.opacity = done ? '0.6' : '1';
+  if(cell) cell.style.borderColor = done ? 'var(--green)' : '';
+}
+
+async function loadDashboardWalkthrough(){
+  try {
+    const [{ leads }, { agents }, { proposals }] = await Promise.all([
+      API.leads.getAll(),
+      API.agents.getAll(),
+      API.proposals.getAll(),
+    ]);
+
+    const hasLead = (leads || []).length > 0;
+    const hasAgent = (agents || []).length > 0;
+    const hasSentProposal = (proposals || []).some((p) => p.status !== 'draft');
+    const hasWon = (leads || []).some((l) => l.pipeline_stage === 'won');
+
+    setDashStepDone(1, hasLead);
+    setDashStepDone(2, hasAgent);
+    setDashStepDone(3, hasSentProposal);
+    setDashStepDone(4, hasWon);
+
+    const walkthroughEl = document.getElementById('dash-walkthrough');
+    if(walkthroughEl) walkthroughEl.classList.toggle('hidden', hasLead && hasAgent && hasSentProposal && hasWon);
+  } catch (err) {
+    console.error('Failed to load dashboard walkthrough', err);
   }
 }
 
