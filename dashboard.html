@@ -3327,13 +3327,13 @@ function populateLeadLocationDropdowns(){
 function handleCountryChange(countryCode){
   const citySelect = document.getElementById('lead-city');
   const cities = LEAD_CITIES_BY_COUNTRY[countryCode] || [];
-  citySelect.innerHTML = '<option value="">— Pick a city —</option>' +
+  citySelect.innerHTML = '<option value="custom">✏️ Custom — type your own</option>' +
+    '<optgroup label="Or pick a major city">' +
     cities.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') +
-    '<option value="custom">✏️ Custom — I\'ll enter my own</option>';
-  citySelect.value = '';
-  document.getElementById('lead-city-custom-field').style.display = 'none';
+    '</optgroup>';
+  citySelect.value = 'custom';
   document.getElementById('lead-city-custom').value = '';
-  selectedLeadCity = '';
+  handleCityChange('custom');
 }
 
 function handleCityChange(val){
