@@ -140,6 +140,7 @@ create table if not exists call_logs (
   transcript text,
   outcome text,
   booked boolean not null default false,
+  retell_cost_cents integer,
   created_at timestamptz not null default now()
 );
 

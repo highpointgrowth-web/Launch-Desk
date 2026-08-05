@@ -96,6 +96,7 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
         duration_seconds: durationSeconds,
         transcript: call.transcript || null,
         outcome: call.disconnection_reason || null,
+        retell_cost_cents: call.call_cost?.combined_cost ?? null,
         booked: false,
       });
 
@@ -109,9 +110,16 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     if (payload.event === 'call_analyzed') {
       const booked = call.call_analysis?.custom_analysis_data?.booked === true;
 
+      // call_cost may not be finalized yet at call_ended - pick it up here too
+      // if it's present, same way booked only becomes known at this stage.
+      const updates = { booked };
+      if (call.call_cost?.combined_cost != null) {
+        updates.retell_cost_cents = call.call_cost.combined_cost;
+      }
+
       const { error: updateError } = await supabase
         .from('call_logs')
-        .update({ booked })
+        .update(updates)
         .eq('retell_call_id', call.call_id);
 
       if (updateError) {

@@ -1056,7 +1056,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div class="card-title" style="margin-bottom:16px">Client Billing</div>
               <div style="display:flex;flex-direction:column;gap:10px">
                 <div class="f-field"><label class="f-label">What you charge this client / month ($)</label><input class="f-input" id="agent-billing-charge" type="number" step="1" placeholder="e.g. 500" oninput="renderAgentBillingCalc()"></div>
-                <div class="f-field"><label class="f-label">Estimated call minutes / month</label><input class="f-input" id="agent-billing-est-minutes" type="number" step="1" placeholder="e.g. 200"></div>
                 <div class="f-field"><label class="f-label">Other monthly costs for this client ($)</label><input class="f-input" id="agent-billing-other-costs" type="number" step="1" placeholder="e.g. phone number rental" oninput="renderAgentBillingCalc()"></div>
                 <div id="agent-billing-status" style="font-size:.75rem;min-height:1em"></div>
                 <button class="btn btn-indigo" style="align-self:flex-start" id="agent-billing-save-btn" onclick="saveAgentBilling()">Save Charge</button>
@@ -1065,12 +1064,13 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
             <div class="card card-pad">
               <div class="card-title" style="margin-bottom:10px">This Month</div>
               <div class="review-row"><span class="review-label">Call Minutes (this month)</span><span class="review-val" id="agent-billing-minutes">0</span></div>
-              <div style="background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:9px;padding:10px 12px;font-size:.74rem;color:var(--indigo);margin:12px 0">📞 Call costs are billed directly by Retell to your own account — they're not included in the profit calculation below.</div>
+              <div class="review-row"><span class="review-label">Real Retell Cost (this month)</span><span class="review-val" id="agent-billing-retell-cost">$0.00</span></div>
 
               <div class="card-title" style="margin:18px 0 4px">Profit Calculator</div>
               <div style="display:flex;flex-direction:column;gap:2px">
                 <div class="review-row"><span class="review-label">You Charge</span><span class="review-val" id="agent-billing-charge-display">$0.00</span></div>
                 <div class="review-row"><span class="review-label">LaunchDesk Cost Share</span><span class="review-val" id="agent-billing-share">$0.00</span></div>
+                <div class="review-row"><span class="review-label">Retell Cost</span><span class="review-val" id="agent-billing-retell-cost-display">$0.00</span></div>
                 <div class="review-row"><span class="review-label">Other Costs</span><span class="review-val" id="agent-billing-other-display">$0.00</span></div>
                 <div class="review-row"><span class="review-label">Profit</span><span class="review-val" id="agent-billing-profit">$0.00</span></div>
                 <div class="review-row"><span class="review-label">Margin</span><span class="review-val" id="agent-billing-margin">0%</span></div>
@@ -1402,15 +1402,14 @@ Happy to. What's the biggest headache with missed calls for you right now — so
           <div style="display:flex;flex-direction:column;gap:12px">
             <div class="f-field"><label class="f-label">Agent</label><select class="f-input" id="pay-agent-select" onchange="handlePaymentsAgentChange()"><option value="">— Select an agent —</option></select></div>
             <div class="f-field"><label class="f-label">Charge / month ($)</label><input class="f-input" id="pay-charge" type="number" step="1" placeholder="e.g. 500" oninput="renderProfitCalc()"></div>
-            <div class="f-field"><label class="f-label">Estimated call minutes / month</label><input class="f-input" id="pay-minutes" type="number" step="1" placeholder="e.g. 200" oninput="renderProfitCalc()"></div>
-            <div class="f-field"><label class="f-label">Est. Retell cost / min ($)</label><input class="f-input" id="pay-rate" type="number" step="0.01" value="0.10" oninput="renderProfitCalc()"></div>
-            <div style="font-size:.72rem;color:var(--ink3)">Retell cost/min is an estimate you can adjust — LaunchDesk doesn't pull real per-minute billing from Retell yet.</div>
+            <div style="font-size:.72rem;color:var(--ink3)">Call minutes and Retell cost below are pulled from this agent's real calls this month, not estimated.</div>
           </div>
         </div>
         <div class="card card-pad">
           <div class="card-title" style="margin-bottom:16px">Result</div>
           <div style="display:flex;flex-direction:column;gap:2px">
-            <div class="review-row"><span class="review-label">Est. Retell Cost</span><span class="review-val" id="pay-cost">$0.00</span></div>
+            <div class="review-row"><span class="review-label">Call Minutes (this month)</span><span class="review-val" id="pay-minutes-display">0</span></div>
+            <div class="review-row"><span class="review-label">Real Retell Cost</span><span class="review-val" id="pay-cost">$0.00</span></div>
             <div class="review-row"><span class="review-label">You Charge</span><span class="review-val" id="pay-charge-display">$0.00</span></div>
             <div class="review-row"><span class="review-label">Profit</span><span class="review-val" id="pay-profit">$0.00</span></div>
             <div class="review-row"><span class="review-label">Margin</span><span class="review-val" id="pay-margin">0%</span></div>
@@ -1871,6 +1870,7 @@ async function handleBuyPhone(){
 
 // ── AGENT BILLING TAB ──
 let agentBillingMinutes = 0;
+let agentBillingRetellCost = 0;
 
 function isThisMonth(dateStr){
   if(!dateStr) return false;
@@ -1885,7 +1885,9 @@ async function renderAgentBillingTab(){
 
   chargeInput.value = currentAgent.monthly_charge != null ? currentAgent.monthly_charge : '';
   agentBillingMinutes = 0;
+  agentBillingRetellCost = 0;
   document.getElementById('agent-billing-minutes').textContent = '0';
+  document.getElementById('agent-billing-retell-cost').textContent = '$0.00';
 
   try {
     const { call_logs } = await API.agents.getCalls(currentAgent.id);
@@ -1893,6 +1895,10 @@ async function renderAgentBillingTab(){
     const totalSeconds = thisMonthLogs.reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
     agentBillingMinutes = totalSeconds / 60;
     document.getElementById('agent-billing-minutes').textContent = agentBillingMinutes.toFixed(1);
+
+    const totalCostCents = thisMonthLogs.reduce((sum, c) => sum + (c.retell_cost_cents || 0), 0);
+    agentBillingRetellCost = totalCostCents / 100;
+    document.getElementById('agent-billing-retell-cost').textContent = '$' + agentBillingRetellCost.toFixed(2);
   } catch (err) {
     console.error('Failed to load call logs for billing tab', err);
   }
@@ -1923,11 +1929,12 @@ function renderAgentBillingCalc(){
   const charge = parseFloat(document.getElementById('agent-billing-charge').value) || 0;
   const otherCosts = parseFloat(document.getElementById('agent-billing-other-costs').value) || 0;
   const { share, planPrice, divisor } = launchDeskCostShare();
-  const profit = charge - share - otherCosts;
+  const profit = charge - share - agentBillingRetellCost - otherCosts;
   const margin = charge > 0 ? (profit / charge) * 100 : 0;
 
   document.getElementById('agent-billing-charge-display').textContent = '$' + charge.toFixed(2);
   document.getElementById('agent-billing-share').textContent = '$' + share.toFixed(2);
+  document.getElementById('agent-billing-retell-cost-display').textContent = '$' + agentBillingRetellCost.toFixed(2);
   document.getElementById('agent-billing-other-display').textContent = '$' + otherCosts.toFixed(2);
   const profitEl = document.getElementById('agent-billing-profit');
   profitEl.textContent = '$' + profit.toFixed(2);
@@ -4105,20 +4112,40 @@ async function loadPaymentsPage(){
   }
 }
 
-function handlePaymentsAgentChange(){
+let payAgentMinutes = 0;
+let payAgentRetellCost = 0;
+
+async function handlePaymentsAgentChange(){
   const agentId = document.getElementById('pay-agent-select').value;
   const agent = cachedAgentsForPayments.find((a) => a.id === agentId);
   if(agent && agent.monthly_charge != null){
     document.getElementById('pay-charge').value = agent.monthly_charge;
   }
+
+  payAgentMinutes = 0;
+  payAgentRetellCost = 0;
+  document.getElementById('pay-minutes-display').textContent = '0';
+
+  if(agentId){
+    try {
+      const { call_logs } = await API.agents.getCalls(agentId);
+      const thisMonthLogs = (call_logs || []).filter((c) => isThisMonth(c.created_at));
+      const totalSeconds = thisMonthLogs.reduce((sum, c) => sum + (c.duration_seconds || 0), 0);
+      payAgentMinutes = totalSeconds / 60;
+      const totalCostCents = thisMonthLogs.reduce((sum, c) => sum + (c.retell_cost_cents || 0), 0);
+      payAgentRetellCost = totalCostCents / 100;
+      document.getElementById('pay-minutes-display').textContent = payAgentMinutes.toFixed(1);
+    } catch (err) {
+      console.error('Failed to load call logs for payments calculator', err);
+    }
+  }
+
   renderProfitCalc();
 }
 
 function renderProfitCalc(){
   const charge = parseFloat(document.getElementById('pay-charge').value) || 0;
-  const minutes = parseFloat(document.getElementById('pay-minutes').value) || 0;
-  const rate = parseFloat(document.getElementById('pay-rate').value) || 0;
-  const cost = minutes * rate;
+  const cost = payAgentRetellCost;
   const profit = charge - cost;
   const margin = charge > 0 ? (profit / charge) * 100 : 0;
 
