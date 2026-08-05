@@ -661,12 +661,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="card card-pad" style="margin-bottom:20px">
         <div class="find-form">
           <div class="f-field"><label class="f-label">Industry</label><input class="f-input" id="lead-industry" placeholder="plumber, HVAC, electrical…"></div>
-          <div class="f-field"><label class="f-label">Country</label><select class="f-input" id="lead-country" onchange="handleCountryChange(this.value)"></select></div>
-          <div class="f-field"><label class="f-label">City</label><select class="f-input" id="lead-city" onchange="handleCityChange(this.value)"></select></div>
-          <div class="f-field" id="lead-city-custom-field" style="display:none">
-            <label class="f-label">City / Location</label>
-            <input class="f-input" id="lead-city-custom" placeholder="e.g. Dallas, TX" oninput="handleCityCustomInput(this.value)">
-          </div>
+          <div class="f-field"><label class="f-label">Country</label><select class="f-input" id="lead-country"></select></div>
+          <div class="f-field"><label class="f-label">City</label><input class="f-input" id="lead-city-custom" placeholder="e.g. Dallas, TX" oninput="handleCityCustomInput(this.value)"></div>
           <div class="f-field"><label class="f-label">Radius</label><select class="f-input" id="lead-radius"><option value="10000">10 km</option><option value="25000">25 km</option><option value="50000">50 km</option><option value="100000" selected>100 km</option></select></div>
           <div class="f-field">
             <label class="f-label">Max Results</label>
@@ -3298,22 +3294,6 @@ const LEAD_COUNTRIES = [
   { code: 'BR', name: 'Brazil' },
 ];
 
-const LEAD_CITIES_BY_COUNTRY = {
-  US: ['New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ', 'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'Austin, TX', 'Miami, FL', 'Seattle, WA', 'Denver, CO'],
-  CA: ['Toronto, ON', 'Montreal, QC', 'Vancouver, BC', 'Calgary, AB', 'Edmonton, AB', 'Ottawa, ON', 'Winnipeg, MB', 'Quebec City, QC'],
-  GB: ['London', 'Manchester', 'Birmingham', 'Leeds', 'Glasgow', 'Liverpool', 'Bristol', 'Edinburgh'],
-  AU: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Gold Coast', 'Canberra'],
-  DE: ['Berlin', 'Munich', 'Hamburg', 'Cologne', 'Frankfurt', 'Stuttgart', 'Düsseldorf'],
-  FR: ['Paris', 'Marseille', 'Lyon', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg'],
-  ES: ['Madrid', 'Barcelona', 'Valencia', 'Seville', 'Zaragoza', 'Málaga'],
-  IT: ['Rome', 'Milan', 'Naples', 'Turin', 'Palermo', 'Bologna', 'Florence'],
-  NL: ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Eindhoven'],
-  IE: ['Dublin', 'Cork', 'Limerick', 'Galway'],
-  IN: ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad'],
-  MX: ['Mexico City', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'Cancún'],
-  BR: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador', 'Fortaleza', 'Belo Horizonte'],
-};
-
 let selectedLeadCity = '';
 
 function populateLeadLocationDropdowns(){
@@ -3321,30 +3301,6 @@ function populateLeadLocationDropdowns(){
   if(!countrySelect) return;
   countrySelect.innerHTML = LEAD_COUNTRIES.map((c) => `<option value="${c.code}">${c.name}</option>`).join('');
   countrySelect.value = 'US';
-  handleCountryChange('US');
-}
-
-function handleCountryChange(countryCode){
-  const citySelect = document.getElementById('lead-city');
-  const cities = LEAD_CITIES_BY_COUNTRY[countryCode] || [];
-  citySelect.innerHTML = '<option value="custom">✏️ Custom — type your own</option>' +
-    '<optgroup label="Or pick a major city">' +
-    cities.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') +
-    '</optgroup>';
-  citySelect.value = 'custom';
-  document.getElementById('lead-city-custom').value = '';
-  handleCityChange('custom');
-}
-
-function handleCityChange(val){
-  const customField = document.getElementById('lead-city-custom-field');
-  if(val === 'custom'){
-    customField.style.display = 'block';
-    selectedLeadCity = document.getElementById('lead-city-custom').value.trim();
-  } else {
-    customField.style.display = 'none';
-    selectedLeadCity = val;
-  }
 }
 
 function handleCityCustomInput(val){
@@ -3392,6 +3348,8 @@ function handleNewSearch(){
     '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">Use Find &amp; Score to search for leads.</td></tr>';
   document.getElementById('lead-industry').value = '';
   populateLeadLocationDropdowns();
+  document.getElementById('lead-city-custom').value = '';
+  selectedLeadCity = '';
   document.getElementById('lead-industry').focus();
 }
 
