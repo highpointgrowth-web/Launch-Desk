@@ -477,6 +477,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="dash-welcome">
         <div class="dash-welcome-title">Welcome back, <span id="dash-welcome-name">there</span>.</div>
         <div class="dash-welcome-sub" id="dash-welcome-sub">Let's make today count.</div>
+        <div class="page-sub">Your agency's daily overview — calls, meetings, MRR, and what to do next</div>
       </div>
 
       <div id="dash-walkthrough" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
@@ -1189,7 +1190,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
     <!-- CRM -->
     <div class="page" id="page-crm">
       <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
-        <div><div class="page-title">CRM</div><div class="page-sub" id="crm-page-sub">0 leads · add your first from Lead Finder</div></div>
+        <div><div class="page-title">CRM</div><div class="page-sub">Track every lead through your pipeline, from first contact to closed deal</div></div>
         <div class="btn-row"><button class="btn btn-ghost" onclick="document.getElementById('csv-import-input').click()">Import CSV</button><button class="btn btn-indigo" onclick="openAddLeadModal()">+ Add Lead</button></div>
       </div>
       <div class="stat-strip" style="grid-template-columns:repeat(6,1fr);margin-bottom:20px">
@@ -1226,7 +1227,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
     <!-- COLD CALL -->
     <div class="page" id="page-coldcall">
-      <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub"><span id="coldcall-calls-today">0</span> calls this session · <span id="coldcall-queue-count">0 leads in queue</span></div></div>
+      <div class="page-header"><div class="page-title">Cold Call Station</div><div class="page-sub">Work your queue with an AI-written script for every call</div></div>
       <div class="coldcall-layout">
         <div class="script-card">
           <div class="card-header"><div class="card-title">Call Script</div><span class="card-action" id="script-edit-toggle" onclick="toggleScriptEdit()">Edit</span></div>
