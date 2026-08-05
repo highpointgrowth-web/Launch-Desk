@@ -197,6 +197,44 @@ function buyRetellPhoneNumber(retellAgentId, areaCode) {
   });
 }
 
+async function resolveSystemPrompt(lead, niche, websiteOverride, extraContext) {
+  const websiteToScrape = websiteOverride || lead.website;
+  if (websiteToScrape) {
+    const scrapedContent = await scrapeWebsite(websiteToScrape);
+    return generateSystemPrompt(lead.business_name, niche, scrapedContent, extraContext, false);
+  }
+  const leadDetails = buildLeadDetailsSummary(lead);
+  return generateSystemPrompt(lead.business_name, niche, leadDetails, extraContext, true);
+}
+
+router.post('/preview-prompt', async (req, res) => {
+  const { lead_id, niche, website_override, extra_context } = req.body;
+
+  if (!lead_id || !niche) {
+    return res.status(400).json({ error: 'lead_id and niche are required' });
+  }
+
+  const supabase = req.app.locals.supabase;
+
+  try {
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('id', lead_id)
+      .eq('user_id', req.userId)
+      .single();
+
+    if (leadError || !lead) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
+
+    const systemPrompt = await resolveSystemPrompt(lead, niche, website_override, extra_context);
+    res.json({ system_prompt: systemPrompt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/build', async (req, res) => {
   const {
     lead_id,
@@ -209,6 +247,7 @@ router.post('/build', async (req, res) => {
     website_override,
     extra_context,
     transfer_number,
+    system_prompt,
   } = req.body;
 
   if (!lead_id || !niche || !agent_name || !voice) {
@@ -252,15 +291,10 @@ router.post('/build', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    const websiteToScrape = website_override || lead.website;
-    let systemPrompt;
-    if (websiteToScrape) {
-      const scrapedContent = await scrapeWebsite(websiteToScrape);
-      systemPrompt = await generateSystemPrompt(lead.business_name, niche, scrapedContent, extra_context, false);
-    } else {
-      const leadDetails = buildLeadDetailsSummary(lead);
-      systemPrompt = await generateSystemPrompt(lead.business_name, niche, leadDetails, extra_context, true);
-    }
+    // A pre-generated prompt (from the builder's review step) is used as-is,
+    // including any hand edits - only falls back to generating fresh if none
+    // was supplied, so direct API callers keep working unchanged.
+    const systemPrompt = system_prompt || (await resolveSystemPrompt(lead, niche, website_override, extra_context));
 
     const llm = await createRetellLlm(systemPrompt, greeting);
     const retellAgent = await createRetellAgent(agent_name, voice, llm.llm_id);

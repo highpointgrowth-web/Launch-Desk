@@ -223,6 +223,10 @@
   };
 
   const agents = {
+    async previewPrompt({ lead_id, niche, website_override, extra_context }) {
+      return request('POST', '/api/agents/preview-prompt', { lead_id, niche, website_override, extra_context });
+    },
+
     async build({
       lead_id,
       niche,
@@ -234,6 +238,7 @@
       website_override,
       extra_context,
       transfer_number,
+      system_prompt,
     }) {
       return request('POST', '/api/agents/build', {
         lead_id,
@@ -246,6 +251,7 @@
         website_override,
         extra_context,
         transfer_number,
+        system_prompt,
       });
     },
 

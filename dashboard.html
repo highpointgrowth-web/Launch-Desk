@@ -764,6 +764,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div class="bstep-line"></div>
           <div class="builder-step" id="bstep-4">
             <div class="bstep-num">4</div>
+            <div class="bstep-label">Review Prompt</div>
+          </div>
+          <div class="bstep-line"></div>
+          <div class="builder-step" id="bstep-5">
+            <div class="bstep-num">5</div>
             <div class="bstep-label">Deploy</div>
           </div>
         </div>
@@ -935,8 +940,29 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           </div>
         </div>
 
-        <!-- STEP 4: Deploy -->
+        <!-- STEP 4: Review AI Prompt -->
         <div class="builder-panel" id="panel-4" style="display:none">
+          <div class="card card-pad">
+            <div class="card-header">
+              <div class="card-title">Review the AI's Prompt</div>
+              <span class="card-action" id="prompt-regenerate-btn" onclick="generatePromptPreview(true)">↻ Regenerate</span>
+            </div>
+            <p style="font-size:.82rem;color:var(--ink3);margin-bottom:14px">This is exactly what the agent will say and know when it goes live. Edit it directly if anything's off before deploying.</p>
+            <div id="prompt-preview-loading" style="text-align:center;padding:32px;color:var(--ink3)">
+              <div style="font-size:1.5rem;margin-bottom:8px">✨</div>
+              <div style="font-size:.85rem">Writing the prompt from this client's business details…</div>
+            </div>
+            <div id="prompt-preview-error" class="hidden" style="padding:14px;background:var(--red-bg,#450a0a);color:var(--red);border-radius:9px;font-size:.82rem;margin-bottom:12px"></div>
+            <textarea class="f-input" id="prompt-preview-textarea" rows="16" style="display:none;font-family:'IBM Plex Mono',monospace;font-size:.78rem;line-height:1.6;resize:vertical"></textarea>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:16px">
+            <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+            <button class="btn btn-indigo" id="prompt-preview-continue-btn" onclick="goStep(5)" disabled style="opacity:.4;cursor:not-allowed">Continue →</button>
+          </div>
+        </div>
+
+        <!-- STEP 5: Deploy -->
+        <div class="builder-panel" id="panel-5" style="display:none">
           <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
             <div class="card card-pad">
               <div class="card-title" style="margin-bottom:16px">Review & Deploy</div>
@@ -982,7 +1008,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
             </div>
           </div>
           <div style="display:flex;justify-content:flex-start;margin-top:16px">
-            <button class="btn btn-ghost" onclick="goStep(3)">← Back</button>
+            <button class="btn btn-ghost" onclick="goStep(4)">← Back</button>
           </div>
         </div>
 
@@ -2026,10 +2052,12 @@ async function saveAgentBilling(){
 // Builder
 let selectedClient = null;
 let selectedNiche = 'plumbing';
+let promptPreviewLoaded = false;
 
 function showBuilder(){
   document.getElementById('agents-list').style.display='none';
   document.getElementById('agents-builder').style.display='block';
+  promptPreviewLoaded = false;
   goStep(1);
   loadClientList();
 }
@@ -2038,7 +2066,7 @@ function hideBuilder(){
   document.getElementById('agents-builder').style.display='none';
 }
 function goStep(n){
-  for(let i=1;i<=4;i++){
+  for(let i=1;i<=5;i++){
     const panel=document.getElementById('panel-'+i);
     const step=document.getElementById('bstep-'+i);
     if(panel) panel.style.display = i===n ? 'block' : 'none';
@@ -2048,7 +2076,66 @@ function goStep(n){
       else if(i<n) step.classList.add('done');
     }
   }
-  if(n===4) updateReviewStep();
+  if(n===4 && !promptPreviewLoaded) generatePromptPreview(false);
+  if(n===5) updateReviewStep();
+}
+
+function collectBuilderExtraContext(){
+  const escalationNumber = document.getElementById('escalation-number').value.trim();
+  return [
+    document.getElementById('biz-services').value.trim() && `Services offered: ${document.getElementById('biz-services').value.trim()}`,
+    document.getElementById('biz-hours').value.trim() && `Business hours: ${document.getElementById('biz-hours').value.trim()}`,
+    document.getElementById('biz-area').value.trim() && `Service area: ${document.getElementById('biz-area').value.trim()}`,
+    `After-hours handling: ${document.getElementById('after-hours-select').value}`,
+    escalationNumber && `Transfer emergencies or human requests to: ${escalationNumber}`,
+  ].filter(Boolean).join('\n');
+}
+
+async function generatePromptPreview(force){
+  if(!selectedClient || !selectedClient.id){
+    alert('Select a client in Step 1 first.');
+    goStep(1);
+    return;
+  }
+  if(promptPreviewLoaded && !force) return;
+
+  const loadingEl = document.getElementById('prompt-preview-loading');
+  const errorEl = document.getElementById('prompt-preview-error');
+  const textareaEl = document.getElementById('prompt-preview-textarea');
+  const continueBtn = document.getElementById('prompt-preview-continue-btn');
+  const regenBtn = document.getElementById('prompt-regenerate-btn');
+
+  errorEl.classList.add('hidden');
+  textareaEl.style.display = 'none';
+  loadingEl.style.display = 'block';
+  continueBtn.disabled = true;
+  continueBtn.style.opacity = '.4';
+  continueBtn.style.cursor = 'not-allowed';
+  if(regenBtn) regenBtn.style.pointerEvents = 'none';
+
+  const websiteOverride = document.getElementById('biz-url').value.trim();
+  const extraContext = collectBuilderExtraContext();
+
+  try {
+    const { system_prompt } = await API.agents.previewPrompt({
+      lead_id: selectedClient.id,
+      niche: selectedNiche,
+      website_override: websiteOverride || undefined,
+      extra_context: extraContext || undefined,
+    });
+    textareaEl.value = system_prompt;
+    textareaEl.style.display = 'block';
+    promptPreviewLoaded = true;
+    continueBtn.disabled = false;
+    continueBtn.style.opacity = '1';
+    continueBtn.style.cursor = 'pointer';
+  } catch (err) {
+    errorEl.textContent = 'Failed to generate prompt: ' + err.message;
+    errorEl.classList.remove('hidden');
+  } finally {
+    loadingEl.style.display = 'none';
+    if(regenBtn) regenBtn.style.pointerEvents = '';
+  }
 }
 
 function updateReviewStep(){
@@ -2180,17 +2267,14 @@ async function deployAgent(){
   const calEventTypeId = document.getElementById('cal-event-type-id').value.trim();
   const websiteOverride = document.getElementById('biz-url').value.trim();
   const escalationNumber = document.getElementById('escalation-number').value.trim();
-
-  const extraContextParts = [
-    document.getElementById('biz-services').value.trim() && `Services offered: ${document.getElementById('biz-services').value.trim()}`,
-    document.getElementById('biz-hours').value.trim() && `Business hours: ${document.getElementById('biz-hours').value.trim()}`,
-    document.getElementById('biz-area').value.trim() && `Service area: ${document.getElementById('biz-area').value.trim()}`,
-    `After-hours handling: ${document.getElementById('after-hours-select').value}`,
-    escalationNumber && `Transfer emergencies or human requests to: ${escalationNumber}`,
-  ].filter(Boolean);
+  const systemPrompt = document.getElementById('prompt-preview-textarea').value.trim();
 
   if(!agentName){
     alert('Agent name is required.');
+    return;
+  }
+  if(!systemPrompt){
+    alert('Go back to Step 4 and generate the agent prompt first.');
     return;
   }
 
@@ -2209,8 +2293,8 @@ async function deployAgent(){
       cal_api_key: calApiKey || undefined,
       cal_event_type_id: calEventTypeId || undefined,
       website_override: websiteOverride || undefined,
-      extra_context: extraContextParts.length ? extraContextParts.join('\n') : undefined,
       transfer_number: escalationNumber || undefined,
+      system_prompt: systemPrompt,
     });
 
     btn.textContent = '✅ Agent Live!';
