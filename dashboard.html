@@ -814,7 +814,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
                 </div>
                 <div class="f-field" id="custom-niche-field" style="display:none">
                   <label class="f-label">Custom Niche</label>
-                  <input class="f-input" id="custom-niche-input" placeholder="e.g. Auto repair, Med spa, Veterinary…">
+                  <input class="f-input" id="custom-niche-input" placeholder="e.g. Auto repair, Med spa, Veterinary…" oninput="handleCustomNicheInput(this.value)">
                 </div>
                 <div id="niche-preview" style="display:none;background:var(--indigo-light);border:1px solid var(--indigo-mid);border-radius:9px;padding:12px 14px;font-size:.8rem;color:var(--indigo)">
                   <b style="display:block;margin-bottom:3px">✓ Template loaded</b>
@@ -854,7 +854,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           </div>
           <div style="display:flex;justify-content:space-between;margin-top:16px">
             <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
-            <button class="btn btn-indigo" onclick="goStep(3)">Continue →</button>
+            <button class="btn btn-indigo" onclick="handleNicheStepContinue()">Continue →</button>
           </div>
         </div>
 
@@ -2237,8 +2237,9 @@ function selectClient(el, leadId){
   if(bizName) bizName.value = name;
   const bizUrl = document.getElementById('biz-url');
   if(bizUrl) bizUrl.value = lead.website || '';
-  // Pre-select niche
-  if(niche) selectNiche(niche.toLowerCase());
+  // Pre-select niche (original casing preserved for the Custom fallback -
+  // selectNiche itself matches presets case-insensitively)
+  if(niche) selectNiche(niche);
   // Pre-fill review
   const revClient = document.getElementById('rev-client');
   if(revClient) revClient.textContent = name;
@@ -2310,19 +2311,90 @@ function selectNicheFromDropdown(val){
   if(val === 'custom'){
     customField.style.display = 'block';
     preview.style.display = 'none';
+    const customInput = document.getElementById('custom-niche-input');
+    // Picking Custom starts blank on purpose - selectedNiche must reflect
+    // whatever they actually type, never the literal word "custom".
+    selectedNiche = customInput ? customInput.value.trim() : '';
   } else if(val){
     customField.style.display = 'none';
     preview.style.display = 'block';
     previewText.textContent = labels[val] || val;
+    selectedNiche = val;
   } else {
     customField.style.display = 'none';
     preview.style.display = 'none';
+    selectedNiche = '';
   }
-  selectedNiche = val;
-  const revNiche = document.getElementById('rev-niche');
-  if(revNiche) revNiche.textContent = val ? (document.getElementById('niche-select').options[document.getElementById('niche-select').selectedIndex].text) : '—';
+  updateNicheReview();
 }
-function selectNiche(n){ selectedNiche = n; }
+
+function handleCustomNicheInput(val){
+  selectedNiche = val.trim();
+  const preview = document.getElementById('niche-preview');
+  const previewText = document.getElementById('niche-preview-text');
+  if(preview && previewText){
+    if(selectedNiche){
+      preview.style.display = 'block';
+      previewText.textContent = `Custom niche: ${selectedNiche}`;
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+  updateNicheReview();
+}
+
+function updateNicheReview(){
+  const revNiche = document.getElementById('rev-niche');
+  if(!revNiche) return;
+  const select = document.getElementById('niche-select');
+  if(select.value === 'custom'){
+    revNiche.textContent = selectedNiche || 'Custom (not entered yet)';
+  } else if(select.value){
+    revNiche.textContent = select.options[select.selectedIndex].text;
+  } else {
+    revNiche.textContent = '—';
+  }
+}
+
+function handleNicheStepContinue(){
+  const select = document.getElementById('niche-select');
+  if(!select.value){
+    alert('Pick a niche (or choose Custom and type your own) before continuing.');
+    return;
+  }
+  if(select.value === 'custom' && !selectedNiche){
+    alert('Enter your custom niche before continuing.');
+    document.getElementById('custom-niche-input').focus();
+    return;
+  }
+  goStep(3);
+}
+// Pre-fills the niche step from a lead's category (e.g. when picking a
+// client in Step 1). Matches a preset if one exists; otherwise falls back
+// to Custom with the lead's actual category pre-filled, so leads whose
+// trade isn't one of the presets still carry their real niche through
+// instead of silently being dropped.
+function selectNiche(n){
+  const select = document.getElementById('niche-select');
+  if(!select){ selectedNiche = n; return; }
+
+  const matchedPreset = Array.from(select.options).find((o) => o.value.toLowerCase() === n.toLowerCase());
+  if(matchedPreset){
+    select.value = matchedPreset.value;
+    selectNicheFromDropdown(matchedPreset.value);
+  } else if(n){
+    select.value = 'custom';
+    selectNicheFromDropdown('custom');
+    const customInput = document.getElementById('custom-niche-input');
+    if(customInput){
+      customInput.value = n;
+      handleCustomNicheInput(n);
+    }
+  } else {
+    select.value = '';
+    selectNicheFromDropdown('');
+  }
+}
 async function deployAgent(){
   if(!selectedClient || !selectedClient.id){
     alert('Select a client in Step 1 first.');
