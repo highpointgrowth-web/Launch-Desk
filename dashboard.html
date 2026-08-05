@@ -661,7 +661,12 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="card card-pad" style="margin-bottom:20px">
         <div class="find-form">
           <div class="f-field"><label class="f-label">Industry</label><input class="f-input" id="lead-industry" placeholder="plumber, HVAC, electrical…"></div>
-          <div class="f-field"><label class="f-label">Location</label><input class="f-input" id="lead-location" placeholder="Dallas, TX or London, UK — anywhere"></div>
+          <div class="f-field"><label class="f-label">Country</label><select class="f-input" id="lead-country" onchange="handleCountryChange(this.value)"></select></div>
+          <div class="f-field"><label class="f-label">City</label><select class="f-input" id="lead-city" onchange="handleCityChange(this.value)"></select></div>
+          <div class="f-field" id="lead-city-custom-field" style="display:none">
+            <label class="f-label">City / Location</label>
+            <input class="f-input" id="lead-city-custom" placeholder="e.g. Dallas, TX" oninput="handleCityCustomInput(this.value)">
+          </div>
           <div class="f-field"><label class="f-label">Radius</label><select class="f-input" id="lead-radius"><option value="10000">10 km</option><option value="25000">25 km</option><option value="50000">50 km</option><option value="100000" selected>100 km</option></select></div>
           <div class="f-field">
             <label class="f-label">Max Results</label>
@@ -2527,6 +2532,7 @@ function enterApp(){
   loadLeadSearches();
   loadDashboardWalkthrough();
   renderMinutePackages();
+  populateLeadLocationDropdowns();
 }
 
 async function handleLogout(){
@@ -3273,19 +3279,94 @@ function renderLeadResults(leads){
   `).join('');
 }
 
+// Same 13-country list style as Client One's picker (US first) - Google
+// Places is global regardless, this is just a fast, familiar way to pick a
+// country and bias search results toward it.
+const LEAD_COUNTRIES = [
+  { code: 'US', name: 'United States' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'NL', name: 'Netherlands' },
+  { code: 'IE', name: 'Ireland' },
+  { code: 'IN', name: 'India' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'BR', name: 'Brazil' },
+];
+
+const LEAD_CITIES_BY_COUNTRY = {
+  US: ['New York, NY', 'Los Angeles, CA', 'Chicago, IL', 'Houston, TX', 'Phoenix, AZ', 'Philadelphia, PA', 'San Antonio, TX', 'San Diego, CA', 'Dallas, TX', 'Austin, TX', 'Miami, FL', 'Seattle, WA', 'Denver, CO'],
+  CA: ['Toronto, ON', 'Montreal, QC', 'Vancouver, BC', 'Calgary, AB', 'Edmonton, AB', 'Ottawa, ON', 'Winnipeg, MB', 'Quebec City, QC'],
+  GB: ['London', 'Manchester', 'Birmingham', 'Leeds', 'Glasgow', 'Liverpool', 'Bristol', 'Edinburgh'],
+  AU: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide', 'Gold Coast', 'Canberra'],
+  DE: ['Berlin', 'Munich', 'Hamburg', 'Cologne', 'Frankfurt', 'Stuttgart', 'Düsseldorf'],
+  FR: ['Paris', 'Marseille', 'Lyon', 'Toulouse', 'Nice', 'Nantes', 'Strasbourg'],
+  ES: ['Madrid', 'Barcelona', 'Valencia', 'Seville', 'Zaragoza', 'Málaga'],
+  IT: ['Rome', 'Milan', 'Naples', 'Turin', 'Palermo', 'Bologna', 'Florence'],
+  NL: ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Eindhoven'],
+  IE: ['Dublin', 'Cork', 'Limerick', 'Galway'],
+  IN: ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune', 'Ahmedabad'],
+  MX: ['Mexico City', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'Cancún'],
+  BR: ['São Paulo', 'Rio de Janeiro', 'Brasília', 'Salvador', 'Fortaleza', 'Belo Horizonte'],
+};
+
+let selectedLeadCity = '';
+
+function populateLeadLocationDropdowns(){
+  const countrySelect = document.getElementById('lead-country');
+  if(!countrySelect) return;
+  countrySelect.innerHTML = LEAD_COUNTRIES.map((c) => `<option value="${c.code}">${c.name}</option>`).join('');
+  countrySelect.value = 'US';
+  handleCountryChange('US');
+}
+
+function handleCountryChange(countryCode){
+  const citySelect = document.getElementById('lead-city');
+  const cities = LEAD_CITIES_BY_COUNTRY[countryCode] || [];
+  citySelect.innerHTML = '<option value="">— Pick a city —</option>' +
+    cities.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('') +
+    '<option value="custom">✏️ Custom — I\'ll enter my own</option>';
+  citySelect.value = '';
+  document.getElementById('lead-city-custom-field').style.display = 'none';
+  document.getElementById('lead-city-custom').value = '';
+  selectedLeadCity = '';
+}
+
+function handleCityChange(val){
+  const customField = document.getElementById('lead-city-custom-field');
+  if(val === 'custom'){
+    customField.style.display = 'block';
+    selectedLeadCity = document.getElementById('lead-city-custom').value.trim();
+  } else {
+    customField.style.display = 'none';
+    selectedLeadCity = val;
+  }
+}
+
+function handleCityCustomInput(val){
+  selectedLeadCity = val.trim();
+}
+
 async function handleLeadSearch(){
   const errorEl = document.getElementById('lead-search-error');
   if(errorEl) errorEl.textContent = '';
 
   const industry = document.getElementById('lead-industry').value.trim();
-  const location = document.getElementById('lead-location').value.trim();
+  const countryCode = document.getElementById('lead-country').value;
+  const countryName = (LEAD_COUNTRIES.find((c) => c.code === countryCode) || {}).name || '';
   const radius = parseInt(document.getElementById('lead-radius').value, 10);
   const max_results = parseInt(document.getElementById('lead-max-results').value, 10);
 
-  if(!industry || !location){
-    if(errorEl) errorEl.textContent = 'Industry and location are required.';
+  if(!industry || !selectedLeadCity){
+    if(errorEl) errorEl.textContent = 'Industry and city are required.';
     return;
   }
+
+  const location = countryName ? `${selectedLeadCity}, ${countryName}` : selectedLeadCity;
 
   const btn = document.getElementById('lead-search-btn');
   const original = btn.innerHTML;
@@ -3293,7 +3374,7 @@ async function handleLeadSearch(){
   btn.textContent = 'Searching…';
 
   try {
-    const { leads } = await API.leads.scrape({ industry, location, radius, max_results });
+    const { leads } = await API.leads.scrape({ industry, location, radius, max_results, country: countryCode });
     renderLeadResults(leads);
     loadUserStats(); // refresh the credit count in the signal bar
     loadLeadSearches(); // the search that just ran should appear in Past Scrapes
@@ -3310,7 +3391,7 @@ function handleNewSearch(){
   document.getElementById('leads-results-body').innerHTML =
     '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">Use Find &amp; Score to search for leads.</td></tr>';
   document.getElementById('lead-industry').value = '';
-  document.getElementById('lead-location').value = '';
+  populateLeadLocationDropdowns();
   document.getElementById('lead-industry').focus();
 }
 

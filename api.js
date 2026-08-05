@@ -177,8 +177,8 @@
   };
 
   const leads = {
-    async scrape({ industry, location, radius, max_results }) {
-      return request('POST', '/api/leads/scrape', { industry, location, radius, max_results });
+    async scrape({ industry, location, radius, max_results, country }) {
+      return request('POST', '/api/leads/scrape', { industry, location, radius, max_results, country });
     },
 
     async getSearches() {

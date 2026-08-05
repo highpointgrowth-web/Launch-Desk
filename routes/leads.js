@@ -23,7 +23,7 @@ function extractCityState(addressComponents = []) {
 // Google Places Text Search caps each page at 20 results. Fetching more
 // than that means following next_page_token across pages, each of which
 // needs a short delay before the token is valid.
-async function searchPlaces(industry, location, radius, maxResults) {
+async function searchPlaces(industry, location, radius, maxResults, countryCode) {
   const results = [];
   let pageToken = null;
 
@@ -34,6 +34,10 @@ async function searchPlaces(industry, location, radius, maxResults) {
     } else {
       url.searchParams.set('query', `${industry} in ${location}`);
       url.searchParams.set('radius', String(radius));
+      // Biases results toward the chosen country - the query text alone
+      // (e.g. a city that exists in multiple countries) can otherwise
+      // resolve to the wrong one.
+      if (countryCode) url.searchParams.set('region', countryCode.toLowerCase());
     }
     url.searchParams.set('key', process.env.GOOGLE_PLACES_API_KEY);
 
@@ -70,8 +74,8 @@ async function getPlaceDetails(placeId) {
   return data.result;
 }
 
-async function buildBusinessList(industry, location, radius, maxResults) {
-  const results = await searchPlaces(industry, location, radius, maxResults);
+async function buildBusinessList(industry, location, radius, maxResults, countryCode) {
+  const results = await searchPlaces(industry, location, radius, maxResults, countryCode);
   const details = await Promise.all(results.map((r) => getPlaceDetails(r.place_id)));
 
   return details.map((d) => {
@@ -220,7 +224,7 @@ router.post('/:id/cold-call-script', async (req, res) => {
 });
 
 router.post('/scrape', async (req, res) => {
-  const { industry, location, radius, max_results } = req.body;
+  const { industry, location, radius, max_results, country } = req.body;
 
   if (!industry || !location) {
     return res.status(400).json({ error: 'industry and location are required' });
@@ -244,7 +248,7 @@ router.post('/scrape', async (req, res) => {
   }
 
   try {
-    const businesses = await buildBusinessList(industry, location, radius || 5000, maxResults);
+    const businesses = await buildBusinessList(industry, location, radius || 5000, maxResults, country);
     const scoredLeads = await scoreLeads(businesses);
     scoredLeads.sort((a, b) => (b.ai_score ?? -1) - (a.ai_score ?? -1));
 
