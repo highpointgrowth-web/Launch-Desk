@@ -371,32 +371,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
   <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:8px">Choose a plan to continue</h1>
   <p style="color:var(--ink2);font-size:.9rem;max-width:420px;margin-bottom:32px">Your account is created, but LaunchDesk doesn't have a free tier — pick a plan below to unlock lead scraping, agent building, and the rest of the dashboard.</p>
   <div id="paywall-error" class="hidden" style="background:var(--red-bg);color:var(--red);border-radius:8px;padding:10px 14px;font-size:.8rem;margin-bottom:20px;max-width:420px"></div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:760px;width:100%">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px">
-      <div>
-        <div style="font-weight:700;font-size:1.05rem">Starter</div>
-        <div style="color:var(--ink2);font-size:.8rem;margin-top:4px">100 scrapes/mo</div>
-      </div>
-      <div style="font-size:1.6rem;font-weight:800">$19<span style="font-size:.8rem;font-weight:500;color:var(--ink2)">/mo</span></div>
-      <button class="btn btn-indigo" onclick="handlePaywallCheckout('starter', this)">Get Starter</button>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px">
-      <div>
-        <div style="font-weight:700;font-size:1.05rem">Pro</div>
-        <div style="color:var(--ink2);font-size:.8rem;margin-top:4px">1,000 scrapes/mo</div>
-      </div>
-      <div style="font-size:1.6rem;font-weight:800">$49<span style="font-size:.8rem;font-weight:500;color:var(--ink2)">/mo</span></div>
-      <button class="btn btn-indigo" onclick="handlePaywallCheckout('pro', this)">Get Pro</button>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--indigo);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px">
-      <div>
-        <div style="font-weight:700;font-size:1.05rem">Agency</div>
-        <div style="color:var(--ink2);font-size:.8rem;margin-top:4px">2,500 scrapes/mo</div>
-      </div>
-      <div style="font-size:1.6rem;font-weight:800">$99<span style="font-size:.8rem;font-weight:500;color:var(--ink2)">/mo</span></div>
-      <button class="btn btn-indigo" onclick="handlePaywallCheckout('agency', this)">Get Agency</button>
-    </div>
-  </div>
+  <div id="paywall-plans" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:760px;width:100%"></div>
   <a href="#" onclick="handleLogout(); return false;" style="color:var(--ink2);font-size:.8rem;margin-top:28px;text-decoration:none">Log out</a>
 </div>
 
@@ -2477,6 +2452,25 @@ const PLAN_INFO = {
 };
 const PLAN_PRICES = { starter: 19, pro: 49, agency: 99 };
 
+// Single source of truth for what's actually different between plans in
+// the code (scrape limit + agent limit) plus what's the same on every
+// plan - shown identically on the paywall and the Settings plan picker so
+// the two never drift out of sync with each other or with reality.
+const PLAN_FEATURES = {
+  starter: { label: 'Starter', priceLabel: '$19/mo', scrapes: '100 scrapes/mo', agents: '1 AI agent' },
+  pro: { label: 'Pro', priceLabel: '$49/mo', scrapes: '1,000 scrapes/mo', agents: 'Unlimited AI agents' },
+  agency: { label: 'Agency', priceLabel: '$99/mo', scrapes: '2,500 scrapes/mo', agents: 'Unlimited AI agents' },
+};
+const PLAN_COMMON_FEATURES = ['Full CRM & pipeline', 'Cold Call Station', 'Proposals & Agency Playbook'];
+
+function planFeatureListHtml(planKey){
+  const p = PLAN_FEATURES[planKey];
+  const items = [p.agents, p.scrapes, ...PLAN_COMMON_FEATURES];
+  return `<ul style="list-style:none;display:flex;flex-direction:column;gap:6px;text-align:left">${
+    items.map((f) => `<li style="font-size:.78rem;color:var(--ink2);display:flex;align-items:center;gap:7px"><span style="color:var(--green)">✓</span>${f}</li>`).join('')
+  }</ul>`;
+}
+
 let cachedUser = null;
 
 async function loadUserStats(){
@@ -2861,21 +2855,25 @@ async function handleManagePlan(){
   }
 }
 
-const CHANGE_PLAN_OPTIONS = [
-  { plan: 'starter', label: 'Starter', price: '$19/mo' },
-  { plan: 'pro', label: 'Pro', price: '$49/mo' },
-  { plan: 'agency', label: 'Agency', price: '$99/mo' },
-];
-
 function renderPlanPicker(noteEl){
   noteEl.innerHTML = `
-    <div style="margin-bottom:10px">Pick a plan to set up billing:</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${CHANGE_PLAN_OPTIONS.map((o) => `
-        <button class="btn btn-indigo" style="font-size:.76rem;padding:.45rem .9rem" onclick="handleChangePlanCheckout('${o.plan}', this)">${o.label} — ${o.price}</button>
-      `).join('')}
+    <div style="margin-bottom:12px;font-weight:600;color:var(--ink)">Pick a plan to set up billing:</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;max-width:560px">
+      ${Object.keys(PLAN_FEATURES).map((planKey) => {
+        const p = PLAN_FEATURES[planKey];
+        return `
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div style="font-weight:700;font-size:.9rem">${p.label}</div>
+              <div style="font-weight:800;font-size:1.05rem;margin-top:2px">${p.priceLabel}</div>
+            </div>
+            ${planFeatureListHtml(planKey)}
+            <button class="btn btn-indigo" style="font-size:.74rem;padding:.4rem .8rem" onclick="handleChangePlanCheckout('${planKey}', this)">Get ${p.label}</button>
+          </div>
+        `;
+      }).join('')}
     </div>
-    <div id="billing-plan-picker-error" style="color:var(--red);font-size:.76rem;margin-top:8px"></div>
+    <div id="billing-plan-picker-error" style="color:var(--red);font-size:.76rem;margin-top:10px"></div>
   `;
 }
 
@@ -4554,7 +4552,27 @@ async function handlePaywallCheckout(plan, btn){
   }
 }
 
+function renderPaywallPlans(){
+  const container = document.getElementById('paywall-plans');
+  if(!container) return;
+  container.innerHTML = Object.keys(PLAN_FEATURES).map((planKey) => {
+    const p = PLAN_FEATURES[planKey];
+    const isAgency = planKey === 'agency';
+    return `
+      <div style="background:var(--surface);border:1px solid ${isAgency ? 'var(--indigo)' : 'var(--border)'};border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-weight:700;font-size:1.05rem">${p.label}</div>
+        </div>
+        <div style="font-size:1.6rem;font-weight:800">${p.priceLabel.replace('/mo', '')}<span style="font-size:.8rem;font-weight:500;color:var(--ink2)">/mo</span></div>
+        ${planFeatureListHtml(planKey)}
+        <button class="btn btn-indigo" onclick="handlePaywallCheckout('${planKey}', this)">Get ${p.label}</button>
+      </div>
+    `;
+  }).join('');
+}
+
 function showPaywall(){
+  renderPaywallPlans();
   document.getElementById('paywall-root').classList.remove('hidden');
 }
 
