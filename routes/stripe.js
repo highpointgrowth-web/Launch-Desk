@@ -265,8 +265,8 @@ router.post('/add-funds', requireAuth, async (req, res) => {
   const { amount } = req.body;
   const amountCents = Math.round(Number(amount) * 100);
 
-  if (!Number.isFinite(amountCents) || amountCents < 500) {
-    return res.status(400).json({ error: 'Minimum top-up is $5' });
+  if (!Number.isFinite(amountCents) || amountCents < 100) {
+    return res.status(400).json({ error: 'Minimum top-up is $1' });
   }
 
   try {

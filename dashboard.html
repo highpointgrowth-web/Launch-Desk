@@ -1373,16 +1373,18 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             <div class="s-row" style="cursor:default">
               <div class="s-row-left">
                 <div class="s-icon">📞</div>
-                <div><div class="s-label">Call cost balance</div><div class="s-meta">Covers real AI call cost (+10%) for every agent — calls pause when this hits $0</div></div>
+                <div><div class="s-label">Call cost balance</div><div class="s-meta">Covers real AI call cost (+10%) for every agent — calls pause when this hits 0 minutes</div></div>
               </div>
-              <div class="s-right" id="usage-balance-display" style="font-weight:700">$0.00</div>
+              <div class="s-right" style="text-align:right">
+                <div id="usage-balance-minutes" style="font-weight:700;font-size:1.05rem">~0 min</div>
+                <div id="usage-balance-display" style="font-size:.72rem;color:var(--ink3)">$0.00</div>
+              </div>
             </div>
             <div id="usage-balance-low-warning" class="hidden" style="padding:10px 20px;font-size:.78rem;color:var(--red);border-top:1px solid var(--border)">⚠ Balance is low or empty — agents will stop taking calls until you add funds.</div>
-            <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <button class="btn btn-ghost" style="font-size:.78rem;padding:.45rem .9rem" onclick="handleAddFunds(25, this)">+ $25</button>
-              <button class="btn btn-ghost" style="font-size:.78rem;padding:.45rem .9rem" onclick="handleAddFunds(50, this)">+ $50</button>
-              <button class="btn btn-ghost" style="font-size:.78rem;padding:.45rem .9rem" onclick="handleAddFunds(100, this)">+ $100</button>
-              <span id="usage-balance-error" style="color:var(--red);font-size:.76rem"></span>
+            <div style="padding:16px 20px;border-top:1px solid var(--border)">
+              <div style="font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px">Buy minutes</div>
+              <div id="minute-packages-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"></div>
+              <span id="usage-balance-error" style="color:var(--red);font-size:.76rem;display:block;margin-top:8px"></span>
             </div>
           </div>
 
@@ -2275,10 +2277,10 @@ function renderGlobalBalanceBanner(balanceCents){
   if(!banner) return;
   const textEl = document.getElementById('global-balance-banner-text');
   if(balanceCents <= 0){
-    if(textEl) textEl.textContent = '⚠ Balance is $0 — agents have stopped taking calls.';
+    if(textEl) textEl.textContent = '⚠ 0 minutes left — agents have stopped taking calls.';
     banner.classList.remove('hidden');
   } else if(balanceCents <= 500){
-    if(textEl) textEl.textContent = '⚠ Your call balance is low — add funds to avoid missed calls.';
+    if(textEl) textEl.textContent = `⚠ Only ${formatMinutesLabel(balanceCents)} left — add funds to avoid missed calls.`;
     banner.classList.remove('hidden');
   } else {
     banner.classList.add('hidden');
@@ -2299,6 +2301,7 @@ function enterApp(){
   loadDailyGoals();
   loadLeadSearches();
   loadDashboardWalkthrough();
+  renderMinutePackages();
 }
 
 async function handleLogout(){
@@ -2366,18 +2369,25 @@ async function loadUserStats(){
 
     const balanceCents = user.usage_balance_cents || 0;
     const balanceStr = '$' + (balanceCents / 100).toFixed(2);
+    const minutesStr = formatMinutesLabel(balanceCents);
 
     const balanceEl = document.getElementById('usage-balance-display');
     if(balanceEl){
       balanceEl.textContent = balanceStr;
-      balanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink)';
+      balanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink3)';
+    }
+    const balanceMinutesEl = document.getElementById('usage-balance-minutes');
+    if(balanceMinutesEl){
+      balanceMinutesEl.textContent = minutesStr;
+      balanceMinutesEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink)';
     }
     const lowWarningEl = document.getElementById('usage-balance-low-warning');
     if(lowWarningEl) lowWarningEl.classList.toggle('hidden', balanceCents > 500);
 
     const signalBalanceEl = document.getElementById('signal-balance');
     if(signalBalanceEl){
-      signalBalanceEl.textContent = balanceStr;
+      signalBalanceEl.textContent = minutesStr;
+      signalBalanceEl.title = balanceStr;
       signalBalanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--indigo)';
     }
     renderGlobalBalanceBanner(balanceCents);
@@ -2711,6 +2721,38 @@ function renderPlanPicker(noteEl){
     </div>
     <div id="billing-plan-picker-error" style="color:var(--red);font-size:.76rem;margin-top:8px"></div>
   `;
+}
+
+// Actual per-minute Retell cost varies by voice/LLM per call, so this is a
+// reference rate purely for a friendlier "~X min" display - the real balance
+// and every deduction are always tracked exactly, in cents.
+const REFERENCE_CENTS_PER_MINUTE = 10;
+
+function formatMinutesLabel(balanceCents){
+  const minutes = Math.floor(balanceCents / REFERENCE_CENTS_PER_MINUTE);
+  return `~${minutes.toLocaleString()} min`;
+}
+
+const MINUTE_PACKAGES = [
+  { label: 'Trial', minutes: 10, price: 1.00, rate: '$0.10/min' },
+  { label: 'Starter', minutes: 100, price: 9.50, rate: '$0.10/min', tag: 'Save 5%' },
+  { label: 'Growth', minutes: 500, price: 45.00, rate: '$0.09/min', tag: 'Most popular', featured: true },
+  { label: 'Scale', minutes: 1500, price: 120.00, rate: '$0.08/min', tag: 'Save 20%' },
+  { label: 'Agency', minutes: 5000, price: 350.00, rate: '$0.07/min', tag: 'Best value' },
+];
+
+function renderMinutePackages(){
+  const grid = document.getElementById('minute-packages-grid');
+  if(!grid) return;
+  grid.innerHTML = MINUTE_PACKAGES.map((p, i) => `
+    <div style="background:var(--surface2);border:1px solid ${p.featured ? 'var(--indigo)' : 'var(--border)'};border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px">
+      ${p.tag ? `<div style="font-size:.62rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--indigo)">${p.tag}</div>` : ''}
+      <div style="font-weight:700;font-size:.85rem">${p.label}</div>
+      <div style="font-size:.78rem;color:var(--ink2)">${p.minutes.toLocaleString()} min</div>
+      <div style="font-size:.7rem;color:var(--ink3);margin-bottom:6px">${p.rate}</div>
+      <button class="btn btn-indigo" style="font-size:.74rem;padding:.4rem .7rem" onclick="handleAddFunds(${p.price}, this)">$${p.price.toFixed(2)}</button>
+    </div>
+  `).join('');
 }
 
 async function handleAddFunds(amount, btn){

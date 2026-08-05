@@ -96,25 +96,45 @@ function cleanScrapedContent(markdown) {
   return cleanedLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
-async function generateSystemPrompt(businessName, niche, scrapedContent, extraContext) {
-  const cleanedContent = cleanScrapedContent(scrapedContent).slice(0, 15000);
+// Leads with no website (common for exactly the kind of local business worth
+// pitching - "no website" is itself a sales signal) shouldn't block agent
+// creation. Falls back to the structured details already captured from
+// Google Places at lead-search time instead of scraping anything new.
+function buildLeadDetailsSummary(lead) {
+  const lines = [];
+  if (lead.category) lines.push(`Category/trade: ${lead.category}`);
+  if (lead.address) lines.push(`Address: ${lead.address}`);
+  else if (lead.city || lead.state) lines.push(`Location: ${[lead.city, lead.state].filter(Boolean).join(', ')}`);
+  if (lead.phone) lines.push(`Phone: ${lead.phone}`);
+  if (lead.rating != null) lines.push(`Google rating: ${lead.rating} (${lead.review_count ?? 'unknown'} reviews)`);
+  return lines.join('\n');
+}
+
+async function generateSystemPrompt(businessName, niche, content, extraContext, isStructuredFallback) {
+  const cleanedContent = isStructuredFallback ? content : cleanScrapedContent(content).slice(0, 15000);
+
+  const contentLabel = isStructuredFallback
+    ? 'This business has no website, so only these known details are available (not scraped site content):'
+    : 'Website content:';
 
   const response = await anthropic.messages.create({
     model: 'claude-opus-5',
     max_tokens: 2000,
     output_config: { effort: 'medium' },
     system:
-      "You write system prompts for AI phone voice agents. Given a business's website content, write a " +
+      "You write system prompts for AI phone voice agents. Given a business's available details, write a " +
       'complete system prompt for a voice agent that answers calls, represents the business accurately, and ' +
       'helps with the niche use case described. Ignore any reviews, testimonials, navigation, or footer ' +
-      'content in the website text - your job is to write a clean AI receptionist system prompt for this ' +
-      'business using only the business name, services, hours, location, and contact info. Respond with only ' +
+      'content - your job is to write a clean AI receptionist system prompt for this business using only ' +
+      'the business name, services, hours, location, and contact info actually available. If only category, ' +
+      "location, and rating are available (no website content), write a general but professional prompt for " +
+      "that category of business rather than inventing specific services or hours. Respond with only " +
       'the system prompt text - no preamble, no explanation, no markdown formatting.',
     messages: [
       {
         role: 'user',
         content:
-          `Business name: ${businessName}\nNiche/use case: ${niche}\n\nWebsite content:\n${cleanedContent}` +
+          `Business name: ${businessName}\nNiche/use case: ${niche}\n\n${contentLabel}\n${cleanedContent}` +
           (extraContext ? `\n\nAdditional business details supplied by the agency (use these too):\n${extraContext}` : ''),
       },
     ],
@@ -233,12 +253,14 @@ router.post('/build', async (req, res) => {
     }
 
     const websiteToScrape = website_override || lead.website;
-    if (!websiteToScrape) {
-      return res.status(400).json({ error: 'Lead has no website to scrape - provide one manually' });
+    let systemPrompt;
+    if (websiteToScrape) {
+      const scrapedContent = await scrapeWebsite(websiteToScrape);
+      systemPrompt = await generateSystemPrompt(lead.business_name, niche, scrapedContent, extra_context, false);
+    } else {
+      const leadDetails = buildLeadDetailsSummary(lead);
+      systemPrompt = await generateSystemPrompt(lead.business_name, niche, leadDetails, extra_context, true);
     }
-
-    const scrapedContent = await scrapeWebsite(websiteToScrape);
-    const systemPrompt = await generateSystemPrompt(lead.business_name, niche, scrapedContent, extra_context);
 
     const llm = await createRetellLlm(systemPrompt, greeting);
     const retellAgent = await createRetellAgent(agent_name, voice, llm.llm_id);
