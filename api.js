@@ -295,6 +295,10 @@
       const query = return_url ? `?return_url=${encodeURIComponent(return_url)}` : '';
       return request('GET', `/api/stripe/portal${query}`);
     },
+
+    async addFunds({ amount }) {
+      return request('POST', '/api/stripe/add-funds', { amount });
+    },
   };
 
   const proposals = {

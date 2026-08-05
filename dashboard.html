@@ -1339,6 +1339,24 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             <div id="billing-manage-note" class="hidden" style="padding:12px 20px;font-size:.78rem;color:var(--ink2);border-top:1px solid var(--border)"></div>
           </div>
 
+          <div class="s-group" id="s-group-usage-balance">
+            <div class="s-group-label">Usage Balance</div>
+            <div class="s-row" style="cursor:default">
+              <div class="s-row-left">
+                <div class="s-icon">📞</div>
+                <div><div class="s-label">Call cost balance</div><div class="s-meta">Covers real AI call cost (+10%) for every agent — calls pause when this hits $0</div></div>
+              </div>
+              <div class="s-right" id="usage-balance-display" style="font-weight:700">$0.00</div>
+            </div>
+            <div id="usage-balance-low-warning" class="hidden" style="padding:10px 20px;font-size:.78rem;color:var(--red);border-top:1px solid var(--border)">⚠ Balance is low or empty — agents will stop taking calls until you add funds.</div>
+            <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-ghost" style="font-size:.78rem;padding:.45rem .9rem" onclick="handleAddFunds(25, this)">+ $25</button>
+              <button class="btn btn-ghost" style="font-size:.78rem;padding:.45rem .9rem" onclick="handleAddFunds(50, this)">+ $50</button>
+              <button class="btn btn-ghost" style="font-size:.78rem;padding:.45rem .9rem" onclick="handleAddFunds(100, this)">+ $100</button>
+              <span id="usage-balance-error" style="color:var(--red);font-size:.76rem"></span>
+            </div>
+          </div>
+
           <div class="s-group">
             <div class="s-group-label">Security</div>
             <div class="s-row" onclick="openChangePasswordModal()"><div class="s-row-left"><div class="s-icon">🔒</div><div><div class="s-label">Change Password</div></div></div><div class="s-right">→</div></div>
@@ -2301,6 +2319,15 @@ async function loadUserStats(){
     const billingLabelEl = document.getElementById('billing-plan-label');
     if(billingLabelEl) billingLabelEl.textContent = `${planInfo.label} Plan`;
 
+    const balanceCents = user.usage_balance_cents || 0;
+    const balanceEl = document.getElementById('usage-balance-display');
+    if(balanceEl){
+      balanceEl.textContent = '$' + (balanceCents / 100).toFixed(2);
+      balanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink)';
+    }
+    const lowWarningEl = document.getElementById('usage-balance-low-warning');
+    if(lowWarningEl) lowWarningEl.classList.toggle('hidden', balanceCents > 500);
+
     const billingMetaEl = document.getElementById('billing-plan-meta');
     if(billingMetaEl) {
       billingMetaEl.textContent = `${planInfo.price} · ${user.scrape_credits_used} / ${user.scrape_credits_limit} scrapes used`;
@@ -2596,6 +2623,20 @@ function renderPlanPicker(noteEl){
     </div>
     <div id="billing-plan-picker-error" style="color:var(--red);font-size:.76rem;margin-top:8px"></div>
   `;
+}
+
+async function handleAddFunds(amount, btn){
+  const errEl = document.getElementById('usage-balance-error');
+  if(errEl) errEl.textContent = '';
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Redirecting…';
+  try {
+    const { url } = await API.stripe.addFunds({ amount });
+    window.location.href = url;
+  } catch (err) {
+    if(errEl) errEl.textContent = err.message;
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 
 async function handleChangePlanCheckout(plan, btn){

@@ -45,6 +45,34 @@ async function handleCheckoutCompleted(supabase, session) {
   }
 }
 
+async function handleUsageTopupCompleted(supabase, session) {
+  const userId = session.client_reference_id;
+  if (!userId) {
+    console.warn(`usage top-up checkout.session.completed had no client_reference_id (session ${session.id})`);
+    return;
+  }
+
+  const { error: rpcError } = await supabase.rpc('increment_usage_balance', {
+    p_user_id: userId,
+    p_amount_cents: session.amount_total,
+  });
+
+  if (rpcError) {
+    throw new Error(`Failed to credit usage balance: ${rpcError.message}`);
+  }
+
+  const { error: txError } = await supabase.from('usage_transactions').insert({
+    user_id: userId,
+    amount_cents: session.amount_total,
+    type: 'topup',
+    description: 'Balance top-up',
+  });
+
+  if (txError) {
+    throw new Error(`Failed to log usage top-up transaction: ${txError.message}`);
+  }
+}
+
 async function handleSubscriptionDeleted(supabase, subscription) {
   // No free tier: a canceled subscription means no access, not the old
   // free-starter default.
@@ -104,7 +132,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutCompleted(supabase, event.data.object);
+        if (event.data.object.mode === 'payment') {
+          await handleUsageTopupCompleted(supabase, event.data.object);
+        } else {
+          await handleCheckoutCompleted(supabase, event.data.object);
+        }
         break;
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(supabase, event.data.object);
@@ -165,6 +197,38 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
       // redirects need the actual frontend, which is a separate static site.
       success_url: `${process.env.FRONTEND_URL}/dashboard.html?checkout=success`,
       cancel_url: `${process.env.FRONTEND_URL}/dashboard.html?checkout=cancel`,
+    });
+
+    res.json({ url: checkoutSession.url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/add-funds', requireAuth, async (req, res) => {
+  const { amount } = req.body;
+  const amountCents = Math.round(Number(amount) * 100);
+
+  if (!Number.isFinite(amountCents) || amountCents < 500) {
+    return res.status(400).json({ error: 'Minimum top-up is $5' });
+  }
+
+  try {
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: { name: 'LaunchDesk usage balance top-up' },
+            unit_amount: amountCents,
+          },
+          quantity: 1,
+        },
+      ],
+      client_reference_id: req.userId,
+      success_url: `${process.env.FRONTEND_URL}/dashboard.html?topup=success`,
+      cancel_url: `${process.env.FRONTEND_URL}/dashboard.html?topup=cancel`,
     });
 
     res.json({ url: checkoutSession.url });
