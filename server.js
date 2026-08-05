@@ -76,6 +76,59 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
   // instead of a cost the agency fronts.
   const USAGE_MARKUP = 1.1;
 
+  // Detaching inbound_agents (rather than deleting the number) stops the
+  // agent from actually answering - and therefore stops billable Retell
+  // usage - while keeping the number itself intact to reattach later.
+  async function detachAgentFromNumber(phoneNumber) {
+    const res = await fetch(`https://api.retellai.com/update-phone-number/${encodeURIComponent(phoneNumber)}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${process.env.RETELL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inbound_agents: null }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Retell update-phone-number failed (${res.status}): ${text}`);
+    }
+  }
+
+  async function pauseAgentsForBalance(userId) {
+    const { data: activeAgents, error: fetchError } = await supabase
+      .from('agents')
+      .select('id, retell_phone_number')
+      .eq('user_id', userId)
+      .eq('status', 'active');
+
+    if (fetchError) {
+      console.error(`Failed to fetch active agents to pause for user ${userId}: ${fetchError.message}`);
+      return;
+    }
+    if (!activeAgents || activeAgents.length === 0) return;
+
+    for (const agent of activeAgents) {
+      if (!agent.retell_phone_number) continue;
+      try {
+        await detachAgentFromNumber(agent.retell_phone_number);
+      } catch (err) {
+        console.error(`Failed to detach agent ${agent.id} from its number after balance depletion: ${err.message}`);
+      }
+    }
+
+    const { error: updateError } = await supabase
+      .from('agents')
+      .update({ status: 'inactive', paused_for_balance: true })
+      .in(
+        'id',
+        activeAgents.map((a) => a.id)
+      );
+
+    if (updateError) {
+      console.error(`Failed to mark agents paused_for_balance for user ${userId}: ${updateError.message}`);
+    }
+  }
+
   async function chargeUsage(userId, retellCostCents, callLogId) {
     const chargeCents = Math.ceil(retellCostCents * USAGE_MARKUP);
 
@@ -102,15 +155,7 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     }
 
     if (newBalance <= 0) {
-      const { error: pauseError } = await supabase
-        .from('agents')
-        .update({ status: 'inactive' })
-        .eq('user_id', userId)
-        .eq('status', 'active');
-
-      if (pauseError) {
-        console.error(`Failed to pause agents for user ${userId} after balance depletion: ${pauseError.message}`);
-      }
+      await pauseAgentsForBalance(userId);
     }
   }
 

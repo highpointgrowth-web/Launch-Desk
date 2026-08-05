@@ -105,6 +105,7 @@ create table if not exists agents (
   cal_event_type_id text,
   monthly_charge numeric,
   status text not null default 'building' check (status in ('building', 'active', 'inactive')),
+  paused_for_balance boolean not null default false,
   created_at timestamptz not null default now()
 );
 

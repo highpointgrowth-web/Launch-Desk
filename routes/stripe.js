@@ -45,6 +45,58 @@ async function handleCheckoutCompleted(supabase, session) {
   }
 }
 
+// Reattaches inbound_agents on a phone number - the inverse of the detach
+// done when a balance hits zero.
+async function reattachAgentToNumber(phoneNumber, retellAgentId) {
+  const res = await fetch(`https://api.retellai.com/update-phone-number/${encodeURIComponent(phoneNumber)}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${process.env.RETELL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ inbound_agents: [{ agent_id: retellAgentId, weight: 1 }] }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Retell update-phone-number failed (${res.status}): ${text}`);
+  }
+}
+
+async function resumeAgentsForBalance(supabase, userId) {
+  const { data: pausedAgents, error: fetchError } = await supabase
+    .from('agents')
+    .select('id, retell_agent_id, retell_phone_number')
+    .eq('user_id', userId)
+    .eq('paused_for_balance', true);
+
+  if (fetchError) {
+    console.error(`Failed to fetch paused agents to resume for user ${userId}: ${fetchError.message}`);
+    return;
+  }
+  if (!pausedAgents || pausedAgents.length === 0) return;
+
+  for (const agent of pausedAgents) {
+    if (!agent.retell_phone_number || !agent.retell_agent_id) continue;
+    try {
+      await reattachAgentToNumber(agent.retell_phone_number, agent.retell_agent_id);
+    } catch (err) {
+      console.error(`Failed to reattach agent ${agent.id} after top-up: ${err.message}`);
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from('agents')
+    .update({ status: 'active', paused_for_balance: false })
+    .in(
+      'id',
+      pausedAgents.map((a) => a.id)
+    );
+
+  if (updateError) {
+    console.error(`Failed to un-pause agents for user ${userId}: ${updateError.message}`);
+  }
+}
+
 async function handleUsageTopupCompleted(supabase, session) {
   const userId = session.client_reference_id;
   if (!userId) {
@@ -52,7 +104,7 @@ async function handleUsageTopupCompleted(supabase, session) {
     return;
   }
 
-  const { error: rpcError } = await supabase.rpc('increment_usage_balance', {
+  const { data: newBalance, error: rpcError } = await supabase.rpc('increment_usage_balance', {
     p_user_id: userId,
     p_amount_cents: session.amount_total,
   });
@@ -70,6 +122,10 @@ async function handleUsageTopupCompleted(supabase, session) {
 
   if (txError) {
     throw new Error(`Failed to log usage top-up transaction: ${txError.message}`);
+  }
+
+  if (newBalance > 0) {
+    await resumeAgentsForBalance(supabase, userId);
   }
 }
 
