@@ -305,6 +305,10 @@
     async addFunds({ amount }) {
       return request('POST', '/api/stripe/add-funds', { amount });
     },
+
+    async getUsageTransactions() {
+      return request('GET', '/api/stripe/usage-transactions');
+    },
   };
 
   const proposals = {

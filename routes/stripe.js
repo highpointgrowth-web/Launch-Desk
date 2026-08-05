@@ -293,4 +293,20 @@ router.post('/add-funds', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/usage-transactions', requireAuth, async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('usage_transactions')
+    .select('*')
+    .eq('user_id', req.userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ transactions: data });
+});
+
 module.exports = router;

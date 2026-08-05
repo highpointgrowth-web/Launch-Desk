@@ -392,14 +392,14 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="signal-item">MRR: <b>$0</b></div>
       <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
       <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
-      <div class="signal-item" style="cursor:pointer" onclick="nav('settings',null)">Balance: <b id="signal-balance">$0.00</b></div>
+      <div class="signal-item" style="cursor:pointer" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">Balance: <b id="signal-balance">$0.00</b></div>
       <a href="#" class="upgrade" id="signal-upgrade-link" onclick="handleUpgradeClick(); return false;">↑ Upgrade to Agency</a>
     </div>
   </div>
 
   <div id="global-balance-banner" class="hidden" style="background:var(--red-bg,#450a0a);color:var(--red);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:.82rem;font-weight:600">
     <span id="global-balance-banner-text">⚠ Your call balance is low.</span>
-    <button class="btn btn-indigo" style="font-size:.74rem;padding:.35rem .8rem" onclick="nav('settings',null)">Add Funds</button>
+    <button class="btn btn-indigo" style="font-size:.74rem;padding:.35rem .8rem" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">Add Funds</button>
   </div>
 
   <div class="body-row">
@@ -458,6 +458,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
         <div class="sidebar-section-items">
           <button class="sidebar-item" id="nav-proposals" onclick="navToPage('proposals',this)"><span class="sidebar-item-icon">📄</span>Proposals</button>
           <button class="sidebar-item" id="nav-payments" onclick="navToPage('payments',this)"><span class="sidebar-item-icon">💰</span>Payments</button>
+          <button class="sidebar-item" id="nav-buy-minutes" onclick="navToPage('buy-minutes',this)"><span class="sidebar-item-icon">📞</span>Buy Minutes</button>
         </div>
       </div>
     </nav>
@@ -1376,21 +1377,12 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
           <div class="s-group" id="s-group-usage-balance">
             <div class="s-group-label">Usage Balance</div>
-            <div class="s-row" style="cursor:default">
+            <div class="s-row" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">
               <div class="s-row-left">
                 <div class="s-icon">📞</div>
-                <div><div class="s-label">Call cost balance</div><div class="s-meta">Covers real AI call cost (+10%) for every agent — calls pause when this hits 0 minutes</div></div>
+                <div><div class="s-label">Call cost balance</div><div class="s-meta">Add funds and see activity in Buy Minutes</div></div>
               </div>
-              <div class="s-right" style="text-align:right">
-                <div id="usage-balance-minutes" style="font-weight:700;font-size:1.05rem">~0 min</div>
-                <div id="usage-balance-display" style="font-size:.72rem;color:var(--ink3)">$0.00</div>
-              </div>
-            </div>
-            <div id="usage-balance-low-warning" class="hidden" style="padding:10px 20px;font-size:.78rem;color:var(--red);border-top:1px solid var(--border)">⚠ Balance is low or empty — agents will stop taking calls until you add funds.</div>
-            <div style="padding:16px 20px;border-top:1px solid var(--border)">
-              <div style="font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px">Buy minutes</div>
-              <div id="minute-packages-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"></div>
-              <span id="usage-balance-error" style="color:var(--red);font-size:.76rem;display:block;margin-top:8px"></span>
+              <div class="s-right" style="color:var(--indigo)">Buy Minutes →</div>
             </div>
           </div>
 
@@ -1477,6 +1469,35 @@ Happy to. What's the biggest headache with missed calls for you right now — so
           <thead><tr><th>Business</th><th>Sent</th><th>Status</th></tr></thead>
           <tbody id="payments-history-body">
             <tr><td colspan="3" style="text-align:center;padding:24px;color:var(--ink3)">No sent proposals yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BUY MINUTES -->
+    <div class="page" id="page-buy-minutes">
+      <div class="page-header"><div class="page-title">Buy Minutes</div><div class="page-sub">Covers real AI call cost (+10%) for every agent — calls pause when this hits 0 minutes</div></div>
+      <div class="card card-pad" style="margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+          <div>
+            <div style="font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px">Current Balance</div>
+            <div id="bm-balance-minutes" style="font-size:2rem;font-weight:800">~0 min</div>
+            <div id="bm-balance-display" style="font-size:.85rem;color:var(--ink3);margin-top:2px">$0.00</div>
+          </div>
+          <div id="bm-low-warning" class="hidden" style="background:var(--red-bg,#450a0a);color:var(--red);border-radius:9px;padding:10px 16px;font-size:.82rem;font-weight:600;max-width:320px">⚠ Balance is low or empty — agents will stop taking calls until you add funds.</div>
+        </div>
+      </div>
+      <div class="card card-pad" style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:16px">Buy Minutes</div>
+        <div id="bm-packages-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"></div>
+        <span id="bm-error" style="color:var(--red);font-size:.76rem;display:block;margin-top:10px"></span>
+      </div>
+      <div class="card card-pad">
+        <div class="card-title" style="margin-bottom:16px">Recent Activity</div>
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th></tr></thead>
+          <tbody id="bm-activity-body">
+            <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ink3)">No activity yet.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1697,7 +1718,7 @@ function toggleSidebarSection(headerEl){
   headerEl.parentElement.classList.toggle('collapsed');
 }
 
-const PAGE_LOADERS = { meetings: loadMeetingsPage, clients: loadClientsPage, payments: loadPaymentsPage, proposals: loadProposalsPage };
+const PAGE_LOADERS = { meetings: loadMeetingsPage, clients: loadClientsPage, payments: loadPaymentsPage, proposals: loadProposalsPage, 'buy-minutes': loadBuyMinutesPage };
 function navToPage(name, el){
   nav(name, el);
   const loader = PAGE_LOADERS[name];
@@ -2521,18 +2542,18 @@ async function loadUserStats(){
     const balanceStr = '$' + (balanceCents / 100).toFixed(2);
     const minutesStr = formatMinutesLabel(balanceCents);
 
-    const balanceEl = document.getElementById('usage-balance-display');
-    if(balanceEl){
-      balanceEl.textContent = balanceStr;
-      balanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink3)';
+    const bmBalanceEl = document.getElementById('bm-balance-display');
+    if(bmBalanceEl){
+      bmBalanceEl.textContent = balanceStr;
+      bmBalanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink3)';
     }
-    const balanceMinutesEl = document.getElementById('usage-balance-minutes');
-    if(balanceMinutesEl){
-      balanceMinutesEl.textContent = minutesStr;
-      balanceMinutesEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink)';
+    const bmBalanceMinutesEl = document.getElementById('bm-balance-minutes');
+    if(bmBalanceMinutesEl){
+      bmBalanceMinutesEl.textContent = minutesStr;
+      bmBalanceMinutesEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink)';
     }
-    const lowWarningEl = document.getElementById('usage-balance-low-warning');
-    if(lowWarningEl) lowWarningEl.classList.toggle('hidden', balanceCents > 500);
+    const bmLowWarningEl = document.getElementById('bm-low-warning');
+    if(bmLowWarningEl) bmLowWarningEl.classList.toggle('hidden', balanceCents > 500);
 
     const signalBalanceEl = document.getElementById('signal-balance');
     if(signalBalanceEl){
@@ -2900,7 +2921,7 @@ const MINUTE_PACKAGES = [
 ];
 
 function renderMinutePackages(){
-  const grid = document.getElementById('minute-packages-grid');
+  const grid = document.getElementById('bm-packages-grid');
   if(!grid) return;
   grid.innerHTML = MINUTE_PACKAGES.map((p, i) => `
     <div style="background:var(--surface2);border:1px solid ${p.featured ? 'var(--indigo)' : 'var(--border)'};border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px">
@@ -2914,7 +2935,7 @@ function renderMinutePackages(){
 }
 
 async function handleAddFunds(amount, btn){
-  const errEl = document.getElementById('usage-balance-error');
+  const errEl = document.getElementById('bm-error');
   if(errEl) errEl.textContent = '';
   const original = btn.textContent;
   btn.disabled = true; btn.textContent = 'Redirecting…';
@@ -2924,6 +2945,46 @@ async function handleAddFunds(amount, btn){
   } catch (err) {
     if(errEl) errEl.textContent = err.message;
     btn.disabled = false; btn.textContent = original;
+  }
+}
+
+const USAGE_TX_LABELS = { topup: 'Top-up', call_charge: 'Call' };
+
+async function loadBuyMinutesPage(){
+  renderMinutePackages();
+  if(cachedUser) {
+    const balanceCents = cachedUser.usage_balance_cents || 0;
+    const bmBalanceEl = document.getElementById('bm-balance-display');
+    const bmBalanceMinutesEl = document.getElementById('bm-balance-minutes');
+    const bmLowWarningEl = document.getElementById('bm-low-warning');
+    if(bmBalanceEl) bmBalanceEl.textContent = '$' + (balanceCents / 100).toFixed(2);
+    if(bmBalanceMinutesEl) bmBalanceMinutesEl.textContent = formatMinutesLabel(balanceCents);
+    if(bmLowWarningEl) bmLowWarningEl.classList.toggle('hidden', balanceCents > 500);
+  }
+
+  const tbody = document.getElementById('bm-activity-body');
+  if(!tbody) return;
+  try {
+    const { transactions } = await API.stripe.getUsageTransactions();
+    if(!transactions || !transactions.length){
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ink3)">No activity yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = transactions.map((tx) => {
+      const isTopup = tx.type === 'topup';
+      const sign = tx.amount_cents < 0 ? '-' : '+';
+      const amountStr = `${sign}$${Math.abs(tx.amount_cents / 100).toFixed(2)}`;
+      return `
+        <tr>
+          <td>${new Date(tx.created_at).toLocaleString()}</td>
+          <td><span class="badge ${isTopup ? 'b-green' : 'b-gray'}">${USAGE_TX_LABELS[tx.type] || tx.type}</span></td>
+          <td>${escapeHtml(tx.description || '—')}</td>
+          <td style="color:${isTopup ? 'var(--green)' : 'var(--ink)'};font-weight:600">${amountStr}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--red)">Failed to load activity: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
