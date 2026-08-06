@@ -1,6 +1,7 @@
 const express = require('express');
 const Stripe = require('stripe');
 const { requireAuth } = require('../middleware/auth');
+const { LOW_BALANCE_PAUSE_CENTS } = require('../billing-constants');
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -124,7 +125,7 @@ async function handleUsageTopupCompleted(supabase, session) {
     throw new Error(`Failed to log usage top-up transaction: ${txError.message}`);
   }
 
-  if (newBalance > 0) {
+  if (newBalance >= LOW_BALANCE_PAUSE_CENTS) {
     await resumeAgentsForBalance(supabase, userId);
   }
 }

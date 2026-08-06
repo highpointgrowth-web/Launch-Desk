@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
+const { LOW_BALANCE_PAUSE_CENTS } = require('./billing-constants');
 
 const leadsRouter = require('./routes/leads');
 const agentsRouter = require('./routes/agents');
@@ -154,7 +155,7 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
       console.error(`Failed to log usage transaction for user ${userId}: ${txError.message}`);
     }
 
-    if (newBalance <= 0) {
+    if (newBalance < LOW_BALANCE_PAUSE_CENTS) {
       await pauseAgentsForBalance(userId);
     }
   }
