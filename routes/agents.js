@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireAuth } = require('../middleware/auth');
 const { requirePaidPlan } = require('../middleware/plan');
+const { AGENT_PROMPT_GENERATION_FEE_CENTS, chargeFlatFee } = require('../billing-constants');
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -232,10 +233,11 @@ router.post('/preview-prompt', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
+    await chargeFlatFee(supabase, req.userId, AGENT_PROMPT_GENERATION_FEE_CENTS, 'AI prompt generation');
     const systemPrompt = await resolveSystemPrompt(lead, niche, website_override, extra_context);
     res.json({ system_prompt: systemPrompt });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 
@@ -298,6 +300,9 @@ router.post('/build', async (req, res) => {
     // A pre-generated prompt (from the builder's review step) is used as-is,
     // including any hand edits - only falls back to generating fresh if none
     // was supplied, so direct API callers keep working unchanged.
+    if (!system_prompt) {
+      await chargeFlatFee(supabase, req.userId, AGENT_PROMPT_GENERATION_FEE_CENTS, 'AI prompt generation');
+    }
     const systemPrompt = system_prompt || (await resolveSystemPrompt(lead, niche, website_override, extra_context));
 
     const llm = await createRetellLlm(systemPrompt, greeting);
@@ -331,7 +336,7 @@ router.post('/build', async (req, res) => {
 
     res.status(201).json({ agent });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 

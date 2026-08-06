@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const nodemailer = require('nodemailer');
 const { requireAuth } = require('../middleware/auth');
 const { requirePaidPlan } = require('../middleware/plan');
+const { PROPOSAL_GENERATION_FEE_CENTS, chargeFlatFee } = require('../billing-constants');
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -114,6 +115,7 @@ router.post('/', async (req, res) => {
 
     const { data: user } = await supabase.from('users').select('proposal_template').eq('id', req.userId).single();
 
+    await chargeFlatFee(supabase, req.userId, PROPOSAL_GENERATION_FEE_CENTS, 'Proposal generation');
     const content = await generateProposal(lead, user && user.proposal_template);
 
     const { data: proposal, error: insertError } = await supabase
@@ -132,7 +134,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ proposal });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   }
 });
 

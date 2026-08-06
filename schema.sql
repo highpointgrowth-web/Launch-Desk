@@ -382,7 +382,7 @@ create table if not exists usage_transactions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   amount_cents integer not null,
-  type text not null check (type in ('topup', 'call_charge')),
+  type text not null check (type in ('topup', 'call_charge', 'feature_charge')),
   call_log_id uuid references call_logs(id) on delete set null,
   description text,
   created_at timestamptz not null default now()
@@ -421,6 +421,21 @@ begin
   update users
   set usage_balance_cents = usage_balance_cents - p_amount_cents
   where id = p_user_id
+  returning usage_balance_cents into new_balance;
+  return new_balance;
+end;
+$$;
+
+create or replace function charge_if_sufficient(p_user_id uuid, p_amount_cents integer)
+returns integer
+language plpgsql
+as $$
+declare
+  new_balance integer;
+begin
+  update users
+  set usage_balance_cents = usage_balance_cents - p_amount_cents
+  where id = p_user_id and usage_balance_cents >= p_amount_cents
   returning usage_balance_cents into new_balance;
   return new_balance;
 end;
