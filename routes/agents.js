@@ -197,6 +197,10 @@ function buyRetellPhoneNumber(retellAgentId, areaCode) {
   });
 }
 
+function deleteRetellPhoneNumber(phoneNumber) {
+  return retellFetch('DELETE', `/delete-phone-number/${encodeURIComponent(phoneNumber)}`);
+}
+
 async function resolveSystemPrompt(lead, niche, websiteOverride, extraContext) {
   const websiteToScrape = websiteOverride || lead.website;
   if (websiteToScrape) {
@@ -426,13 +430,24 @@ router.delete('/:id', async (req, res) => {
 
   const { data: agent, error: fetchError } = await supabase
     .from('agents')
-    .select('retell_agent_id, retell_llm_id')
+    .select('retell_agent_id, retell_llm_id, retell_phone_number')
     .eq('id', req.params.id)
     .eq('user_id', req.userId)
     .single();
 
   if (fetchError || !agent) {
     return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  // A purchased number keeps costing us rent on Retell's side until it's
+  // explicitly released - deleting the agent alone doesn't free it.
+  if (agent.retell_phone_number) {
+    try {
+      await deleteRetellPhoneNumber(agent.retell_phone_number);
+    } catch (err) {
+      // Continue with local deletion even if the Retell-side release fails
+      // (e.g. it was already removed there).
+    }
   }
 
   if (agent.retell_agent_id) {
