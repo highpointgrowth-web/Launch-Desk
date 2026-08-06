@@ -202,6 +202,10 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .data-table tbody tr:hover td{background:var(--bg2)}
 .data-table tbody tr:hover td:first-child{border-radius:8px 0 0 8px;padding-left:8px}
 .data-table tbody tr:hover td:last-child{border-radius:0 8px 8px 0}
+.row-select-checkbox{opacity:0;transition:opacity .12s ease}
+.data-table tbody tr:hover .row-select-checkbox,
+.row-select-checkbox:checked,
+.row-select-checkbox:focus-visible{opacity:1}
 .td-primary{font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
 .td-icon{width:26px;height:26px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.78rem;flex:none}
 .score{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--indigo);font-weight:500}
@@ -1420,10 +1424,14 @@ Happy to. What's the biggest headache with missed calls for you right now — so
         <div class="stat-cell"><div class="stat-label">Total</div><div class="stat-val" id="meetings-stat-total">0</div></div>
       </div>
       <div class="card card-pad">
+        <div id="meetings-bulk-actions-bar" class="hidden" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:10px 14px;background:var(--red-bg);border-radius:8px">
+          <span style="font-size:.82rem;color:var(--ink2)"><b id="meetings-selected-count">0</b> selected</span>
+          <button class="btn" style="background:var(--red);color:#fff;font-size:.78rem" onclick="handleDeleteSelectedMeetings()">🗑 Delete Selected</button>
+        </div>
         <table class="data-table">
-          <thead><tr><th>Business</th><th>Date</th><th>Time</th><th>Notes</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th style="width:28px"><input type="checkbox" id="meetings-select-all" onchange="toggleSelectAllMeetings(this)"></th><th>Business</th><th>Date</th><th>Time</th><th>Notes</th><th>Status</th><th></th></tr></thead>
           <tbody id="meetings-body">
-            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No meetings yet. Click + Add Meeting to log one.</td></tr>
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink3)">No meetings yet. Click + Add Meeting to log one.</td></tr>
           </tbody>
         </table>
       </div>
@@ -3600,7 +3608,7 @@ function renderCRMTable(leads){
     } else {
       tbody.innerHTML = cachedCRMLeads.map((lead) => `
         <tr>
-          <td><input type="checkbox" class="crm-row-checkbox" data-lead-id="${lead.id}" onchange="handleCrmRowCheckboxChange(this)"></td>
+          <td><input type="checkbox" class="row-select-checkbox crm-row-checkbox" data-lead-id="${lead.id}" onchange="handleCrmRowCheckboxChange(this)"></td>
           <td><span class="td-primary"><span class="td-icon">🏢</span>${escapeHtml(lead.business_name || '—')}</span></td>
           <td>${escapeHtml(lead.phone || '—')}</td>
           <td>${escapeHtml(lead.email || '—')}</td>
@@ -4451,11 +4459,13 @@ function proposalStatusLabel(status){
 
 // ── BOOKED MEETINGS ──
 let cachedMeetings = [];
+let selectedMeetingIds = new Set();
 
 async function loadMeetingsPage(){
   try {
     const { meetings } = await API.meetings.getAll();
     cachedMeetings = meetings || [];
+    selectedMeetingIds = new Set();
     renderMeetings();
   } catch (err) {
     console.error('Failed to load meetings', err);
@@ -4471,11 +4481,13 @@ function renderMeetings(){
 
   const tbody = document.getElementById('meetings-body');
   if(!cachedMeetings.length){
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--ink3)">No meetings yet. Click + Add Meeting to log one.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--ink3)">No meetings yet. Click + Add Meeting to log one.</td></tr>';
+    updateMeetingsBulkActionsBar();
     return;
   }
   tbody.innerHTML = cachedMeetings.map((m) => `
     <tr>
+      <td><input type="checkbox" class="row-select-checkbox meeting-row-checkbox" data-meeting-id="${m.id}" onchange="handleMeetingRowCheckboxChange(this)"></td>
       <td><span class="td-primary">${escapeHtml(m.business_name)}</span></td>
       <td>${escapeHtml(m.meeting_date || '—')}</td>
       <td>${escapeHtml(m.meeting_time || '—')}</td>
@@ -4484,6 +4496,51 @@ function renderMeetings(){
       <td>${m.status === 'upcoming' ? `<button class="btn btn-ghost" style="font-size:.72rem;padding:.35rem .7rem" onclick="handleMarkMeetingCompleted('${m.id}', this)">Mark Completed</button>` : ''}</td>
     </tr>
   `).join('');
+  updateMeetingsBulkActionsBar();
+}
+
+function updateMeetingsBulkActionsBar(){
+  const bar = document.getElementById('meetings-bulk-actions-bar');
+  const countEl = document.getElementById('meetings-selected-count');
+  const selectAllEl = document.getElementById('meetings-select-all');
+  const count = selectedMeetingIds.size;
+
+  if(countEl) countEl.textContent = count;
+  if(bar) bar.classList.toggle('hidden', count === 0);
+
+  if(selectAllEl){
+    const total = cachedMeetings.length;
+    selectAllEl.checked = total > 0 && count === total;
+    selectAllEl.indeterminate = count > 0 && count < total;
+  }
+}
+
+function handleMeetingRowCheckboxChange(checkbox){
+  const meetingId = checkbox.dataset.meetingId;
+  if(checkbox.checked) selectedMeetingIds.add(meetingId);
+  else selectedMeetingIds.delete(meetingId);
+  updateMeetingsBulkActionsBar();
+}
+
+function toggleSelectAllMeetings(checkbox){
+  selectedMeetingIds = checkbox.checked ? new Set(cachedMeetings.map((m) => m.id)) : new Set();
+  document.querySelectorAll('.meeting-row-checkbox').forEach((cb) => { cb.checked = checkbox.checked; });
+  updateMeetingsBulkActionsBar();
+}
+
+async function handleDeleteSelectedMeetings(){
+  const ids = [...selectedMeetingIds];
+  if(!ids.length) return;
+  if(!confirm(`Delete ${ids.length} selected meeting${ids.length === 1 ? '' : 's'}? This can't be undone.`)) return;
+
+  const results = await Promise.allSettled(ids.map((id) => API.meetings.delete(id)));
+  const failed = results.filter((r) => r.status === 'rejected').length;
+
+  await loadMeetingsPage();
+
+  if(failed){
+    alert(`Failed to delete ${failed} of ${ids.length} selected meeting${ids.length === 1 ? '' : 's'}.`);
+  }
 }
 
 async function handleMarkMeetingCompleted(id, btn){
