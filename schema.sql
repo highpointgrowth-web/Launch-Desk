@@ -426,6 +426,33 @@ begin
 end;
 $$;
 
+-- Atomic "charge only if the balance covers it" - see billing-constants.js
+-- for why this exists (flat-fee AI-generation charges must never front cost).
+create or replace function charge_if_sufficient(p_user_id uuid, p_amount_cents integer)
+returns integer
+language plpgsql
+as $$
+declare
+  new_balance integer;
+begin
+  update users
+  set usage_balance_cents = usage_balance_cents - p_amount_cents
+  where id = p_user_id and usage_balance_cents >= p_amount_cents
+  returning usage_balance_cents into new_balance;
+  return new_balance;
+end;
+$$;
+
+-- scrape_credits_used is monotonically incremented by routes/leads.js -
+-- reset it monthly so "N scrapes/mo" is actually monthly, not lifetime.
+create extension if not exists pg_cron with schema extensions;
+
+select cron.schedule(
+  'reset-scrape-credits-monthly',
+  '0 0 1 * *',
+  $$ update public.users set scrape_credits_used = 0; $$
+);
+
 create or replace function charge_if_sufficient(p_user_id uuid, p_amount_cents integer)
 returns integer
 language plpgsql

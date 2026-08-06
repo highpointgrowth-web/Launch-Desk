@@ -2,15 +2,10 @@ const express = require('express');
 const Stripe = require('stripe');
 const { requireAuth } = require('../middleware/auth');
 const { LOW_BALANCE_PAUSE_CENTS } = require('../billing-constants');
+const { PLAN_CREDITS } = require('../plan-constants');
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-const PLAN_BY_AMOUNT = {
-  1900: { plan: 'starter', scrape_credits_limit: 100 },
-  4900: { plan: 'pro', scrape_credits_limit: 1000 },
-  9900: { plan: 'agency', scrape_credits_limit: 2500 },
-};
 
 const PRICE_ID_BY_PLAN = {
   starter: process.env.STRIPE_PRICE_ID_STARTER,
@@ -18,10 +13,23 @@ const PRICE_ID_BY_PLAN = {
   agency: process.env.STRIPE_PRICE_ID_AGENCY,
 };
 
+// Inverse of the above, for resolving a plan back out of a Stripe price id.
+const PLAN_BY_PRICE_ID = Object.fromEntries(
+  Object.entries(PRICE_ID_BY_PLAN)
+    .filter(([, priceId]) => priceId)
+    .map(([plan, priceId]) => [priceId, plan])
+);
+
+// checkout.session.completed doesn't carry the price id directly, so the
+// plan chosen in /create-checkout is threaded through via metadata instead
+// of being re-derived from amount_total - matching on the dollar amount
+// charged breaks the moment a coupon, proration, or currency changes what
+// was actually paid, silently leaving a paying customer on no plan at all.
 async function handleCheckoutCompleted(supabase, session) {
-  const planInfo = PLAN_BY_AMOUNT[session.amount_total];
-  if (!planInfo) {
-    console.warn(`No plan mapping for checkout amount_total=${session.amount_total}`);
+  const plan = session.metadata?.plan;
+  const planCredits = plan && PLAN_CREDITS[plan];
+  if (!planCredits) {
+    console.warn(`No plan metadata on checkout session ${session.id} (metadata.plan=${plan})`);
     return;
   }
 
@@ -34,8 +42,8 @@ async function handleCheckoutCompleted(supabase, session) {
   const { error } = await supabase
     .from('users')
     .update({
-      plan: planInfo.plan,
-      scrape_credits_limit: planInfo.scrape_credits_limit,
+      plan,
+      scrape_credits_limit: planCredits,
       stripe_customer_id: session.customer,
       stripe_subscription_id: session.subscription,
     })
@@ -153,18 +161,19 @@ async function handleSubscriptionUpdated(supabase, subscription) {
   // left alone rather than guessed at here.
   if (subscription.status !== 'active' && subscription.status !== 'trialing') return;
 
-  const price = subscription.items.data[0]?.price;
-  const planInfo = price && PLAN_BY_AMOUNT[price.unit_amount];
-  if (!planInfo) {
-    console.warn(`No plan mapping for subscription update (customer=${subscription.customer})`);
+  const priceId = subscription.items.data[0]?.price?.id;
+  const plan = priceId && PLAN_BY_PRICE_ID[priceId];
+  const planCredits = plan && PLAN_CREDITS[plan];
+  if (!planCredits) {
+    console.warn(`No plan mapping for subscription update (customer=${subscription.customer}, price=${priceId})`);
     return;
   }
 
   const { error } = await supabase
     .from('users')
     .update({
-      plan: planInfo.plan,
-      scrape_credits_limit: planInfo.scrape_credits_limit,
+      plan,
+      scrape_credits_limit: planCredits,
       stripe_subscription_id: subscription.id,
     })
     .eq('stripe_customer_id', subscription.customer);
@@ -250,6 +259,7 @@ router.post('/create-checkout', requireAuth, async (req, res) => {
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       client_reference_id: req.userId,
+      metadata: { plan },
       // APP_URL is the Railway backend (used for webhook_url elsewhere) - checkout
       // redirects need the actual frontend, which is a separate static site.
       success_url: `${process.env.FRONTEND_URL}/dashboard.html?checkout=success`,

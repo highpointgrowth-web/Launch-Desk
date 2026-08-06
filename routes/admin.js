@@ -1,13 +1,13 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { requireAdmin } = require('../middleware/admin');
+const { PLAN_CREDITS } = require('../plan-constants');
 
 const router = express.Router();
 
 router.use(requireAuth);
 router.use(requireAdmin);
 
-const PLAN_CREDITS = { starter: 100, pro: 1000, agency: 2500 };
 const VALID_PLANS = Object.keys(PLAN_CREDITS);
 
 router.put('/users/:email/plan', async (req, res) => {
