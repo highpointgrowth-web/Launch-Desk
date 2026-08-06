@@ -3509,7 +3509,7 @@ function renderPipelineStats(leads){
 
 function renderStageSelect(lead){
   const stage = lead.pipeline_stage || 'new';
-  return `<select class="badge ${stageBadgeClass(stage)} b-dot" style="border:none;cursor:pointer;font-family:inherit;font-size:.67rem" data-lead-id="${lead.id}" onchange="handleStageChange(this)">
+  return `<select class="badge ${stageBadgeClass(stage)} b-dot" style="border:none;cursor:pointer;font-family:inherit;font-size:.67rem" data-lead-id="${lead.id}" data-prev-stage="${stage}" onchange="handleStageChange(this)">
     ${PIPELINE_STAGES.map((s) => `<option value="${s}" ${s === stage ? 'selected' : ''}>${STAGE_LABELS[s]}</option>`).join('')}
   </select>`;
 }
@@ -3517,14 +3517,19 @@ function renderStageSelect(lead){
 async function handleStageChange(selectEl){
   const leadId = selectEl.dataset.leadId;
   const newStage = selectEl.value;
+  const previousStage = selectEl.dataset.prevStage;
   selectEl.disabled = true;
   try {
     await API.leads.update(leadId, { pipeline_stage: newStage });
     const lead = cachedCRMLeads.find((l) => l.id === leadId);
     if(lead) lead.pipeline_stage = newStage;
     selectEl.className = `badge ${stageBadgeClass(newStage)} b-dot`;
+    selectEl.dataset.prevStage = newStage;
     renderPipelineStats(cachedCRMLeads);
     loadColdCallQueue();
+    if(newStage === 'meeting' && previousStage !== 'meeting' && lead){
+      openAddMeetingModal(lead);
+    }
   } catch (err) {
     alert('Failed to update stage: ' + err.message);
   } finally {
@@ -4492,8 +4497,8 @@ async function handleMarkMeetingCompleted(id, btn){
   }
 }
 
-async function openAddMeetingModal(){
-  document.getElementById('meeting-business-name').value = '';
+async function openAddMeetingModal(prefillLead){
+  document.getElementById('meeting-business-name').value = prefillLead ? prefillLead.business_name : '';
   document.getElementById('meeting-date').value = '';
   document.getElementById('meeting-time').value = '';
   document.getElementById('meeting-notes').value = '';
@@ -4512,6 +4517,7 @@ async function openAddMeetingModal(){
   } catch (err) {
     console.error('Failed to load leads for meeting modal', err);
   }
+  if(prefillLead) select.value = prefillLead.id;
 
   document.getElementById('modal-add-meeting').classList.remove('hidden');
 }
