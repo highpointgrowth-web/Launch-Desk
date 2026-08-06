@@ -245,7 +245,7 @@ create policy "Users can delete own integrations"
 create table if not exists meetings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
-  lead_id uuid references leads(id) on delete set null,
+  lead_id uuid references leads(id) on delete cascade,
   business_name text not null,
   meeting_date date not null,
   meeting_time text,
