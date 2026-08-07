@@ -4,11 +4,17 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
+const MIN_PASSWORD_LENGTH = 8;
+
 router.post('/signup', async (req, res) => {
   const { email, password, full_name } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'email and password are required' });
+  }
+
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
   }
 
   const supabase = req.app.locals.supabase;
@@ -154,8 +160,8 @@ router.put('/me', requireAuth, async (req, res) => {
 router.put('/password', requireAuth, async (req, res) => {
   const { password } = req.body;
 
-  if (!password || password.length < 6) {
-    return res.status(400).json({ error: 'password must be at least 6 characters' });
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
   }
 
   const supabase = req.app.locals.supabase;

@@ -181,6 +181,11 @@ async function handleSignupSubmit(){
     return;
   }
 
+  if(password.length < 8){
+    setError('signup-error', 'Password must be at least 8 characters.');
+    return;
+  }
+
   if(!document.getElementById('signup-terms-agree').checked){
     setError('signup-error', 'You must agree to the Terms of Service and Privacy Policy to continue.');
     return;
