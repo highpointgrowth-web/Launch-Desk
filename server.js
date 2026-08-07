@@ -95,6 +95,38 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     }
   }
 
+  // Only reaches Resend when RESEND_API_KEY is configured - logs and no-ops
+  // otherwise so the pause flow itself never breaks on a missing key.
+  async function sendLowBalanceEmail(userEmail, userName) {
+    if (!userEmail || !process.env.RESEND_API_KEY) return;
+
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.ALERT_FROM_EMAIL || 'LaunchDesk <alerts@mylaunchdesk.com>',
+          to: userEmail,
+          subject: 'Your AI agents have stopped taking calls',
+          text:
+            `Hi ${userName || 'there'},\n\n` +
+            "Your LaunchDesk usage balance ran out, so your AI agents have been paused and aren't answering calls right now.\n\n" +
+            `Add funds to resume: ${process.env.FRONTEND_URL || 'https://mylaunchdesk.com'}/dashboard.html\n\n` +
+            '- LaunchDesk',
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.error(`Failed to send low-balance email to ${userEmail} (${res.status}): ${text}`);
+      }
+    } catch (err) {
+      console.error(`Failed to send low-balance email to ${userEmail}: ${err.message}`);
+    }
+  }
+
   async function pauseAgentsForBalance(userId) {
     const { data: activeAgents, error: fetchError } = await supabase
       .from('agents')
@@ -128,6 +160,22 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     if (updateError) {
       console.error(`Failed to mark agents paused_for_balance for user ${userId}: ${updateError.message}`);
     }
+
+    // Only fires when agents were just newly paused (the length check above
+    // returns early otherwise), so this can't re-send on every subsequent
+    // webhook while the account stays at zero.
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('email, full_name')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !user) {
+      console.error(`Failed to fetch user for low-balance email (user ${userId}): ${userError?.message}`);
+      return;
+    }
+
+    await sendLowBalanceEmail(user.email, user.full_name);
   }
 
   async function chargeUsage(userId, retellCostCents, callLogId) {
