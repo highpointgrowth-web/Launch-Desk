@@ -6,6 +6,39 @@ const router = express.Router();
 
 const MIN_PASSWORD_LENGTH = 8;
 
+// If the request dies between auth.users creation and the profile insert
+// below (a deploy restarting the server mid-request, a dropped connection,
+// anything) the auth user is left behind with no matching profile - and
+// since Supabase Auth won't let that email sign up again, it's permanently
+// stuck. If a "already registered" collision has no profile row behind it,
+// it's safe to delete and retry instead of leaving the email dead forever.
+async function createAuthUserSelfHealing(supabase, email, password, full_name) {
+  const attempt = () =>
+    supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: full_name || null },
+    });
+
+  let { data, error } = await attempt();
+
+  if (error && /already.*registered|already.*exists/i.test(error.message)) {
+    const { data: listData } = await supabase.auth.admin.listUsers();
+    const orphan = listData?.users?.find((u) => u.email === email);
+
+    if (orphan) {
+      const { data: profile } = await supabase.from('users').select('id').eq('id', orphan.id).maybeSingle();
+      if (!profile) {
+        await supabase.auth.admin.deleteUser(orphan.id);
+        ({ data, error } = await attempt());
+      }
+    }
+  }
+
+  return { data, error };
+}
+
 router.post('/signup', async (req, res) => {
   const { email, password, full_name } = req.body;
 
@@ -19,12 +52,7 @@ router.post('/signup', async (req, res) => {
 
   const supabase = req.app.locals.supabase;
 
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: full_name || null },
-  });
+  const { data: authData, error: authError } = await createAuthUserSelfHealing(supabase, email, password, full_name);
 
   if (authError) {
     return res.status(400).json({ error: authError.message });
