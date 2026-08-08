@@ -52,6 +52,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
 
 .f-field{display:flex;flex-direction:column;gap:5px}
 .f-label{font-size:.67rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3)}
+.pw-wrap{position:relative}
+.pw-wrap .f-input{width:100%;padding-right:2.4rem}
+.pw-toggle{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink3);padding:2px;line-height:1;font-size:.95rem}
+.pw-toggle:hover{color:var(--ink)}
 .f-input{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.65rem .85rem;font-size:.86rem;color:var(--ink);font-family:'Inter',system-ui,sans-serif;outline:none;transition:all .15s}
 .f-input::placeholder{color:var(--ink3)}
 .f-input:focus{border-color:var(--indigo);box-shadow:0 0 0 3px var(--indigo-light)}
@@ -100,7 +104,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
   <!-- LOG IN -->
   <div class="auth-panel active" id="panel-login">
     <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="login-email" type="email" placeholder="you@business.com" autocomplete="email"></div>
-    <div class="f-field"><label class="f-label">Password</label><input class="f-input" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+    <div class="f-field"><label class="f-label">Password</label><div class="pw-wrap"><input class="f-input" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password"><button type="button" class="pw-toggle" onclick="togglePasswordVisibility(this)" aria-label="Show password">👁</button></div></div>
     <label class="auth-remember">
       <input type="checkbox" id="login-remember" checked>
       <span>Remember me</span>
@@ -114,7 +118,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
   <div class="auth-panel" id="panel-signup">
     <div class="f-field"><label class="f-label">Name</label><input class="f-input" id="signup-name" type="text" placeholder="Your name" autocomplete="name"></div>
     <div class="f-field"><label class="f-label">Email</label><input class="f-input" id="signup-email" type="email" placeholder="you@business.com" autocomplete="email"></div>
-    <div class="f-field"><label class="f-label">Password</label><input class="f-input" id="signup-password" type="password" placeholder="••••••••" autocomplete="new-password"></div>
+    <div class="f-field"><label class="f-label">Password</label><div class="pw-wrap"><input class="f-input" id="signup-password" type="password" placeholder="••••••••" autocomplete="new-password"><button type="button" class="pw-toggle" onclick="togglePasswordVisibility(this)" aria-label="Show password">👁</button></div></div>
     <label class="auth-agree">
       <input type="checkbox" id="signup-terms-agree">
       <span>I agree to the <a href="terms.html" target="_blank" rel="noopener">Terms of Service</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a></span>
@@ -126,6 +130,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
 </div>
 
 <script>
+function togglePasswordVisibility(btn){
+  const input = btn.previousElementSibling;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+  btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+}
+
 function switchAuthTab(name){
   document.getElementById('tab-login').classList.toggle('active', name === 'login');
   document.getElementById('tab-signup').classList.toggle('active', name === 'signup');
