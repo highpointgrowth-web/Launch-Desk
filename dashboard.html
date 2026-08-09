@@ -2521,11 +2521,15 @@ function renderGlobalBalanceBanner(balanceCents){
   const banner = document.getElementById('global-balance-banner');
   if(!banner) return;
   const textEl = document.getElementById('global-balance-banner-text');
+  const balanceStr = '$' + (balanceCents / 100).toFixed(2);
   if(balanceCents <= 0){
-    if(textEl) textEl.textContent = '⚠ 0 minutes left — agents have stopped taking calls.';
+    if(textEl) textEl.textContent = '⚠ $0.00 balance — agents have stopped taking calls.';
     banner.classList.remove('hidden');
   } else if(balanceCents <= 500){
-    if(textEl) textEl.textContent = `⚠ Only ${formatMinutesLabel(balanceCents)} left — add funds to avoid missed calls.`;
+    // Balance covers calls plus flat AI-generation fees (agent builds, proposals,
+    // scripts) - leading with the dollar amount avoids implying it's purely
+    // call-minutes, which "~X min" alone did.
+    if(textEl) textEl.textContent = `⚠ Only ${balanceStr} left (${formatMinutesLabel(balanceCents)} of call time) — add funds to avoid missed calls.`;
     banner.classList.remove('hidden');
   } else {
     banner.classList.add('hidden');
@@ -2651,8 +2655,8 @@ async function loadUserStats(){
 
     const signalBalanceEl = document.getElementById('signal-balance');
     if(signalBalanceEl){
-      signalBalanceEl.textContent = minutesStr;
-      signalBalanceEl.title = balanceStr;
+      signalBalanceEl.textContent = balanceStr;
+      signalBalanceEl.title = `≈ ${minutesStr} of call time — balance also covers agent builds, proposals, and cold-call scripts`;
       signalBalanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--indigo)';
     }
     renderGlobalBalanceBanner(balanceCents);
