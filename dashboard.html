@@ -442,7 +442,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <button class="sidebar-item" id="nav-leads" onclick="nav('leads',this)"><span class="sidebar-item-icon">🔍</span>Lead Finder</button>
           <button class="sidebar-item" id="nav-crm" onclick="nav('crm',this)"><span class="sidebar-item-icon">🗂️</span>CRM</button>
           <button class="sidebar-item" id="nav-clients" onclick="navToPage('clients',this)"><span class="sidebar-item-icon">👥</span>Clients</button>
-          <button class="sidebar-item" id="nav-coldcall" onclick="nav('coldcall',this)"><span class="sidebar-item-icon">📞</span>Cold Call</button>
+          <button class="sidebar-item" id="nav-coldcall" onclick="openColdCallStation(this)"><span class="sidebar-item-icon">📞</span>Cold Call</button>
           <button class="sidebar-item" id="nav-meetings" onclick="navToPage('meetings',this)"><span class="sidebar-item-icon">📅</span>Booked Meetings</button>
         </div>
       </div>
@@ -556,7 +556,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <div class="quick-action-label">Find Leads</div>
           <div class="quick-action-desc">Scrape & score new businesses</div>
         </button>
-        <button class="quick-action-card" onclick="nav('coldcall',null)">
+        <button class="quick-action-card" onclick="openColdCallStation(null)">
           <div class="quick-action-icon">📞</div>
           <div class="quick-action-label">Start Calling</div>
           <div class="quick-action-desc">Jump into your dial queue</div>
@@ -4202,6 +4202,11 @@ function handleColdCallLeadSelect(){
   updateColdCallScript();
 }
 
+// Refreshes the queue only - does NOT generate/charge for a script. Called
+// from lots of unrelated places (app init, any CRM change) just to keep the
+// queue count in sync, so it must stay free. Script generation is paid and
+// only fires when the user actually opens Cold Call Station - see
+// openColdCallStation() below.
 async function loadColdCallQueue(){
   try {
     const { leads } = await API.leads.getAll();
@@ -4211,10 +4216,14 @@ async function loadColdCallQueue(){
     manualColdCallLead = null;
     renderColdCallLeadSelect();
     renderColdCallQueue();
-    updateColdCallScript();
   } catch (err) {
     console.error('Failed to load cold call queue', err);
   }
+}
+
+function openColdCallStation(el){
+  nav('coldcall', el);
+  updateColdCallScript();
 }
 
 function coldCallAdvance(){
