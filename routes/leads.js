@@ -2,7 +2,33 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireAuth } = require('../middleware/auth');
 const { requirePaidPlan } = require('../middleware/plan');
-const { COLD_CALL_SCRIPT_FEE_CENTS, chargeFlatFee } = require('../billing-constants');
+const { COLD_CALL_SCRIPT_CAPS } = require('../plan-constants');
+
+async function enforceColdCallScriptCap(supabase, userId, plan) {
+  const limit = COLD_CALL_SCRIPT_CAPS[plan];
+  if (limit == null) {
+    const err = new Error('No cold-call-script limit configured for your plan.');
+    err.status = 500;
+    throw err;
+  }
+
+  const { data: newCount, error: rpcError } = await supabase.rpc('increment_cold_call_script_count', {
+    p_user_id: userId,
+    p_limit: limit,
+  });
+
+  if (rpcError) {
+    throw new Error(`Failed to check cold-call-script cap: ${rpcError.message}`);
+  }
+
+  if (newCount === null) {
+    const err = new Error(
+      `You've hit this month's limit of ${limit} cold-call scripts on your plan - it resets next month, or upgrade for a higher limit.`
+    );
+    err.status = 403;
+    throw err;
+  }
+}
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -215,10 +241,17 @@ router.post('/:id/cold-call-script', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    const { data: user } = await supabase.from('users').select('agency_name').eq('id', req.userId).single();
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('plan, agency_name')
+      .eq('id', req.userId)
+      .single();
+    if (userError || !user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
 
-    await chargeFlatFee(supabase, req.userId, COLD_CALL_SCRIPT_FEE_CENTS, 'Cold call script generation');
-    const script = await generateColdCallScript(lead, user && user.agency_name);
+    await enforceColdCallScriptCap(supabase, req.userId, user.plan);
+    const script = await generateColdCallScript(lead, user.agency_name);
     res.json({ script });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });

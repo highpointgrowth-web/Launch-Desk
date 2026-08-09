@@ -2,7 +2,36 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireAuth } = require('../middleware/auth');
 const { requirePaidPlan } = require('../middleware/plan');
-const { AGENT_PROMPT_GENERATION_FEE_CENTS, chargeFlatFee } = require('../billing-constants');
+const { AGENT_BUILD_CAPS } = require('../plan-constants');
+
+// Enforces the plan's monthly agent-build/prompt-generation cap atomically -
+// throws (without incrementing) if the plan is unknown or the cap is already
+// hit, so the caller can skip the paid Firecrawl/Claude call entirely.
+async function enforceAgentBuildCap(supabase, userId, plan) {
+  const limit = AGENT_BUILD_CAPS[plan];
+  if (limit == null) {
+    const err = new Error('No agent-build limit configured for your plan.');
+    err.status = 500;
+    throw err;
+  }
+
+  const { data: newCount, error: rpcError } = await supabase.rpc('increment_agent_build_count', {
+    p_user_id: userId,
+    p_limit: limit,
+  });
+
+  if (rpcError) {
+    throw new Error(`Failed to check agent-build cap: ${rpcError.message}`);
+  }
+
+  if (newCount === null) {
+    const err = new Error(
+      `You've hit this month's limit of ${limit} agent builds/prompt regenerations on your plan - it resets next month, or upgrade for a higher limit.`
+    );
+    err.status = 403;
+    throw err;
+  }
+}
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -233,7 +262,12 @@ router.post('/preview-prompt', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    await chargeFlatFee(supabase, req.userId, AGENT_PROMPT_GENERATION_FEE_CENTS, 'AI prompt generation');
+    const { data: user, error: userError } = await supabase.from('users').select('plan').eq('id', req.userId).single();
+    if (userError || !user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    await enforceAgentBuildCap(supabase, req.userId, user.plan);
     const systemPrompt = await resolveSystemPrompt(lead, niche, website_override, extra_context);
     res.json({ system_prompt: systemPrompt });
   } catch (err) {
@@ -301,7 +335,7 @@ router.post('/build', async (req, res) => {
     // including any hand edits - only falls back to generating fresh if none
     // was supplied, so direct API callers keep working unchanged.
     if (!system_prompt) {
-      await chargeFlatFee(supabase, req.userId, AGENT_PROMPT_GENERATION_FEE_CENTS, 'AI prompt generation');
+      await enforceAgentBuildCap(supabase, req.userId, user.plan);
     }
     const systemPrompt = system_prompt || (await resolveSystemPrompt(lead, niche, website_override, extra_context));
 

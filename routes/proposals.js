@@ -3,7 +3,33 @@ const Anthropic = require('@anthropic-ai/sdk');
 const nodemailer = require('nodemailer');
 const { requireAuth } = require('../middleware/auth');
 const { requirePaidPlan } = require('../middleware/plan');
-const { PROPOSAL_GENERATION_FEE_CENTS, chargeFlatFee } = require('../billing-constants');
+const { PROPOSAL_CAPS } = require('../plan-constants');
+
+async function enforceProposalCap(supabase, userId, plan) {
+  const limit = PROPOSAL_CAPS[plan];
+  if (limit == null) {
+    const err = new Error('No proposal limit configured for your plan.');
+    err.status = 500;
+    throw err;
+  }
+
+  const { data: newCount, error: rpcError } = await supabase.rpc('increment_proposal_count', {
+    p_user_id: userId,
+    p_limit: limit,
+  });
+
+  if (rpcError) {
+    throw new Error(`Failed to check proposal cap: ${rpcError.message}`);
+  }
+
+  if (newCount === null) {
+    const err = new Error(
+      `You've hit this month's limit of ${limit} proposals on your plan - it resets next month, or upgrade for a higher limit.`
+    );
+    err.status = 403;
+    throw err;
+  }
+}
 
 const router = express.Router();
 const anthropic = new Anthropic();
@@ -113,10 +139,17 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    const { data: user } = await supabase.from('users').select('proposal_template').eq('id', req.userId).single();
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('plan, proposal_template')
+      .eq('id', req.userId)
+      .single();
+    if (userError || !user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
 
-    await chargeFlatFee(supabase, req.userId, PROPOSAL_GENERATION_FEE_CENTS, 'Proposal generation');
-    const content = await generateProposal(lead, user && user.proposal_template);
+    await enforceProposalCap(supabase, req.userId, user.plan);
+    const content = await generateProposal(lead, user.proposal_template);
 
     const { data: proposal, error: insertError } = await supabase
       .from('proposals')
