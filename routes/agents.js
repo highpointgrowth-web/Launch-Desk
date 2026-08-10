@@ -181,12 +181,19 @@ function createRetellLlm(generalPrompt, beginMessage) {
   });
 }
 
+// Retell defaults this to 1 hour if unset - that's the worst-case size of a
+// single call's cost hitting a balance before the pause logic can react to
+// it. 20 minutes comfortably covers a real receptionist call (booking,
+// answering questions) while bounding that worst case to a known amount.
+const MAX_CALL_DURATION_MS = 20 * 60 * 1000;
+
 function createRetellAgent(agentName, voiceId, llmId) {
   return retellFetch('POST', '/create-agent', {
     agent_name: agentName,
     voice_id: voiceId,
     response_engine: { type: 'retell-llm', llm_id: llmId },
     webhook_url: `${process.env.APP_URL}/api/webhooks/retell`,
+    max_call_duration_ms: MAX_CALL_DURATION_MS,
     post_call_analysis_data: [
       {
         type: 'boolean',

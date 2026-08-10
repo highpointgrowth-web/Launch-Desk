@@ -95,7 +95,7 @@ async function resumeAgentsForBalance(supabase, userId) {
 
   const { error: updateError } = await supabase
     .from('agents')
-    .update({ status: 'active', paused_for_balance: false })
+    .update({ status: 'active', paused_for_balance: false, paused_at: null })
     .in(
       'id',
       pausedAgents.map((a) => a.id)
@@ -276,8 +276,11 @@ router.post('/add-funds', requireAuth, async (req, res) => {
   const { amount } = req.body;
   const amountCents = Math.round(Number(amount) * 100);
 
-  if (!Number.isFinite(amountCents) || amountCents < 100) {
-    return res.status(400).json({ error: 'Minimum top-up is $1' });
+  // Stripe's own fee (~2.9% + $0.30) is a fixed cost per transaction - on a
+  // $1 top-up that's roughly a third of it gone before it's even usable
+  // balance. $5 keeps that fee down to a small fraction instead.
+  if (!Number.isFinite(amountCents) || amountCents < 500) {
+    return res.status(400).json({ error: 'Minimum top-up is $5' });
   }
 
   try {

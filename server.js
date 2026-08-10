@@ -181,7 +181,7 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
 
     const { error: updateError } = await supabase
       .from('agents')
-      .update({ status: 'inactive', paused_for_balance: true })
+      .update({ status: 'inactive', paused_for_balance: true, paused_at: new Date().toISOString() })
       .in(
         'id',
         activeAgents.map((a) => a.id)
@@ -333,6 +333,53 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     res.status(500).json({ error: err.message });
   }
 });
+
+// A paused-for-balance agent keeps renting its phone number on our Retell
+// account indefinitely if the client never tops up and never deletes it -
+// releasing numbers that have sat dormant this long closes that leak.
+const DORMANT_PAUSE_DAYS = 60;
+const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+async function releaseRetellPhoneNumber(phoneNumber) {
+  const res = await fetch(`https://api.retellai.com/delete-phone-number/${encodeURIComponent(phoneNumber)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${process.env.RETELL_API_KEY}` },
+  });
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Retell delete-phone-number failed (${res.status}): ${text}`);
+  }
+}
+
+async function cleanupDormantAgentPhoneNumbers() {
+  const cutoff = new Date(Date.now() - DORMANT_PAUSE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: dormantAgents, error } = await supabase
+    .from('agents')
+    .select('id, retell_phone_number')
+    .eq('paused_for_balance', true)
+    .not('retell_phone_number', 'is', null)
+    .lt('paused_at', cutoff);
+
+  if (error) {
+    console.error(`Dormant-agent cleanup: failed to fetch candidates: ${error.message}`);
+    return;
+  }
+  if (!dormantAgents || dormantAgents.length === 0) return;
+
+  for (const agent of dormantAgents) {
+    try {
+      await releaseRetellPhoneNumber(agent.retell_phone_number);
+      await supabase.from('agents').update({ retell_phone_number: null }).eq('id', agent.id);
+      console.log(`Dormant-agent cleanup: released phone number for agent ${agent.id}`);
+    } catch (err) {
+      console.error(`Dormant-agent cleanup: failed for agent ${agent.id}: ${err.message}`);
+    }
+  }
+}
+
+setInterval(cleanupDormantAgentPhoneNumbers, CLEANUP_INTERVAL_MS);
+cleanupDormantAgentPhoneNumbers();
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
