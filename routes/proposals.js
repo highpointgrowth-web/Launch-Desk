@@ -83,18 +83,25 @@ function buildTransport(config) {
   });
 }
 
-async function generateProposal(lead, proposalTemplate) {
+async function generateProposal(lead, proposalTemplate, agencyName) {
+  // LaunchDesk is the internal tool the caller uses, not the agency the
+  // prospect should hear about - the proposal is sold under the caller's
+  // own agency name, matching how cold-call scripts already do this.
+  const callerAgency = agencyName || '[Your Agency]';
+
   const response = await anthropic.messages.create({
     model: 'claude-opus-5',
     max_tokens: 3000,
     output_config: { effort: 'medium' },
     system:
-      'You write professional sales proposals for LaunchDesk, an agency that sells AI voice receptionist agents ' +
-      "to local businesses. Given a prospect's business details, write a persuasive but honest proposal that " +
-      'shows the ROI of adding an AI receptionist for that specific business - reference their actual rating, ' +
-      'review count, and category to ground the pitch, and include a concrete (labeled as estimated) ROI ' +
-      'calculation such as missed-call recovery and the value of after-hours coverage. Respond with only the ' +
-      'proposal text - no preamble, no explanation, no markdown code fences.' +
+      `You write professional sales proposals for "${callerAgency}", an agency that sells AI voice receptionist ` +
+      "agents to local businesses - always use that exact name for the agency sending this proposal, never " +
+      "\"LaunchDesk\" (that's the internal software the agency uses, not their own brand). Given a prospect's " +
+      'business details, write a persuasive but honest proposal that shows the ROI of adding an AI receptionist ' +
+      'for that specific business - reference their actual rating, review count, and category to ground the ' +
+      'pitch, and include a concrete (labeled as estimated) ROI calculation such as missed-call recovery and the ' +
+      'value of after-hours coverage. Respond with only the proposal text - no preamble, no explanation, no ' +
+      'markdown code fences.' +
       (proposalTemplate
         ? `\n\nFollow this template's structure and style as closely as possible:\n\n${proposalTemplate}`
         : ''),
@@ -141,7 +148,7 @@ router.post('/', async (req, res) => {
 
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('plan, proposal_template')
+      .select('plan, proposal_template, agency_name')
       .eq('id', req.userId)
       .single();
     if (userError || !user) {
@@ -149,7 +156,7 @@ router.post('/', async (req, res) => {
     }
 
     await enforceProposalCap(supabase, req.userId, user.plan);
-    const content = await generateProposal(lead, user.proposal_template);
+    const content = await generateProposal(lead, user.proposal_template, user.agency_name);
 
     const { data: proposal, error: insertError } = await supabase
       .from('proposals')
