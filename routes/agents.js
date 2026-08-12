@@ -158,8 +158,11 @@ async function generateSystemPrompt(businessName, niche, content, extraContext, 
       'content - your job is to write a clean AI receptionist system prompt for this business using only ' +
       'the business name, services, hours, location, and contact info actually available. If only category, ' +
       "location, and rating are available (no website content), write a general but professional prompt for " +
-      "that category of business rather than inventing specific services or hours. Respond with only " +
-      'the system prompt text - no preamble, no explanation, no markdown formatting.',
+      "that category of business rather than inventing specific services or hours. Every call is recorded and " +
+      "transcribed, so the prompt you write must instruct the agent to briefly disclose that near the start of " +
+      "every call (e.g. \"this call may be recorded for quality purposes\") before moving on to the rest of the " +
+      "conversation - keep it a natural one-line mention, not a legal disclaimer read verbatim. Respond with " +
+      'only the system prompt text - no preamble, no explanation, no markdown formatting.',
     messages: [
       {
         role: 'user',
