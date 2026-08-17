@@ -5,4 +5,11 @@
 // - they must stay in sync or an agent could resume below the safety margin.
 const LOW_BALANCE_PAUSE_CENTS = 500;
 
-module.exports = { LOW_BALANCE_PAUSE_CENTS };
+// Markup on real Retell call cost, charged to the customer's balance.
+// Agency gets a lower rate as a real, usage-scaling perk for the top tier -
+// unlike the other plan differences, this one grows in value the more a
+// customer actually relies on the product instead of just being a bigger
+// cap they'll rarely hit.
+const USAGE_MARKUP_BY_PLAN = { starter: 1.1, pro: 1.1, agency: 1.05 };
+
+module.exports = { LOW_BALANCE_PAUSE_CENTS, USAGE_MARKUP_BY_PLAN };

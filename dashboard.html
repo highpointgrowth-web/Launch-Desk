@@ -2578,13 +2578,16 @@ const PLAN_PRICES = { starter: 19, pro: 49, agency: 99 };
 const PLAN_FEATURES = {
   starter: { label: 'Starter', priceLabel: '$19/mo', scrapes: '100 scrapes/mo', agents: '1 AI agent' },
   pro: { label: 'Pro', priceLabel: '$49/mo', scrapes: '1,000 scrapes/mo', agents: 'Unlimited AI agents' },
-  agency: { label: 'Agency', priceLabel: '$99/mo', scrapes: '2,500 scrapes/mo', agents: 'Unlimited AI agents' },
+  agency: {
+    label: 'Agency', priceLabel: '$99/mo', scrapes: '2,500 scrapes/mo', agents: 'Unlimited AI agents',
+    extras: ['Lower call rate (5% vs 10% markup)', 'Priority support'],
+  },
 };
 const PLAN_COMMON_FEATURES = ['Full CRM & pipeline', 'Cold Call Station', 'Proposals & Agency Playbook'];
 
 function planFeatureListHtml(planKey){
   const p = PLAN_FEATURES[planKey];
-  const items = [p.agents, p.scrapes, ...PLAN_COMMON_FEATURES];
+  const items = [p.agents, p.scrapes, ...PLAN_COMMON_FEATURES, ...(p.extras || [])];
   return `<ul style="list-style:none;display:flex;flex-direction:column;gap:6px;text-align:left">${
     items.map((f) => `<li style="font-size:.78rem;color:var(--ink2);display:flex;align-items:center;gap:7px"><span style="color:var(--green)">✓</span>${f}</li>`).join('')
   }</ul>`;

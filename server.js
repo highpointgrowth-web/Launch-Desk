@@ -5,7 +5,7 @@ const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const { createClient } = require('@supabase/supabase-js');
-const { LOW_BALANCE_PAUSE_CENTS } = require('./billing-constants');
+const { LOW_BALANCE_PAUSE_CENTS, USAGE_MARKUP_BY_PLAN } = require('./billing-constants');
 
 const leadsRouter = require('./routes/leads');
 const agentsRouter = require('./routes/agents');
@@ -74,9 +74,9 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
   const call = payload.call;
 
   // Customers prepay a usage balance; every real Retell call cost is
-  // deducted from it with this markup on top so usage is a profit source
-  // instead of a cost the agency fronts.
-  const USAGE_MARKUP = 1.1;
+  // deducted from it with a markup on top so usage is a profit source
+  // instead of a cost the agency fronts. Rate varies by plan - see
+  // USAGE_MARKUP_BY_PLAN.
 
   // Detaching inbound_agents (rather than deleting the number) stops the
   // agent from actually answering - and therefore stops billable Retell
@@ -209,7 +209,9 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
   }
 
   async function chargeUsage(userId, retellCostCents, callLogId) {
-    const chargeCents = Math.ceil(retellCostCents * USAGE_MARKUP);
+    const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single();
+    const markup = USAGE_MARKUP_BY_PLAN[user?.plan] ?? USAGE_MARKUP_BY_PLAN.pro;
+    const chargeCents = Math.ceil(retellCostCents * markup);
 
     const { data: newBalance, error: rpcError } = await supabase.rpc('decrement_usage_balance', {
       p_user_id: userId,
@@ -226,7 +228,7 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
       amount_cents: -chargeCents,
       type: 'call_charge',
       call_log_id: callLogId,
-      description: 'Call cost + 10%',
+      description: `Call cost + ${Math.round((markup - 1) * 100)}%`,
     });
 
     if (txError) {
