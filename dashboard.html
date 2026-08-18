@@ -473,6 +473,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
     <div class="sidebar-bottom-links">
       <button class="sidebar-item" id="nav-playbook" onclick="nav('playbook',this)"><span class="sidebar-item-icon">📚</span>Playbook</button>
+      <button class="sidebar-item" onclick="openSupportContact()"><span class="sidebar-item-icon">💬</span>Contact Support</button>
       <button class="sidebar-item" id="nav-settings" onclick="nav('settings',this)"><span class="sidebar-item-icon">⚙️</span>Settings</button>
     </div>
   </div>
@@ -2562,6 +2563,23 @@ async function handleLogout(){
   }
   API.clearToken();
   goToAuth();
+}
+
+// Agency mails to a different address than Starter/Pro so it can be
+// filtered and actually answered first - see billing-constants.js for why
+// Agency gets real, ongoing perks instead of just bigger plan numbers.
+function openSupportContact(){
+  const plan = cachedUser && cachedUser.plan;
+  const isAgency = plan === 'agency';
+  const toAddress = isAgency ? 'priority@mylaunchdesk.com' : 'support@mylaunchdesk.com';
+  const subject = encodeURIComponent(`${isAgency ? '[Priority] ' : ''}Support request`);
+  const body = encodeURIComponent(
+    `Account: ${(cachedUser && cachedUser.email) || ''}\n` +
+    `Agency: ${(cachedUser && cachedUser.agency_name) || ''}\n` +
+    `Plan: ${plan || 'unknown'}\n\n` +
+    'Describe your issue below:\n'
+  );
+  window.location.href = `mailto:${toAddress}?subject=${subject}&body=${body}`;
 }
 
 const PLAN_INFO = {
