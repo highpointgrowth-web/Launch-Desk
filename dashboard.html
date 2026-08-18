@@ -365,6 +365,32 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 .am{background:var(--bg2);border-radius:8px;padding:10px;text-align:center}
 .am-val{font-weight:700;font-size:1.05rem;letter-spacing:-.02em;color:var(--ink)}
 .am-label{font-size:.62rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);margin-top:2px}
+
+/* ── MOBILE ── */
+.hamburger-btn{display:none}
+.sidebar-backdrop{display:none}
+@media(max-width:860px){
+  .body-row{grid-template-columns:1fr}
+  .hamburger-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--ink2);cursor:pointer;flex:none}
+  .topbar-pills{display:none}
+  .topbar-full{gap:12px}
+  .sidebar{position:fixed;top:0;right:0;bottom:0;width:78vw;max-width:300px;z-index:200;transform:translateX(100%);transition:transform .22s ease;box-shadow:-8px 0 24px rgba(0,0,0,.3)}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .sidebar-backdrop.mobile-open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:150}
+  .content{padding-left:14px;padding-right:14px}
+  .stat-strip{grid-template-columns:repeat(2,1fr) !important}
+  .stat-strip .stat-cell:nth-child(3){border-right:none}
+  .quick-actions{grid-template-columns:1fr !important}
+  .settings-layout{grid-template-columns:1fr !important}
+  .settings-nav{display:flex;overflow-x:auto;gap:4px;padding:6px}
+  .coldcall-layout{grid-template-columns:1fr !important}
+  .card:has(>.data-table),.card:has(table){overflow-x:auto}
+  .page-header{flex-direction:column;align-items:flex-start !important;gap:10px}
+  h1{font-size:1.9rem !important}
+}
+@media(max-width:480px){
+  .stat-strip{grid-template-columns:1fr !important}
+}
 </style>
 </head>
 <body>
@@ -403,12 +429,17 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
       <div class="signal-item" style="cursor:pointer" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">Balance: <b id="signal-balance">$0.00</b></div>
       <a href="#" class="upgrade" id="signal-upgrade-link" onclick="handleUpgradeClick(); return false;">↑ Upgrade to Agency</a>
     </div>
+    <button class="hamburger-btn" style="margin-left:auto" onclick="toggleMobileSidebar()" aria-label="Menu">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
   </div>
 
   <div id="global-balance-banner" class="hidden" style="background:var(--red-bg,#450a0a);color:var(--red);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:.82rem;font-weight:600">
     <span id="global-balance-banner-text">⚠ Your call balance is low.</span>
     <button class="btn btn-indigo" style="font-size:.74rem;padding:.35rem .8rem" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">Add Funds</button>
   </div>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
   <div class="body-row">
 
@@ -1754,6 +1785,17 @@ function nav(name, el){
   const btn=el || document.getElementById('nav-'+name);
   if(btn)btn.classList.add('active');
   document.querySelector('.content').scrollTop=0;
+  closeMobileSidebar();
+}
+
+function toggleMobileSidebar(){
+  document.querySelector('.sidebar').classList.toggle('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.toggle('mobile-open');
+}
+
+function closeMobileSidebar(){
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.remove('mobile-open');
 }
 
 function toggleSidebarSection(headerEl){
