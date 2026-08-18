@@ -403,6 +403,18 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
   .bstep-line{margin:0 6px}
   .builder-step:not(.active) .bstep-label{display:none}
   .builder-step.active .bstep-label{white-space:normal;font-size:.76rem}
+
+  /* Fixed multi-column layouts that don't auto-collapse on their own
+     (unlike the auto-fit/minmax grids elsewhere) - the dashboard's side
+     checklist, the Lead Finder search form, the 4-step walkthrough, and
+     every builder-step/tab two-column panel using an inline grid style. */
+  .dash-grid{grid-template-columns:1fr !important}
+  .find-form{grid-template-columns:1fr !important}
+  .two-col{grid-template-columns:1fr !important}
+  #dash-walkthrough{grid-template-columns:repeat(2,1fr) !important}
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}
+  [style*="grid-template-columns:1fr 340px"]{grid-template-columns:1fr !important}
+  [style*="grid-template-columns:1fr 300px"]{grid-template-columns:1fr !important}
 }
 @media(max-width:480px){
   .stat-strip{grid-template-columns:1fr !important}
