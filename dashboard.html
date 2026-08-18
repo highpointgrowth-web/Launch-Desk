@@ -387,6 +387,22 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
   .card:has(>.data-table),.card:has(table){overflow-x:auto}
   .page-header{flex-direction:column;align-items:flex-start !important;gap:10px}
   h1{font-size:1.9rem !important}
+
+  /* Cut padding that eats too much of a 375px-wide screen */
+  .card-pad{padding:16px}
+  .stat-cell{padding:14px 12px 12px}
+  .modal-box{padding:18px}
+  .quick-action-card{padding:14px 16px}
+
+  /* 5-step wizard header used white-space:nowrap labels in one row -
+     overflowed badly at phone width. Keep only the active step's label,
+     shrink everything else to just its number, and scroll as a last resort
+     if it's still tight. */
+  .builder-steps{padding:12px 14px;overflow-x:auto}
+  .bstep-num{width:22px;height:22px;font-size:.66rem}
+  .bstep-line{margin:0 6px}
+  .builder-step:not(.active) .bstep-label{display:none}
+  .builder-step.active .bstep-label{white-space:normal;font-size:.76rem}
 }
 @media(max-width:480px){
   .stat-strip{grid-template-columns:1fr !important}
