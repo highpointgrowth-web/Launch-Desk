@@ -1638,6 +1638,22 @@ Happy to. What's the biggest headache with missed calls for you right now — so
     </div>
   </div>
 
+  <!-- CONTACT SUPPORT MODAL -->
+  <div class="modal-overlay hidden" id="modal-support" onclick="if(event.target===this) closeSupportContact()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">💬 Contact Support</div>
+        <div class="modal-close" onclick="closeSupportContact()">✕</div>
+      </div>
+      <div class="f-field"><label class="f-label">What do you need help with?</label><textarea class="f-input" id="support-message" rows="5" placeholder="Describe the issue..." style="resize:none"></textarea></div>
+      <div class="modal-error" id="support-modal-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeSupportContact()">Cancel</button>
+        <button class="btn btn-indigo" id="support-send-btn" onclick="submitSupportContact()">Send</button>
+      </div>
+    </div>
+  </div>
+
   <!-- LOG ACTIVITY MODAL -->
   <div class="modal-overlay hidden" id="modal-log-activity" onclick="if(event.target===this) closeLogActivityModal()">
     <div class="modal-box">
@@ -2569,17 +2585,37 @@ async function handleLogout(){
 // filtered and actually answered first - see billing-constants.js for why
 // Agency gets real, ongoing perks instead of just bigger plan numbers.
 function openSupportContact(){
-  const plan = cachedUser && cachedUser.plan;
-  const isAgency = plan === 'agency';
-  const toAddress = isAgency ? 'priority@mylaunchdesk.com' : 'support@mylaunchdesk.com';
-  const subject = encodeURIComponent(`${isAgency ? '[Priority] ' : ''}Support request`);
-  const body = encodeURIComponent(
-    `Account: ${(cachedUser && cachedUser.email) || ''}\n` +
-    `Agency: ${(cachedUser && cachedUser.agency_name) || ''}\n` +
-    `Plan: ${plan || 'unknown'}\n\n` +
-    'Describe your issue below:\n'
-  );
-  window.location.href = `mailto:${toAddress}?subject=${subject}&body=${body}`;
+  document.getElementById('support-message').value = '';
+  document.getElementById('support-modal-error').textContent = '';
+  document.getElementById('modal-support').classList.remove('hidden');
+}
+
+function closeSupportContact(){
+  document.getElementById('modal-support').classList.add('hidden');
+}
+
+async function submitSupportContact(){
+  const message = document.getElementById('support-message').value.trim();
+  const errorEl = document.getElementById('support-modal-error');
+  errorEl.textContent = '';
+
+  if(!message){
+    errorEl.textContent = 'Describe your issue before sending.';
+    return;
+  }
+
+  const btn = document.getElementById('support-send-btn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await API.support.contact(message);
+    closeSupportContact();
+    alert("Message sent — we'll get back to you soon.");
+  } catch (err) {
+    errorEl.textContent = err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 
 const PLAN_INFO = {

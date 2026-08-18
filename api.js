@@ -397,6 +397,12 @@
     },
   };
 
+  const support = {
+    async contact(message) {
+      return request('POST', '/api/support/contact', { message });
+    },
+  };
+
   global.API = {
     baseUrl: API_BASE_URL,
     getToken,
@@ -411,5 +417,6 @@
     integrations,
     meetings,
     todos,
+    support,
   };
 })(window);

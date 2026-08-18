@@ -3,10 +3,11 @@ require('dotenv').config();
 const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
 const { createClient } = require('@supabase/supabase-js');
 const { LOW_BALANCE_PAUSE_CENTS, USAGE_MARKUP_BY_PLAN } = require('./billing-constants');
+const { sendEmail } = require('./email');
 
+const supportRouter = require('./routes/support');
 const leadsRouter = require('./routes/leads');
 const agentsRouter = require('./routes/agents');
 const authRouter = require('./routes/auth');
@@ -43,6 +44,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/integrations', integrationsRouter);
 app.use('/api/meetings', meetingsRouter);
 app.use('/api/todos', todosRouter);
+app.use('/api/support', supportRouter);
 
 function verifyRetellSignature(rawBody, signatureHeader, apiKey) {
   if (!signatureHeader) return false;
@@ -96,7 +98,6 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     }
   }
 
-  const LOW_BALANCE_EMAIL_SUBJECT = 'Your AI agents have stopped taking calls';
   function lowBalanceEmailBody(userName) {
     return (
       `Hi ${userName || 'there'},\n\n` +
@@ -106,52 +107,9 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     );
   }
 
-  async function sendViaResend(userEmail, userName) {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.ALERT_FROM_EMAIL || 'LaunchDesk <alerts@mylaunchdesk.com>',
-        to: userEmail,
-        subject: LOW_BALANCE_EMAIL_SUBJECT,
-        text: lowBalanceEmailBody(userName),
-      }),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Resend request failed (${res.status}): ${text}`);
-    }
-  }
-
-  async function sendViaGmail(userEmail, userName) {
-    const transport = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.ALERT_GMAIL_USER, pass: process.env.ALERT_GMAIL_APP_PASSWORD },
-    });
-    await transport.sendMail({
-      from: process.env.ALERT_GMAIL_USER,
-      to: userEmail,
-      subject: LOW_BALANCE_EMAIL_SUBJECT,
-      text: lowBalanceEmailBody(userName),
-    });
-  }
-
-  // Tries whichever sender is configured - Gmail app password first since
-  // it needs no domain verification, falling back to Resend if that's what's
-  // set instead. No-ops silently if neither is configured so the pause flow
-  // itself never breaks on missing email config.
   async function sendLowBalanceEmail(userEmail, userName) {
-    if (!userEmail) return;
-
     try {
-      if (process.env.ALERT_GMAIL_USER && process.env.ALERT_GMAIL_APP_PASSWORD) {
-        await sendViaGmail(userEmail, userName);
-      } else if (process.env.RESEND_API_KEY) {
-        await sendViaResend(userEmail, userName);
-      }
+      await sendEmail(userEmail, 'Your AI agents have stopped taking calls', lowBalanceEmailBody(userName));
     } catch (err) {
       console.error(`Failed to send low-balance email to ${userEmail}: ${err.message}`);
     }
