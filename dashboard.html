@@ -1645,11 +1645,15 @@ Happy to. What's the biggest headache with missed calls for you right now — so
         <div class="modal-title">💬 Contact Support</div>
         <div class="modal-close" onclick="closeSupportContact()">✕</div>
       </div>
-      <div class="f-field"><label class="f-label">What do you need help with?</label><textarea class="f-input" id="support-message" rows="5" placeholder="Describe the issue..." style="resize:none"></textarea></div>
-      <div class="modal-error" id="support-modal-error"></div>
+      <p style="font-size:.84rem;color:var(--ink2);margin-bottom:14px">Copy this address and email us your question from your own inbox:</p>
+      <div class="f-field">
+        <div style="display:flex;gap:8px">
+          <input class="f-input" id="support-email-display" readonly style="flex:1;font-family:'IBM Plex Mono',monospace" onclick="this.select()">
+          <button class="btn btn-indigo" onclick="copySupportEmail()">Copy</button>
+        </div>
+      </div>
       <div class="modal-actions">
-        <button class="btn btn-ghost" onclick="closeSupportContact()">Cancel</button>
-        <button class="btn btn-indigo" id="support-send-btn" onclick="submitSupportContact()">Send</button>
+        <button class="btn btn-ghost" onclick="closeSupportContact()">Close</button>
       </div>
     </div>
   </div>
@@ -2585,8 +2589,8 @@ async function handleLogout(){
 // filtered and actually answered first - see billing-constants.js for why
 // Agency gets real, ongoing perks instead of just bigger plan numbers.
 function openSupportContact(){
-  document.getElementById('support-message').value = '';
-  document.getElementById('support-modal-error').textContent = '';
+  const isAgency = cachedUser && cachedUser.plan === 'agency';
+  document.getElementById('support-email-display').value = isAgency ? 'priority@mylaunchdesk.com' : 'support@mylaunchdesk.com';
   document.getElementById('modal-support').classList.remove('hidden');
 }
 
@@ -2594,28 +2598,10 @@ function closeSupportContact(){
   document.getElementById('modal-support').classList.add('hidden');
 }
 
-async function submitSupportContact(){
-  const message = document.getElementById('support-message').value.trim();
-  const errorEl = document.getElementById('support-modal-error');
-  errorEl.textContent = '';
-
-  if(!message){
-    errorEl.textContent = 'Describe your issue before sending.';
-    return;
-  }
-
-  const btn = document.getElementById('support-send-btn');
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Sending…';
-  try {
-    await API.support.contact(message);
-    closeSupportContact();
-    alert("Message sent — we'll get back to you soon.");
-  } catch (err) {
-    errorEl.textContent = err.message;
-  } finally {
-    btn.disabled = false; btn.textContent = original;
-  }
+function copySupportEmail(){
+  const input = document.getElementById('support-email-display');
+  input.select();
+  navigator.clipboard.writeText(input.value).catch(() => document.execCommand('copy'));
 }
 
 const PLAN_INFO = {
