@@ -1516,6 +1516,20 @@ Happy to. What's the biggest headache with missed calls for you right now — so
     <!-- PAYMENTS -->
     <div class="page" id="page-payments">
       <div class="page-header"><div class="page-title">Payments</div><div class="page-sub">Profit calculator & proposal payment history</div></div>
+
+      <div class="card card-pad" style="margin-bottom:20px" id="connect-stripe-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div class="card-title" style="margin-bottom:4px">Real Revenue</div>
+            <div style="font-size:.8rem;color:var(--ink3)" id="connect-stripe-sub">Connect the Stripe account you already bill your own clients with, so MRR shows real numbers instead of a self-reported estimate.</div>
+          </div>
+          <div id="connect-stripe-actions">
+            <button class="btn btn-indigo" id="connect-stripe-btn" onclick="handleConnectStripe()">Connect Stripe</button>
+          </div>
+        </div>
+        <div id="connect-stripe-error" style="color:var(--red);font-size:.78rem;margin-top:10px"></div>
+      </div>
+
       <div class="two-col" style="margin-bottom:20px">
         <div class="card card-pad">
           <div class="card-title" style="margin-bottom:16px">Profit Calculator</div>
@@ -4809,8 +4823,57 @@ async function loadPaymentsPage(){
     }
 
     renderProfitCalc();
+    await loadStripeConnectStatus();
   } catch (err) {
     console.error('Failed to load payments page', err);
+  }
+}
+
+async function loadStripeConnectStatus(){
+  const subEl = document.getElementById('connect-stripe-sub');
+  const actionsEl = document.getElementById('connect-stripe-actions');
+  if(!subEl || !actionsEl) return;
+
+  try {
+    const { connected } = await API.stripe.getConnectStatus();
+    if(connected){
+      subEl.textContent = 'Connected — MRR above now reflects real revenue from your Stripe account, not a self-reported estimate.';
+      subEl.style.color = 'var(--green)';
+      actionsEl.innerHTML = '<button class="btn btn-ghost" onclick="handleDisconnectStripe()">Disconnect</button>';
+    } else {
+      subEl.textContent = "Connect the Stripe account you already bill your own clients with, so MRR shows real numbers instead of a self-reported estimate.";
+      subEl.style.color = 'var(--ink3)';
+      actionsEl.innerHTML = '<button class="btn btn-indigo" id="connect-stripe-btn" onclick="handleConnectStripe()">Connect Stripe</button>';
+    }
+  } catch (err) {
+    console.error('Failed to load Stripe Connect status', err);
+  }
+}
+
+async function handleConnectStripe(){
+  const errEl = document.getElementById('connect-stripe-error');
+  if(errEl) errEl.textContent = '';
+  const btn = document.getElementById('connect-stripe-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Redirecting…'; }
+  try {
+    const { url } = await API.stripe.getConnectUrl();
+    window.location.href = url;
+  } catch (err) {
+    if(errEl) errEl.textContent = err.message;
+    if(btn){ btn.disabled = false; btn.textContent = 'Connect Stripe'; }
+  }
+}
+
+async function handleDisconnectStripe(){
+  if(!confirm('Disconnect your Stripe account? MRR will go back to the self-reported estimate.')) return;
+  const errEl = document.getElementById('connect-stripe-error');
+  if(errEl) errEl.textContent = '';
+  try {
+    await API.stripe.disconnectStripe();
+    await loadStripeConnectStatus();
+    loadDashboardStats();
+  } catch (err) {
+    if(errEl) errEl.textContent = err.message;
   }
 }
 

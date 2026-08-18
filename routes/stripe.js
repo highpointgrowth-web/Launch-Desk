@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const Stripe = require('stripe');
 const { requireAuth } = require('../middleware/auth');
 const { LOW_BALANCE_PAUSE_CENTS } = require('../billing-constants');
@@ -305,6 +306,139 @@ router.post('/add-funds', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── STRIPE CONNECT (read-only revenue) ──
+// Lets an agency link the Stripe account they already use to bill their own
+// clients, so real revenue can be shown instead of the self-reported
+// monthly_charge estimate. scope=read_only means LaunchDesk can never move
+// money through a connected account - only read balance/charge data.
+
+// Signs {userId, timestamp} so the OAuth callback (hit by a redirect from
+// Stripe, not our own authenticated fetch - it can't carry a bearer token)
+// can still verify which user initiated this and that it hasn't expired,
+// without needing a server-side session store.
+function signConnectState(userId) {
+  const payload = `${userId}.${Date.now()}`;
+  const sig = crypto.createHmac('sha256', process.env.STRIPE_WEBHOOK_SECRET).update(payload).digest('hex');
+  return Buffer.from(`${payload}.${sig}`).toString('base64url');
+}
+
+function verifyConnectState(state) {
+  try {
+    const decoded = Buffer.from(state, 'base64url').toString('utf8');
+    const [userId, timestamp, sig] = decoded.split('.');
+    const expectedSig = crypto.createHmac('sha256', process.env.STRIPE_WEBHOOK_SECRET).update(`${userId}.${timestamp}`).digest('hex');
+    if (sig !== expectedSig) return null;
+    if (Date.now() - Number(timestamp) > 10 * 60 * 1000) return null; // 10 min to complete the OAuth flow
+    return userId;
+  } catch (err) {
+    return null;
+  }
+}
+
+router.get('/connect/authorize-url', requireAuth, (req, res) => {
+  if (!process.env.STRIPE_CONNECT_CLIENT_ID) {
+    return res.status(500).json({ error: 'Stripe Connect is not configured yet.' });
+  }
+
+  const url = new URL('https://connect.stripe.com/oauth/authorize');
+  url.searchParams.set('response_type', 'code');
+  url.searchParams.set('client_id', process.env.STRIPE_CONNECT_CLIENT_ID);
+  url.searchParams.set('scope', 'read_only');
+  url.searchParams.set('redirect_uri', `${process.env.APP_URL}/api/stripe/connect/callback`);
+  url.searchParams.set('state', signConnectState(req.userId));
+
+  res.json({ url: url.toString() });
+});
+
+// Public on purpose - Stripe redirects the browser here directly after the
+// agency authorizes, so it can't carry our bearer token. The signed state
+// param (not a plain user id) is what stands in for auth here.
+router.get('/connect/callback', async (req, res) => {
+  const { code, state, error: oauthError } = req.query;
+  const frontendBase = process.env.FRONTEND_URL || 'https://mylaunchdesk.com';
+
+  if (oauthError) {
+    return res.redirect(`${frontendBase}/dashboard.html?connect=cancelled`);
+  }
+
+  const userId = verifyConnectState(state);
+  if (!userId || !code) {
+    return res.redirect(`${frontendBase}/dashboard.html?connect=error`);
+  }
+
+  try {
+    const tokenResponse = await stripe.oauth.token({ grant_type: 'authorization_code', code });
+    const supabase = req.app.locals.supabase;
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ stripe_connect_account_id: tokenResponse.stripe_user_id })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error(`Failed to save connected Stripe account for user ${userId}: ${updateError.message}`);
+      return res.redirect(`${frontendBase}/dashboard.html?connect=error`);
+    }
+
+    res.redirect(`${frontendBase}/dashboard.html?connect=success`);
+  } catch (err) {
+    console.error(`Stripe Connect token exchange failed: ${err.message}`);
+    res.redirect(`${frontendBase}/dashboard.html?connect=error`);
+  }
+});
+
+router.get('/connect/status', requireAuth, async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const { data, error } = await supabase
+    .from('users')
+    .select('stripe_connect_account_id')
+    .eq('id', req.userId)
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ connected: !!data.stripe_connect_account_id });
+});
+
+router.post('/connect/disconnect', requireAuth, async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const { data: user, error: fetchError } = await supabase
+    .from('users')
+    .select('stripe_connect_account_id')
+    .eq('id', req.userId)
+    .single();
+
+  if (fetchError || !user) {
+    return res.status(404).json({ error: 'User profile not found' });
+  }
+
+  if (user.stripe_connect_account_id) {
+    try {
+      await stripe.oauth.deauthorize({
+        client_id: process.env.STRIPE_CONNECT_CLIENT_ID,
+        stripe_user_id: user.stripe_connect_account_id,
+      });
+    } catch (err) {
+      // Continue clearing our own record even if Stripe-side deauth fails
+      // (e.g. the agency already revoked it from their own dashboard).
+      console.error(`Stripe deauthorize failed for user ${req.userId}: ${err.message}`);
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ stripe_connect_account_id: null })
+    .eq('id', req.userId);
+
+  if (updateError) {
+    return res.status(500).json({ error: updateError.message });
+  }
+
+  res.json({ connected: false });
 });
 
 router.get('/usage-transactions', requireAuth, async (req, res) => {

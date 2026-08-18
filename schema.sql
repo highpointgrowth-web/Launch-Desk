@@ -12,6 +12,7 @@ create table if not exists users (
   plan text not null default 'inactive' check (plan in ('inactive', 'starter', 'pro', 'agency')),
   stripe_customer_id text,
   stripe_subscription_id text,
+  stripe_connect_account_id text,
   scrape_credits_used integer not null default 0,
   scrape_credits_limit integer not null default 0,
   is_admin boolean not null default false,

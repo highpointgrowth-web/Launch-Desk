@@ -309,6 +309,18 @@
     async getUsageTransactions() {
       return request('GET', '/api/stripe/usage-transactions');
     },
+
+    async getConnectUrl() {
+      return request('GET', '/api/stripe/connect/authorize-url');
+    },
+
+    async getConnectStatus() {
+      return request('GET', '/api/stripe/connect/status');
+    },
+
+    async disconnectStripe() {
+      return request('POST', '/api/stripe/connect/disconnect');
+    },
   };
 
   const proposals = {
