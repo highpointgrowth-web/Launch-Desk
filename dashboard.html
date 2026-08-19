@@ -528,6 +528,16 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <button class="sidebar-item" id="nav-buy-minutes" onclick="navToPage('buy-minutes',this)"><span class="sidebar-item-icon">📞</span>Buy Minutes</button>
         </div>
       </div>
+
+      <div class="sidebar-section collapsed">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">
+          <span>More</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="sidebar-section-items">
+          <button class="sidebar-item" id="nav-revenue-calc" onclick="nav('revenue-calc',this)"><span class="sidebar-item-icon">📉</span>Revenue Calculator</button>
+        </div>
+      </div>
     </nav>
 
     <div class="sidebar-bottom-links">
@@ -1605,6 +1615,25 @@ Happy to. What's the biggest headache with missed calls for you right now — so
             <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--ink3)">No activity yet.</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- REVENUE CALCULATOR -->
+    <div class="page" id="page-revenue-calc">
+      <div class="page-header"><div class="page-title">Revenue Calculator</div><div class="page-sub">Estimate what missed calls are costing a prospect — the same calculator shown on your proposal links</div></div>
+      <div class="card card-pad" style="max-width:420px">
+        <div class="f-field">
+          <label class="f-label">Missed calls/day <span id="page-calc-calls-val" style="color:var(--ink);font-weight:600">5</span></label>
+          <input type="range" id="page-calc-calls" min="1" max="20" value="5" style="width:100%;accent-color:var(--indigo)" oninput="updatePageRevenueCalc()">
+        </div>
+        <div class="f-field" style="margin-top:14px">
+          <label class="f-label">Avg value/job <span id="page-calc-value-val" style="color:var(--ink);font-weight:600">$250</span></label>
+          <input type="range" id="page-calc-value" min="50" max="5000" step="50" value="250" style="width:100%;accent-color:var(--indigo)" oninput="updatePageRevenueCalc()">
+        </div>
+        <div style="margin-top:20px;padding:20px;background:var(--bg2);border-radius:10px;text-align:center">
+          <div style="font-size:.7rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Est. Monthly Lost Revenue</div>
+          <div style="font-size:2rem;font-weight:800;color:var(--green)" id="page-calc-result">$37,500</div>
+        </div>
       </div>
     </div>
 
@@ -4163,6 +4192,17 @@ function resetProposalTab(){
     `;
   }
   renderSendProposalCard();
+}
+
+function updatePageRevenueCalc(){
+  const callsEl = document.getElementById('page-calc-calls');
+  const valueEl = document.getElementById('page-calc-value');
+  if(!callsEl || !valueEl) return;
+  const calls = Number(callsEl.value);
+  const value = Number(valueEl.value);
+  document.getElementById('page-calc-calls-val').textContent = calls;
+  document.getElementById('page-calc-value-val').textContent = `$${value.toLocaleString('en-US')}`;
+  document.getElementById('page-calc-result').textContent = `$${Math.round(calls * value * 30).toLocaleString('en-US')}`;
 }
 
 function updateProposalCalcPreview(){
