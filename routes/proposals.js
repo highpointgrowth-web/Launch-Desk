@@ -58,6 +58,108 @@ router.get('/:id/pixel.png', async (req, res) => {
   res.send(TRANSPARENT_PNG);
 });
 
+function buildRoiPageHtml({ agencyName, businessName }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What missed calls are costing ${escapeHtml(businessName)}</title>
+<style>
+:root{--bg:#0a0a0a;--surface:#0f0f0f;--surface2:#151515;--border:#181818;--border2:#242424;--ink:#f0f0f8;--ink2:#8080a0;--indigo:#a78bfa;--indigo-dark:#6d28d9;--green:#4ade80}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.5;padding:32px 16px;display:flex;justify-content:center}
+.card{max-width:520px;width:100%}
+.eyebrow{color:var(--indigo);font-size:12.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+h1{font-size:26px;font-weight:700;margin-bottom:24px;line-height:1.25}
+.row{margin-bottom:22px}
+.row label{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink2);margin-bottom:8px}
+.row label span:last-child{color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--indigo)}
+.result{background:var(--surface2);border:1px solid var(--border2);border-radius:14px;padding:24px;text-align:center;margin-top:8px}
+.result .label{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.result .amount{font-size:42px;font-weight:700;color:var(--green)}
+.result .basis{font-size:12.5px;color:var(--ink2);margin-top:8px}
+.footer{margin-top:28px;font-size:12.5px;color:var(--ink2);text-align:center}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="eyebrow">Revenue Impact</div>
+  <h1>What missed calls are costing ${escapeHtml(businessName)}</h1>
+
+  <div class="row">
+    <label><span>Missed calls per day</span><span id="callsVal">5</span></label>
+    <input type="range" id="calls" min="1" max="20" value="5">
+  </div>
+
+  <div class="row">
+    <label><span>Average value per job</span><span id="valueVal">$250</span></label>
+    <input type="range" id="value" min="50" max="5000" step="50" value="250">
+  </div>
+
+  <div class="result">
+    <div class="label">Estimated Monthly Lost Revenue</div>
+    <div class="amount" id="lostRevenue">$37,500</div>
+    <div class="basis" id="basis">Based on 5 missed calls/day × $250/job × 30 days</div>
+  </div>
+
+  <div class="footer">Prepared by ${escapeHtml(agencyName)}</div>
+</div>
+<script>
+const calls = document.getElementById('calls');
+const value = document.getElementById('value');
+const callsVal = document.getElementById('callsVal');
+const valueVal = document.getElementById('valueVal');
+const lostRevenue = document.getElementById('lostRevenue');
+const basis = document.getElementById('basis');
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+function update() {
+  const c = Number(calls.value);
+  const v = Number(value.value);
+  callsVal.textContent = c;
+  valueVal.textContent = fmt(v);
+  lostRevenue.textContent = fmt(c * v * 30);
+  basis.textContent = \`Based on \${c} missed calls/day × \${fmt(v)}/job × 30 days\`;
+}
+
+calls.addEventListener('input', update);
+value.addEventListener('input', update);
+</script>
+</body>
+</html>`;
+}
+
+router.get('/:id/roi', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: proposal, error: proposalError } = await supabase
+    .from('proposals')
+    .select('user_id, leads(business_name)')
+    .eq('id', req.params.id)
+    .single();
+
+  if (proposalError || !proposal) {
+    return res.status(404).send('Proposal not found');
+  }
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('agency_name')
+    .eq('id', proposal.user_id)
+    .single();
+
+  res.set('Content-Type', 'text/html');
+  res.send(
+    buildRoiPageHtml({
+      agencyName: user?.agency_name || 'Your AI Agency',
+      businessName: proposal.leads?.business_name || 'your business',
+    })
+  );
+});
+
 router.use(requireAuth);
 router.use(requirePaidPlan);
 
@@ -301,8 +403,10 @@ router.post('/:id/send', async (req, res) => {
 
     const transport = buildTransport(integration.config);
     const pixelUrl = `${process.env.APP_URL}/api/proposals/${proposal.id}/pixel.png`;
+    const roiUrl = `${process.env.APP_URL}/api/proposals/${proposal.id}/roi`;
     const htmlContent =
       `<div style="white-space:pre-wrap;font-family:sans-serif;font-size:14px;line-height:1.6">${escapeHtml(proposal.content)}</div>` +
+      `<div style="margin:24px 0"><a href="${roiUrl}" style="display:inline-block;background:#7c3aed;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-family:sans-serif;font-size:14px;font-weight:600">See what missed calls are costing you &rarr;</a></div>` +
       `<img src="${pixelUrl}" width="1" height="1" alt="" style="display:none">`;
 
     await transport.sendMail({
