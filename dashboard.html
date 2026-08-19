@@ -1648,30 +1648,31 @@ Happy to. What's the biggest headache with missed calls for you right now — so
           <p style="font-size:.72rem;color:var(--ink3);margin-top:10px">Recovery rate is the share of missed calls a 24/7 AI receptionist would answer instead of losing to voicemail.</p>
 
           <div style="margin-top:26px">
-            <div style="font-size:.68rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Lost vs. Recovered (Monthly)</div>
-            <div style="margin-bottom:12px">
-              <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span style="color:var(--ink2)">Revenue Lost</span><span id="calc-bar-lost-label" style="font-weight:600">$37,500</span></div>
-              <div style="height:10px;border-radius:6px;background:var(--red)"></div>
+            <div style="font-size:.68rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Recovered vs. Still Lost (Monthly)</div>
+            <div style="height:14px;border-radius:8px;background:var(--red);overflow:hidden">
+              <div id="calc-bar-recovered" style="height:100%;background:var(--green);width:80%"></div>
             </div>
-            <div>
-              <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span style="color:var(--ink2)">Recoverable with AI</span><span id="calc-bar-recovered-label" style="font-weight:600">$30,000</span></div>
-              <div style="height:10px;border-radius:6px;background:var(--bg2);overflow:hidden"><div id="calc-bar-recovered" style="height:100%;border-radius:6px;background:var(--green);width:80%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-top:8px">
+              <span style="color:var(--ink2)">🟩 Recovered: <span id="calc-bar-recovered-label" style="font-weight:600;color:var(--ink)">$30,000</span></span>
+              <span style="color:var(--ink2)">🟥 Still lost: <span id="calc-bar-stilllost-label" style="font-weight:600;color:var(--ink)">$7,500</span></span>
             </div>
           </div>
         </div>
 
         <div class="card card-pad" style="align-self:start">
-          <div class="card-title" style="margin-bottom:12px">Breakdown</div>
-          <div class="review-row"><span class="review-label">Missed Calls / Month</span><span class="review-val" id="calc-detail-calls-month">150</span></div>
-          <div class="review-row"><span class="review-label">Avg Value / Job</span><span class="review-val" id="calc-detail-value">$250</span></div>
-          <div class="review-row"><span class="review-label">Total Opportunity Lost</span><span class="review-val" id="calc-detail-lost">$37,500/mo</span></div>
-          <div class="review-row"><span class="review-label">AI Recovery Rate</span><span class="review-val" id="calc-detail-rate">80%</span></div>
-          <div class="review-row" style="border-bottom:none"><span class="review-label">Annual Opportunity Lost</span><span class="review-val" id="calc-detail-annual-lost">$450,000/yr</span></div>
+          <div class="card-title" style="margin-bottom:16px">The Math</div>
+          <div style="font-size:.85rem;color:var(--ink2);line-height:1.7">
+            <span id="calc-formula-calls" style="color:var(--ink);font-weight:600">150</span> missed calls/mo &times;
+            <span id="calc-formula-value" style="color:var(--ink);font-weight:600">$250</span>/job =
+            <strong style="color:var(--ink)" id="calc-formula-lost">$37,500</strong> lost every month
+          </div>
+          <div style="font-size:.72rem;color:var(--ink3);margin-top:4px" id="calc-formula-annual">($450,000/yr)</div>
 
-          <div style="margin-top:16px;padding:18px;background:var(--green-bg);border-radius:10px;text-align:center">
-            <div style="font-size:.66rem;color:var(--green);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">What an AI Receptionist Could Recover</div>
+          <div style="margin-top:20px;padding:18px;background:var(--green-bg);border-radius:10px;text-align:center">
+            <div style="font-size:.66rem;color:var(--green);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">An AI Receptionist Recovers</div>
             <div style="font-size:1.6rem;font-weight:800;color:var(--green)" id="calc-detail-recovered-big">$30,000/mo</div>
             <div style="font-size:.72rem;color:var(--green);margin-top:4px;opacity:.85" id="calc-detail-recovered-annual">$360,000/yr</div>
+            <div style="font-size:.68rem;color:var(--green);margin-top:8px;opacity:.75" id="calc-formula-rate">at an 80% recovery rate</div>
           </div>
         </div>
       </div>
@@ -4261,15 +4262,15 @@ function updatePageRevenueCalc(){
   document.getElementById('calc-stat-monthly-recovered').textContent = fmt(recoveredMonthly);
   document.getElementById('calc-stat-annual-recovered').textContent = fmt(recoveredAnnual);
 
-  document.getElementById('calc-bar-lost-label').textContent = fmt(lostMonthly);
   document.getElementById('calc-bar-recovered-label').textContent = fmt(recoveredMonthly);
+  document.getElementById('calc-bar-stilllost-label').textContent = fmt(lostMonthly - recoveredMonthly);
   document.getElementById('calc-bar-recovered').style.width = `${rate}%`;
 
-  document.getElementById('calc-detail-calls-month').textContent = callsPerMonth;
-  document.getElementById('calc-detail-value').textContent = fmt(value);
-  document.getElementById('calc-detail-lost').textContent = `${fmt(lostMonthly)}/mo`;
-  document.getElementById('calc-detail-rate').textContent = `${rate}%`;
-  document.getElementById('calc-detail-annual-lost').textContent = `${fmt(lostAnnual)}/yr`;
+  document.getElementById('calc-formula-calls').textContent = `${callsPerMonth}`;
+  document.getElementById('calc-formula-value').textContent = fmt(value);
+  document.getElementById('calc-formula-lost').textContent = fmt(lostMonthly);
+  document.getElementById('calc-formula-annual').textContent = `(${fmt(lostAnnual)}/yr)`;
+  document.getElementById('calc-formula-rate').textContent = `at a ${rate}% recovery rate`;
   document.getElementById('calc-detail-recovered-big').textContent = `${fmt(recoveredMonthly)}/mo`;
   document.getElementById('calc-detail-recovered-annual').textContent = `${fmt(recoveredAnnual)}/yr`;
 }
