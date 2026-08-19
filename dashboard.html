@@ -1620,19 +1620,59 @@ Happy to. What's the biggest headache with missed calls for you right now — so
 
     <!-- REVENUE CALCULATOR -->
     <div class="page" id="page-revenue-calc">
-      <div class="page-header"><div class="page-title">Revenue Calculator</div><div class="page-sub">Estimate what missed calls are costing a prospect — the same calculator shown on your proposal links</div></div>
-      <div class="card card-pad" style="max-width:420px">
-        <div class="f-field">
-          <label class="f-label">Missed calls/day <span id="page-calc-calls-val" style="color:var(--ink);font-weight:600">5</span></label>
-          <input type="range" id="page-calc-calls" min="1" max="20" value="5" style="width:100%;accent-color:var(--indigo)" oninput="updatePageRevenueCalc()">
+      <div class="page-header"><div class="page-title">Revenue Calculator</div><div class="page-sub">Estimate what missed calls are costing a prospect — the same math shown on your proposal links</div></div>
+
+      <div class="stat-strip" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+        <div class="stat-cell"><div class="stat-label">Lost / Month</div><div class="stat-val" id="calc-stat-monthly-lost">$37,500</div></div>
+        <div class="stat-cell"><div class="stat-label">Lost / Year</div><div class="stat-val" id="calc-stat-annual-lost">$450,000</div></div>
+        <div class="stat-cell"><div class="stat-label">Recoverable / Month</div><div class="stat-val" id="calc-stat-monthly-recovered">$30,000</div></div>
+        <div class="stat-cell"><div class="stat-label">Recoverable / Year</div><div class="stat-val" id="calc-stat-annual-recovered">$360,000</div></div>
+      </div>
+
+      <div class="dash-grid">
+        <div class="card card-pad">
+          <div class="card-title" style="margin-bottom:16px">Assumptions</div>
+
+          <div class="f-field">
+            <label class="f-label">Missed calls/day <span id="page-calc-calls-val" style="color:var(--ink);font-weight:600">5</span></label>
+            <input type="range" id="page-calc-calls" min="1" max="20" value="5" style="width:100%;accent-color:var(--indigo)" oninput="updatePageRevenueCalc()">
+          </div>
+          <div class="f-field" style="margin-top:18px">
+            <label class="f-label">Avg value/job <span id="page-calc-value-val" style="color:var(--ink);font-weight:600">$250</span></label>
+            <input type="range" id="page-calc-value" min="50" max="5000" step="50" value="250" style="width:100%;accent-color:var(--indigo)" oninput="updatePageRevenueCalc()">
+          </div>
+          <div class="f-field" style="margin-top:18px">
+            <label class="f-label">AI receptionist recovery rate <span id="page-calc-rate-val" style="color:var(--ink);font-weight:600">80%</span></label>
+            <input type="range" id="page-calc-rate" min="10" max="100" step="5" value="80" style="width:100%;accent-color:var(--indigo)" oninput="updatePageRevenueCalc()">
+          </div>
+          <p style="font-size:.72rem;color:var(--ink3);margin-top:10px">Recovery rate is the share of missed calls a 24/7 AI receptionist would answer instead of losing to voicemail.</p>
+
+          <div style="margin-top:26px">
+            <div style="font-size:.68rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">Lost vs. Recovered (Monthly)</div>
+            <div style="margin-bottom:12px">
+              <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span style="color:var(--ink2)">Revenue Lost</span><span id="calc-bar-lost-label" style="font-weight:600">$37,500</span></div>
+              <div style="height:10px;border-radius:6px;background:var(--red)"></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px"><span style="color:var(--ink2)">Recoverable with AI</span><span id="calc-bar-recovered-label" style="font-weight:600">$30,000</span></div>
+              <div style="height:10px;border-radius:6px;background:var(--bg2);overflow:hidden"><div id="calc-bar-recovered" style="height:100%;border-radius:6px;background:var(--green);width:80%"></div></div>
+            </div>
+          </div>
         </div>
-        <div class="f-field" style="margin-top:14px">
-          <label class="f-label">Avg value/job <span id="page-calc-value-val" style="color:var(--ink);font-weight:600">$250</span></label>
-          <input type="range" id="page-calc-value" min="50" max="5000" step="50" value="250" style="width:100%;accent-color:var(--indigo)" oninput="updatePageRevenueCalc()">
-        </div>
-        <div style="margin-top:20px;padding:20px;background:var(--bg2);border-radius:10px;text-align:center">
-          <div style="font-size:.7rem;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Est. Monthly Lost Revenue</div>
-          <div style="font-size:2rem;font-weight:800;color:var(--green)" id="page-calc-result">$37,500</div>
+
+        <div class="card card-pad" style="align-self:start">
+          <div class="card-title" style="margin-bottom:12px">Breakdown</div>
+          <div class="review-row"><span class="review-label">Missed Calls / Month</span><span class="review-val" id="calc-detail-calls-month">150</span></div>
+          <div class="review-row"><span class="review-label">Avg Value / Job</span><span class="review-val" id="calc-detail-value">$250</span></div>
+          <div class="review-row"><span class="review-label">Total Opportunity Lost</span><span class="review-val" id="calc-detail-lost">$37,500/mo</span></div>
+          <div class="review-row"><span class="review-label">AI Recovery Rate</span><span class="review-val" id="calc-detail-rate">80%</span></div>
+          <div class="review-row" style="border-bottom:none"><span class="review-label">Annual Opportunity Lost</span><span class="review-val" id="calc-detail-annual-lost">$450,000/yr</span></div>
+
+          <div style="margin-top:16px;padding:18px;background:var(--green-bg);border-radius:10px;text-align:center">
+            <div style="font-size:.66rem;color:var(--green);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">What an AI Receptionist Could Recover</div>
+            <div style="font-size:1.6rem;font-weight:800;color:var(--green)" id="calc-detail-recovered-big">$30,000/mo</div>
+            <div style="font-size:.72rem;color:var(--green);margin-top:4px;opacity:.85" id="calc-detail-recovered-annual">$360,000/yr</div>
+          </div>
         </div>
       </div>
     </div>
@@ -4197,12 +4237,41 @@ function resetProposalTab(){
 function updatePageRevenueCalc(){
   const callsEl = document.getElementById('page-calc-calls');
   const valueEl = document.getElementById('page-calc-value');
-  if(!callsEl || !valueEl) return;
+  const rateEl = document.getElementById('page-calc-rate');
+  if(!callsEl || !valueEl || !rateEl) return;
+
   const calls = Number(callsEl.value);
   const value = Number(valueEl.value);
+  const rate = Number(rateEl.value);
+
+  const callsPerMonth = calls * 30;
+  const lostMonthly = calls * value * 30;
+  const lostAnnual = lostMonthly * 12;
+  const recoveredMonthly = lostMonthly * (rate / 100);
+  const recoveredAnnual = lostAnnual * (rate / 100);
+
+  const fmt = (n) => `$${Math.round(n).toLocaleString('en-US')}`;
+
   document.getElementById('page-calc-calls-val').textContent = calls;
-  document.getElementById('page-calc-value-val').textContent = `$${value.toLocaleString('en-US')}`;
-  document.getElementById('page-calc-result').textContent = `$${Math.round(calls * value * 30).toLocaleString('en-US')}`;
+  document.getElementById('page-calc-value-val').textContent = fmt(value);
+  document.getElementById('page-calc-rate-val').textContent = `${rate}%`;
+
+  document.getElementById('calc-stat-monthly-lost').textContent = fmt(lostMonthly);
+  document.getElementById('calc-stat-annual-lost').textContent = fmt(lostAnnual);
+  document.getElementById('calc-stat-monthly-recovered').textContent = fmt(recoveredMonthly);
+  document.getElementById('calc-stat-annual-recovered').textContent = fmt(recoveredAnnual);
+
+  document.getElementById('calc-bar-lost-label').textContent = fmt(lostMonthly);
+  document.getElementById('calc-bar-recovered-label').textContent = fmt(recoveredMonthly);
+  document.getElementById('calc-bar-recovered').style.width = `${rate}%`;
+
+  document.getElementById('calc-detail-calls-month').textContent = callsPerMonth;
+  document.getElementById('calc-detail-value').textContent = fmt(value);
+  document.getElementById('calc-detail-lost').textContent = `${fmt(lostMonthly)}/mo`;
+  document.getElementById('calc-detail-rate').textContent = `${rate}%`;
+  document.getElementById('calc-detail-annual-lost').textContent = `${fmt(lostAnnual)}/yr`;
+  document.getElementById('calc-detail-recovered-big').textContent = `${fmt(recoveredMonthly)}/mo`;
+  document.getElementById('calc-detail-recovered-annual').textContent = `${fmt(recoveredAnnual)}/yr`;
 }
 
 function updateProposalCalcPreview(){
