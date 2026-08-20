@@ -290,6 +290,14 @@
     async buyPhone(id, { area_code } = {}) {
       return request('POST', `/api/agents/${id}/buy-phone`, { area_code });
     },
+
+    async createWebCall(id) {
+      return request('POST', `/api/agents/${id}/create-web-call`);
+    },
+
+    async aiFix(id, description) {
+      return request('POST', `/api/agents/${id}/ai-fix`, { description });
+    },
   };
 
   const stripe = {

@@ -566,6 +566,119 @@ router.post('/:id/sync', async (req, res) => {
   }
 });
 
+router.post('/:id/create-web-call', async (req, res) => {
+  const supabase = req.app.locals.supabase;
+
+  const { data: agent, error } = await supabase
+    .from('agents')
+    .select('retell_agent_id')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (error || !agent) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  if (!agent.retell_agent_id) {
+    return res.status(400).json({ error: 'Agent has no linked Retell agent' });
+  }
+
+  try {
+    // Same webhook pipeline that bills and logs real phone calls (keyed on
+    // retell_agent_id, not on how the call came in) picks these up too, so
+    // a browser test call costs and gets logged exactly like a real one -
+    // no separate accounting needed here.
+    const webCall = await retellFetch('POST', '/v2/create-web-call', { agent_id: agent.retell_agent_id });
+    res.json({ access_token: webCall.access_token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+function parseJsonResponse(text) {
+  // Claude is instructed to return strict JSON, but strip markdown fences
+  // defensively in case it wraps the response anyway.
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  return JSON.parse(cleaned);
+}
+
+router.post('/:id/ai-fix', async (req, res) => {
+  const { description } = req.body;
+  if (!description) {
+    return res.status(400).json({ error: 'description is required' });
+  }
+
+  const supabase = req.app.locals.supabase;
+
+  const { data: agent, error } = await supabase
+    .from('agents')
+    .select('id, system_prompt')
+    .eq('id', req.params.id)
+    .eq('user_id', req.userId)
+    .single();
+
+  if (error || !agent) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+
+  const { data: user, error: userError } = await supabase.from('users').select('plan').eq('id', req.userId).single();
+  if (userError || !user) {
+    return res.status(404).json({ error: 'User profile not found' });
+  }
+
+  try {
+    await enforceAgentBuildCap(supabase, req.userId, user.plan);
+
+    const { data: recentCalls } = await supabase
+      .from('call_logs')
+      .select('transcript, outcome, created_at')
+      .eq('agent_id', agent.id)
+      .not('transcript', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    const transcriptBlock =
+      (recentCalls || [])
+        .map((c, i) => `Call ${i + 1} (${c.outcome || 'unknown outcome'}):\n${c.transcript}`)
+        .join('\n\n---\n\n') || 'No recent call transcripts available.';
+
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-5',
+      max_tokens: 3000,
+      output_config: { effort: 'medium' },
+      system:
+        "You fix AI phone voice agent system prompts. You'll be given the agent's current system prompt, a " +
+        'plain-English description of a problem the agency owner noticed, and transcripts from its most recent ' +
+        'calls. Diagnose the likely cause using the transcripts as evidence where possible, then rewrite the ' +
+        'full system prompt with the fix applied - preserve everything that already works, change only what ' +
+        'addresses the described problem. Respond with strict JSON only, no markdown fences, in this exact ' +
+        'shape: {"diagnosis": "one or two sentences on what is likely causing it", "updated_prompt": "the full ' +
+        'corrected system prompt"}',
+      messages: [
+        {
+          role: 'user',
+          content:
+            `Problem described by the agency owner: ${description}\n\n` +
+            `Current system prompt:\n${agent.system_prompt}\n\n` +
+            `Recent call transcripts:\n${transcriptBlock}`,
+        },
+      ],
+    });
+
+    const textBlock = response.content.find((b) => b.type === 'text');
+    const parsed = parseJsonResponse(textBlock.text);
+
+    if (!parsed.updated_prompt) {
+      throw new Error('AI Fix did not return an updated prompt');
+    }
+
+    res.json(parsed);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 router.post('/:id/buy-phone', async (req, res) => {
   const { area_code } = req.body;
   const supabase = req.app.locals.supabase;

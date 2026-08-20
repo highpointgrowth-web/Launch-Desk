@@ -1096,6 +1096,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
           <button class="agent-tab" onclick="agentTab('calendar',this)">Calendar</button>
           <button class="agent-tab" onclick="agentTab('phone',this)">Phone</button>
           <button class="agent-tab" onclick="agentTab('billing',this)">Billing</button>
+          <button class="agent-tab" onclick="agentTab('test',this)">🎙 Test Call</button>
+          <button class="agent-tab" onclick="agentTab('aifix',this)">✨ AI Fix</button>
           <button class="agent-tab" onclick="agentTab('calls',this)">Call Logs</button>
           <button class="agent-tab" onclick="agentTab('proposal',this)">Proposal</button>
         </div>
@@ -1195,19 +1197,34 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
 
         <!-- TEST CALL TAB -->
         <div class="agent-panel" id="atab-test">
-          <div class="card card-pad" style="text-align:center;padding:64px 32px">
-            <div style="font-size:2.2rem;margin-bottom:12px;opacity:.4">🎙</div>
-            <h3 style="font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px">Coming Soon</h3>
-            <p style="font-size:.8rem;color:var(--ink3);max-width:320px;margin:0 auto;line-height:1.6">Talk to your agent live from the browser, mic and all, with a real-time transcript. We're building this next.</p>
+          <div class="card card-pad" style="max-width:640px;margin:0 auto;text-align:center">
+            <div class="card-title" style="margin-bottom:4px">Test Call</div>
+            <p style="font-size:.8rem;color:var(--ink3);margin-bottom:22px">Talk to this agent live from your browser, mic and all — no phone number needed. Counts as a real call against your balance.</p>
+            <button class="btn btn-indigo" id="test-call-btn" onclick="toggleTestCall()">🎙 Start Test Call</button>
+            <div id="test-call-status" style="font-size:.78rem;color:var(--ink3);margin-top:10px;min-height:1em"></div>
+            <div id="test-call-transcript" class="hidden" style="text-align:left;margin-top:22px;background:var(--bg2);border-radius:10px;padding:16px;max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:10px"></div>
           </div>
         </div>
 
         <!-- AI FIX TAB -->
         <div class="agent-panel" id="atab-aifix">
-          <div class="card card-pad" style="text-align:center;padding:64px 32px">
-            <div style="font-size:2.2rem;margin-bottom:12px;opacity:.4">✨</div>
-            <h3 style="font-size:.95rem;font-weight:700;color:var(--ink2);letter-spacing:-.01em;margin-bottom:6px">Coming Soon</h3>
-            <p style="font-size:.8rem;color:var(--ink3);max-width:320px;margin:0 auto;line-height:1.6">Describe a problem in plain English and let AI read recent call transcripts to find the cause and propose a prompt fix for your approval. We're building this next.</p>
+          <div class="card card-pad" style="max-width:720px">
+            <div class="card-title" style="margin-bottom:4px">AI Agent Fixer</div>
+            <p style="font-size:.8rem;color:var(--ink3);margin-bottom:14px">Describe an issue and AI will read this agent's recent call transcripts to diagnose it, then propose a corrected prompt for your approval — nothing is changed until you apply it.</p>
+            <textarea class="f-input" id="aifix-description" rows="3" style="resize:none;width:100%" placeholder="e.g. The agent tells callers we're open on Sundays but we're not, or it doesn't ask for the caller's name…"></textarea>
+            <button class="btn btn-indigo" id="aifix-diagnose-btn" style="margin-top:10px" onclick="handleAiFixDiagnose()">✨ Diagnose &amp; Fix</button>
+            <div id="aifix-status" style="font-size:.75rem;color:var(--ink3);margin-top:8px;min-height:1em"></div>
+
+            <div id="aifix-result" class="hidden" style="margin-top:20px">
+              <div class="card-title" style="margin-bottom:8px">Diagnosis</div>
+              <p id="aifix-diagnosis" style="font-size:.85rem;color:var(--ink2);margin-bottom:18px"></p>
+              <div class="card-title" style="margin-bottom:8px">Proposed Prompt</div>
+              <textarea class="f-input" id="aifix-updated-prompt" rows="12" style="resize:none;width:100%;font-family:'IBM Plex Mono',monospace;font-size:.78rem"></textarea>
+              <div style="display:flex;gap:10px;margin-top:12px">
+                <button class="btn btn-indigo" id="aifix-apply-btn" onclick="handleAiFixApply()">Apply Fix &amp; Sync to Agent</button>
+                <button class="btn btn-ghost" onclick="document.getElementById('aifix-result').classList.add('hidden')">Discard</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2024,11 +2041,147 @@ function hideDetail(){
   document.getElementById('agents-list').style.display='block';
 }
 function agentTab(name, el){
+  if(name !== 'test') stopTestCall();
   document.querySelectorAll('.agent-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.agent-tab').forEach(t=>t.classList.remove('active'));
   const panel = document.getElementById('atab-'+name);
   if(panel) panel.classList.add('active');
   if(el) el.classList.add('active');
+}
+
+// ── TEST CALL TAB ──
+let retellWebClient = null;
+let testCallActive = false;
+
+async function getRetellWebClient(){
+  if(retellWebClient) return retellWebClient;
+  const { RetellWebClient } = await import('https://cdn.jsdelivr.net/npm/retell-client-js-sdk/+esm');
+  retellWebClient = new RetellWebClient();
+  retellWebClient.on('call_started', () => {
+    document.getElementById('test-call-status').textContent = 'Call connected — go ahead and talk.';
+  });
+  retellWebClient.on('update', (update) => {
+    if(update && update.transcript) renderTestCallTranscript(update.transcript);
+  });
+  retellWebClient.on('call_ended', () => {
+    endTestCallUi();
+  });
+  retellWebClient.on('error', (err) => {
+    document.getElementById('test-call-status').textContent = `Call error: ${err?.message || err}`;
+    endTestCallUi();
+  });
+  return retellWebClient;
+}
+
+function renderTestCallTranscript(transcript){
+  const el = document.getElementById('test-call-transcript');
+  if(!el) return;
+  el.classList.remove('hidden');
+
+  if(Array.isArray(transcript)){
+    el.innerHTML = transcript.map((t) => {
+      const role = String(t.role || t.speaker || 'agent').toLowerCase();
+      const isAgent = role.includes('agent');
+      const text = t.content || t.text || '';
+      return `<div style="align-self:${isAgent ? 'flex-start' : 'flex-end'};max-width:80%">
+        <div style="font-size:.66rem;color:var(--ink3);margin-bottom:2px;text-align:${isAgent ? 'left' : 'right'}">${isAgent ? 'Agent' : 'You'}</div>
+        <div style="background:${isAgent ? 'var(--surface2)' : 'var(--indigo-light)'};color:${isAgent ? 'var(--ink)' : 'var(--indigo)'};padding:8px 12px;border-radius:10px;font-size:.82rem">${escapeHtml(text)}</div>
+      </div>`;
+    }).join('');
+  } else if(typeof transcript === 'string'){
+    el.innerHTML = `<pre style="white-space:pre-wrap;font-size:.82rem;color:var(--ink2);font-family:inherit">${escapeHtml(transcript)}</pre>`;
+  }
+  el.scrollTop = el.scrollHeight;
+}
+
+function endTestCallUi(){
+  testCallActive = false;
+  const btn = document.getElementById('test-call-btn');
+  if(btn){ btn.textContent = '🎙 Start Test Call'; btn.disabled = false; }
+  const status = document.getElementById('test-call-status');
+  if(status && !status.textContent.startsWith('Call error')) status.textContent = 'Call ended.';
+}
+
+function stopTestCall(){
+  if(testCallActive && retellWebClient){
+    retellWebClient.stopCall();
+  }
+  testCallActive = false;
+}
+
+async function toggleTestCall(){
+  if(testCallActive){
+    stopTestCall();
+    return;
+  }
+  if(!currentAgent) return;
+
+  const btn = document.getElementById('test-call-btn');
+  const status = document.getElementById('test-call-status');
+  btn.disabled = true;
+  status.textContent = 'Connecting…';
+  document.getElementById('test-call-transcript').classList.add('hidden');
+
+  try {
+    const client = await getRetellWebClient();
+    const { access_token } = await API.agents.createWebCall(currentAgent.id);
+    await client.startCall({ accessToken: access_token });
+    testCallActive = true;
+    btn.textContent = '⏹ End Test Call';
+    btn.disabled = false;
+  } catch (err) {
+    status.textContent = `Couldn't start call: ${err.message}`;
+    btn.disabled = false;
+  }
+}
+
+// ── AI FIX TAB ──
+async function handleAiFixDiagnose(){
+  if(!currentAgent) return;
+  const description = document.getElementById('aifix-description').value.trim();
+  if(!description) return;
+
+  const btn = document.getElementById('aifix-diagnose-btn');
+  const status = document.getElementById('aifix-status');
+  btn.disabled = true;
+  status.textContent = 'Reading recent calls and diagnosing…';
+  document.getElementById('aifix-result').classList.add('hidden');
+
+  try {
+    const { diagnosis, updated_prompt } = await API.agents.aiFix(currentAgent.id, description);
+    document.getElementById('aifix-diagnosis').textContent = diagnosis || '';
+    document.getElementById('aifix-updated-prompt').value = updated_prompt || '';
+    document.getElementById('aifix-result').classList.remove('hidden');
+    status.textContent = '';
+  } catch (err) {
+    status.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function handleAiFixApply(){
+  if(!currentAgent) return;
+  const system_prompt = document.getElementById('aifix-updated-prompt').value.trim();
+  const btn = document.getElementById('aifix-apply-btn');
+  const status = document.getElementById('aifix-status');
+  btn.disabled = true;
+  status.textContent = 'Applying and syncing to the live agent…';
+
+  try {
+    const { agent } = await API.agents.update(currentAgent.id, { system_prompt });
+    currentAgent = agent;
+    await API.agents.sync(currentAgent.id);
+    const promptEl = document.getElementById('agent-prompt-system');
+    if(promptEl) promptEl.value = system_prompt;
+    status.textContent = '✓ Applied and synced to the live agent';
+    document.getElementById('aifix-result').classList.add('hidden');
+    document.getElementById('aifix-description').value = '';
+  } catch (err) {
+    status.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ── AGENT CALENDAR TAB ──
