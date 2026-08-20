@@ -910,7 +910,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
               <div style="display:flex;flex-direction:column;gap:10px">
                 <div class="f-field">
                   <label class="f-label">Business Name</label>
-                  <input class="f-input" id="biz-name" placeholder="e.g. Metro Plumbing Co.">
+                  <input class="f-input" id="biz-name" placeholder="e.g. Metro Plumbing Co." oninput="syncGreetingDefault()">
                 </div>
                 <div class="f-field">
                   <label class="f-label">Website URL (overrides the one on file, if any)</label>
@@ -959,7 +959,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Inter',
                 </div>
                 <div class="f-field">
                   <label class="f-label">Greeting</label>
-                  <textarea class="f-input" id="voice-greeting" rows="2" style="resize:none">Hi, thanks for calling Metro Plumbing Co! This is Sarah. How can I help you today?</textarea>
+                  <textarea class="f-input" id="voice-greeting" rows="2" style="resize:none" placeholder="Hi, thanks for calling [Business Name]! How can I help you today?" oninput="markGreetingEdited()"></textarea>
                 </div>
               </div>
             </div>
@@ -2419,11 +2419,30 @@ async function saveAgentBilling(){
 let selectedClient = null;
 let selectedNiche = 'plumbing';
 let promptPreviewLoaded = false;
+let greetingUserEdited = false;
+
+function markGreetingEdited(){
+  greetingUserEdited = true;
+}
+
+// Keeps the Greeting textarea's default text in sync with whatever business
+// name is currently entered - covers both picking a client from the CRM and
+// typing one in manually. Stops touching it the moment the agency owner
+// edits the greeting themselves, so a real customization is never clobbered.
+function syncGreetingDefault(){
+  if(greetingUserEdited) return;
+  const nameEl = document.getElementById('biz-name');
+  const greetingEl = document.getElementById('voice-greeting');
+  if(!nameEl || !greetingEl) return;
+  const name = nameEl.value.trim();
+  greetingEl.value = name ? `Hi, thanks for calling ${name}! How can I help you today?` : '';
+}
 
 function showBuilder(){
   document.getElementById('agents-list').style.display='none';
   document.getElementById('agents-builder').style.display='block';
   promptPreviewLoaded = false;
+  greetingUserEdited = false;
   selectedClient = null;
   const searchInput = document.getElementById('client-search-input');
   if(searchInput) searchInput.value = '';
@@ -2601,6 +2620,7 @@ function selectClient(el, leadId){
   if(bizName) bizName.value = name;
   const bizUrl = document.getElementById('biz-url');
   if(bizUrl) bizUrl.value = lead.website || '';
+  syncGreetingDefault();
   // Pre-select niche (original casing preserved for the Custom fallback -
   // selectNiche itself matches presets case-insensitively)
   if(niche) selectNiche(niche);
