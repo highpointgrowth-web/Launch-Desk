@@ -78,7 +78,7 @@
     return refreshPromise;
   }
 
-  async function request(method, path, body, isRetry) {
+  async function doRequest(method, path, body, isRetry) {
     const headers = { 'Content-Type': 'application/json' };
     const token = getToken();
     if (token) {
@@ -101,7 +101,7 @@
       if (!isRetry) {
         try {
           await refreshSession();
-          return request(method, path, body, true);
+          return doRequest(method, path, body, true);
         } catch (refreshErr) {
           // fall through to full logout below
         }
@@ -124,6 +124,29 @@
     }
 
     return data;
+  }
+
+  // The dashboard's initial load fires a dozen-plus widget loaders at once,
+  // several of which independently GET the same endpoint (leads/agents/
+  // proposals) - sharing one in-flight promise per path collapses that
+  // burst into a single network call instead of hammering the API with
+  // duplicates for data that's about to come back identical anyway. Only
+  // applies to GETs (safe to dedupe/idempotent); writes always go straight
+  // through.
+  const inFlightGets = new Map();
+
+  function request(method, path, body) {
+    if (method !== 'GET') {
+      return doRequest(method, path, body);
+    }
+    if (inFlightGets.has(path)) {
+      return inFlightGets.get(path);
+    }
+    const promise = doRequest(method, path, body).finally(() => {
+      inFlightGets.delete(path);
+    });
+    inFlightGets.set(path, promise);
+    return promise;
   }
 
   const auth = {
