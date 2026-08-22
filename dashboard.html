@@ -27,8 +27,8 @@
   --red-bg:#fef2f2;
   --amber:#d97706;
   --amber-bg:#fffbeb;
-  --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03);
-  --shadow-md:0 4px 24px rgba(0,0,0,.06);
+  --shadow:none;
+  --shadow-md:0 8px 28px rgba(0,0,0,.08);
 }
 :root[data-theme="dark"]{
   --bg:#0a0a0a;
@@ -50,8 +50,8 @@
   --red-bg:#450a0a;
   --amber:#fbbf24;
   --amber-bg:#451a03;
-  --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
-  --shadow-md:0 4px 24px rgba(0,0,0,.4);
+  --shadow:none;
+  --shadow-md:0 8px 28px rgba(0,0,0,.35);
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
@@ -142,7 +142,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 
 /* ── CARDS ── */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow)}
 .card-pad{padding:22px}
 .card-title{font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:16px}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
@@ -150,7 +150,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 .card-action:hover{text-decoration:underline}
 
 /* ── STAT ROW ── */
-.stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:24px}
+.stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:24px}
 .stat-cell{padding:20px 20px 18px;border-right:1px solid var(--border);border-left:3px solid transparent;position:relative}
 .stat-cell:last-child{border-right:none}
 .stat-cell.active{border-left-color:var(--indigo);background:var(--indigo-light)}
@@ -331,9 +331,9 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 
 /* ── MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,10,15,.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
-.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);width:100%;max-width:420px;padding:24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-md);width:100%;max-width:420px;padding:24px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto}
 .modal-header{display:flex;align-items:center;justify-content:space-between}
-.modal-title{font-size:1rem;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.modal-title{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:1.3rem;letter-spacing:-.01em;color:var(--ink)}
 .modal-close{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink3);font-size:.9rem;transition:all .15s}
 .modal-close:hover{background:var(--bg2);color:var(--ink)}
 .modal-sub{font-size:.78rem;color:var(--ink3);margin-top:-6px}
