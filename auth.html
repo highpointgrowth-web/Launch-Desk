@@ -5,46 +5,46 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Log In or Sign Up — LaunchDesk</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0c0c10;
-  --bg2:#141418;
-  --surface:#18181e;
-  --surface2:#1e1e26;
-  --border:#26262e;
-  --border2:#32323c;
-  --ink:#f0f0f8;
-  --ink2:#8080a0;
-  --ink3:#484860;
-  --indigo:#818cf8;
-  --indigo-dark:#a5b4fc;
-  --indigo-light:#1e1b4b;
-  --indigo-mid:#312e81;
-  --red:#f87171;
-  --red-bg:#450a0a;
-  --shadow:0 1px 3px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
-  --shadow-md:0 4px 24px rgba(0,0,0,.4);
+  --bg:#ffffff;
+  --bg2:#f7f6f4;
+  --surface:#ffffff;
+  --surface2:#f7f6f4;
+  --border:#ececea;
+  --border2:#dddad5;
+  --ink:#0a0a0a;
+  --ink2:#71706b;
+  --ink3:#a8a6a0;
+  --indigo:#5c2333;
+  --indigo-dark:#3f1824;
+  --indigo-light:#f7ecee;
+  --indigo-mid:#e6cbd1;
+  --red:#dc2626;
+  --red-bg:#fef2f2;
+  --shadow:0 1px 3px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.03);
+  --shadow-md:0 4px 24px rgba(0,0,0,.06);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
-body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;display:flex;align-items:center;justify-content:center;padding:24px}
+body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;display:flex;align-items:center;justify-content:center;padding:24px}
 .hidden{display:none !important}
 
-.bg-glow{position:fixed;inset:0;pointer-events:none;background:radial-gradient(600px 400px at 50% -10%,rgba(129,140,248,.16),transparent 70%)}
+.bg-glow{display:none}
 
 .back-link{position:fixed;top:24px;left:28px;display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:500;color:var(--ink2);text-decoration:none;transition:color .15s}
 .back-link:hover{color:var(--ink)}
 
-.auth-card{position:relative;width:380px;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-md);padding:32px}
+.auth-card{position:relative;width:380px;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);padding:34px}
 
-.auth-logo{display:flex;align-items:center;gap:9px;margin-bottom:28px}
-.logo-mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--indigo),var(--indigo-dark));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(129,140,248,.35);flex:none}
-.logo-text{font-weight:800;font-size:1rem;letter-spacing:-.03em;color:var(--ink)}
+.auth-logo{display:flex;align-items:center;gap:8px;margin-bottom:30px}
+.logo-mark{width:26px;height:26px;border-radius:7px;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.logo-text{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:1.15rem;letter-spacing:-.01em;color:var(--ink)}
 
-.auth-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:24px}
-.auth-tab{flex:1;text-align:center;padding:.55rem 0;border-radius:8px;border:none;background:none;cursor:pointer;font-family:'Inter',system-ui,sans-serif;font-size:.82rem;font-weight:600;color:var(--ink2);transition:all .15s}
-.auth-tab.active{background:var(--indigo);color:#fff;box-shadow:0 2px 8px rgba(129,140,248,.3)}
+.auth-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:3px;margin-bottom:24px}
+.auth-tab{flex:1;text-align:center;padding:.55rem 0;border-radius:6px;border:none;background:none;cursor:pointer;font-family:'Archivo',system-ui,sans-serif;font-size:.82rem;font-weight:600;color:var(--ink2);transition:all .15s}
+.auth-tab.active{background:var(--indigo);color:#fff}
 .auth-tab:not(.active):hover{color:var(--ink)}
 
 .auth-panel{display:none;flex-direction:column;gap:14px}
@@ -56,15 +56,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
 .pw-wrap .f-input{width:100%;padding-right:2.4rem}
 .pw-toggle{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink3);padding:2px;line-height:1;font-size:.95rem}
 .pw-toggle:hover{color:var(--ink)}
-.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.65rem .85rem;font-size:.86rem;color:var(--ink);font-family:'Inter',system-ui,sans-serif;outline:none;transition:all .15s}
+.f-input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.65rem .85rem;font-size:.86rem;color:var(--ink);font-family:'Archivo',system-ui,sans-serif;outline:none;transition:all .15s}
 .f-input::placeholder{color:var(--ink3)}
 .f-input:focus{border-color:var(--indigo);box-shadow:0 0 0 3px var(--indigo-light)}
 
 .auth-error{display:none;padding:10px 12px;background:var(--red-bg);border-radius:8px;font-size:.78rem;color:var(--red);line-height:1.4}
 .auth-error.visible{display:block}
 
-.auth-submit{width:100%;margin-top:4px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:.88rem;padding:.72rem 1.2rem;border-radius:10px;border:none;cursor:pointer;transition:all .15s;background:var(--indigo);color:#fff;font-family:'Inter',system-ui,sans-serif}
-.auth-submit:hover{background:var(--indigo-dark);transform:translateY(-1px);box-shadow:0 4px 14px rgba(129,140,248,.35)}
+.auth-submit{width:100%;margin-top:4px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:.88rem;padding:.72rem 1.2rem;border-radius:9px;border:none;cursor:pointer;transition:all .15s;background:var(--indigo);color:#fff;font-family:'Archivo',system-ui,sans-serif}
+.auth-submit:hover{background:var(--indigo-dark);transform:translateY(-1px)}
 .auth-submit:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
 
 .auth-switch{text-align:center;margin-top:18px;font-size:.8rem;color:var(--ink3)}
@@ -90,9 +90,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-se
 
 <div class="auth-card">
   <div class="auth-logo">
-    <div class="logo-mark">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-    </div>
+    <div class="logo-mark">⚡</div>
     <span class="logo-text">LaunchDesk</span>
   </div>
 
