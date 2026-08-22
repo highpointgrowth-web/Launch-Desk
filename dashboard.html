@@ -316,6 +316,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 .toggle{width:38px;height:21px;border-radius:99px;background:var(--border2);position:relative;cursor:pointer;transition:background .2s;flex:none}
 .toggle.on{background:var(--indigo)}
 .toggle-knob{position:absolute;top:2.5px;left:2.5px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+
+.accent-swatches{display:flex;gap:9px}
+.accent-swatch{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .15s;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.accent-swatch:hover{transform:scale(1.12)}
+.accent-swatch.active{border-color:var(--ink)}
 .toggle.on .toggle-knob{transform:translateX(17px)}
 .profile-row{display:flex;align-items:center;gap:16px;padding:20px}
 .p-ava{width:48px;height:48px;border-radius:50%;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#fff;flex:none}
@@ -1545,6 +1550,20 @@ Happy to. What's the biggest headache with missed calls for you right now — so
                 <div><div class="s-label">Dark Mode</div><div class="s-meta">Switch between light and dark interface</div></div>
               </div>
               <div class="toggle" id="theme-toggle"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="s-row" style="cursor:default">
+              <div class="s-row-left">
+                <div class="s-icon">🎨</div>
+                <div><div class="s-label">Accent Color</div><div class="s-meta">Pick the accent used for buttons and highlights</div></div>
+              </div>
+              <div class="s-right accent-swatches" id="accent-swatches">
+                <div class="accent-swatch" data-accent="wine" style="background:#5c2333" onclick="applyAccent('wine', true)" title="Wine"></div>
+                <div class="accent-swatch" data-accent="forest" style="background:#2f4a3a" onclick="applyAccent('forest', true)" title="Forest"></div>
+                <div class="accent-swatch" data-accent="navy" style="background:#1f3a5c" onclick="applyAccent('navy', true)" title="Navy"></div>
+                <div class="accent-swatch" data-accent="ochre" style="background:#7a5a1e" onclick="applyAccent('ochre', true)" title="Ochre"></div>
+                <div class="accent-swatch" data-accent="plum" style="background:#4d2b52" onclick="applyAccent('plum', true)" title="Plum"></div>
+                <div class="accent-swatch" data-accent="slate" style="background:#38505c" onclick="applyAccent('slate', true)" title="Slate"></div>
+              </div>
             </div>
           </div>
 
@@ -2963,6 +2982,37 @@ function initTheme(){
   const theme = stored || 'dark';
   document.documentElement.setAttribute('data-theme', theme);
   applyThemeVisualState(theme === 'dark');
+  initAccent();
+}
+
+// Curated, muted jewel-tone accent options - deliberately not a raw hue
+// picker, so every choice still reads as premium rather than a random
+// bright color breaking the restrained palette. Each has its own
+// light/dark pair, same idea as the default wine accent's two variants.
+const ACCENT_PALETTES = {
+  wine:   { light:{indigo:'#5c2333',indigoDark:'#3f1824',indigoLight:'#f7ecee',indigoMid:'#e6cbd1'}, dark:{indigo:'#c98ca0',indigoDark:'#e6b3c1',indigoLight:'#241318',indigoMid:'#5c2333'} },
+  forest: { light:{indigo:'#2f4a3a',indigoDark:'#1f3226',indigoLight:'#eef4f0',indigoMid:'#cfe3d7'}, dark:{indigo:'#8fbfa4',indigoDark:'#b3d9c3',indigoLight:'#16241d',indigoMid:'#2f4a3a'} },
+  navy:   { light:{indigo:'#1f3a5c',indigoDark:'#152840',indigoLight:'#eef2f7',indigoMid:'#c9d9ea'}, dark:{indigo:'#93b4d9',indigoDark:'#b8cfe8',indigoLight:'#16232f',indigoMid:'#1f3a5c'} },
+  ochre:  { light:{indigo:'#7a5a1e',indigoDark:'#574012',indigoLight:'#f7f1e3',indigoMid:'#e8d9b0'}, dark:{indigo:'#d9b874',indigoDark:'#e8cf9e',indigoLight:'#241d0e',indigoMid:'#7a5a1e'} },
+  plum:   { light:{indigo:'#4d2b52',indigoDark:'#341c38',indigoLight:'#f3ecf4',indigoMid:'#ddc2e0'}, dark:{indigo:'#c69ecf',indigoDark:'#d9bade',indigoLight:'#21121f',indigoMid:'#4d2b52'} },
+  slate:  { light:{indigo:'#38505c',indigoDark:'#26363f',indigoLight:'#eef3f4',indigoMid:'#c8dbe1'}, dark:{indigo:'#9dc0cf',indigoDark:'#bcd6e0',indigoLight:'#17252a',indigoMid:'#38505c'} },
+};
+
+function applyAccent(key, persist){
+  const palette = ACCENT_PALETTES[key] || ACCENT_PALETTES.wine;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const vars = isDark ? palette.dark : palette.light;
+  const rootStyle = document.documentElement.style;
+  rootStyle.setProperty('--indigo', vars.indigo);
+  rootStyle.setProperty('--indigo-dark', vars.indigoDark);
+  rootStyle.setProperty('--indigo-light', vars.indigoLight);
+  rootStyle.setProperty('--indigo-mid', vars.indigoMid);
+  if(persist) localStorage.setItem('launchdesk_accent', key);
+  document.querySelectorAll('.accent-swatch').forEach(s => s.classList.toggle('active', s.dataset.accent === key));
+}
+
+function initAccent(){
+  applyAccent(localStorage.getItem('launchdesk_accent') || 'wine', false);
 }
 
 function toggleTheme(){
@@ -2971,6 +3021,7 @@ function toggleTheme(){
   document.documentElement.setAttribute('data-theme', newTheme);
   localStorage.setItem('launchdesk_theme', newTheme);
   applyThemeVisualState(newTheme === 'dark');
+  initAccent();
 }
 
 // ── AUTH ──
