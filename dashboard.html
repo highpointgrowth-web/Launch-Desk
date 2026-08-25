@@ -76,7 +76,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 .topnav-group{background:none;border:none;cursor:pointer;font-family:'Archivo',system-ui,sans-serif;font-size:.86rem;color:var(--ink2);padding:0;transition:color .15s}
 .topnav-group:hover{color:var(--ink)}
 .topnav-group.active{color:var(--ink);font-weight:600}
-.topnav-flyout-row{display:none;align-items:center;gap:20px;padding:0 28px 12px;border-bottom:1px solid var(--border);background:var(--surface)}
+.topnav-flyout-row{display:none;align-items:center;gap:20px;height:49px;padding:0 28px;box-sizing:border-box;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;overflow-y:hidden;flex-wrap:nowrap}
 .topnav-flyout-row.open{display:flex}
 .topnav-flyout{display:none;align-items:center;gap:20px}
 .topnav-flyout.active{display:flex}
