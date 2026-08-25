@@ -60,8 +60,14 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 .serif{font-family:'Instrument Serif',serif}
 
 /* ── SHELL ── */
-.shell{display:grid;grid-template-rows:auto 1fr;height:100vh;overflow:hidden}
-.body-row{display:grid;grid-template-columns:1fr;overflow:hidden;min-height:0}
+/* Flex column, not grid - .shell now stacks a variable number of bars
+   (top bar, nav flyout row, low-balance banner) before the scrollable
+   content, and a fixed 2-track grid was assigning its "1fr" remaining-
+   space track to whichever bar happened to be second, not to the
+   content area. Flex naturally gives 100% of leftover space to the
+   flex:1 child regardless of how many siblings are hidden/shown. */
+.shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.body-row{display:grid;grid-template-columns:1fr;flex:1;overflow:hidden;min-height:0}
 .content{overflow-y:auto;background:var(--bg);padding-bottom:8px;display:flex;flex-direction:column;min-height:0}
 .content::-webkit-scrollbar{width:5px}
 .content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
