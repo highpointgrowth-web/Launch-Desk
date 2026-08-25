@@ -87,9 +87,13 @@ async function searchPlaces(industry, location, radius, maxResults, countryCode)
 async function getPlaceDetails(placeId) {
   const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
   url.searchParams.set('place_id', placeId);
+  // rating/user_ratings_total deliberately excluded - Text Search already
+  // returns both for free, and Google bills a Details call at its highest
+  // requested field's tier, so asking for those two here would silently
+  // double the cost of every lookup for data we already have.
   url.searchParams.set(
     'fields',
-    'name,formatted_phone_number,website,formatted_address,address_components,rating,user_ratings_total'
+    'name,formatted_phone_number,website,formatted_address,address_components'
   );
   url.searchParams.set('key', process.env.GOOGLE_PLACES_API_KEY);
 
@@ -105,7 +109,11 @@ async function buildBusinessList(industry, location, radius, maxResults, country
   const results = await searchPlaces(industry, location, radius, maxResults, countryCode);
   const details = await Promise.all(results.map((r) => getPlaceDetails(r.place_id)));
 
-  return details.map((d) => {
+  // rating/user_ratings_total come from the Text Search result, not the
+  // Details call - see the comment in getPlaceDetails. `details` and
+  // `results` stay in the same order since details was built with
+  // results.map(), so they're paired by index.
+  return details.map((d, i) => {
     const { city, state } = extractCityState(d.address_components);
     return {
       business_name: d.name,
@@ -115,8 +123,8 @@ async function buildBusinessList(industry, location, radius, maxResults, country
       address: d.formatted_address || null,
       city,
       state,
-      rating: d.rating ?? null,
-      review_count: d.user_ratings_total ?? null,
+      rating: results[i].rating ?? null,
+      review_count: results[i].user_ratings_total ?? null,
       category: industry,
     };
   });
