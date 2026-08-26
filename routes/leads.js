@@ -273,7 +273,7 @@ router.post('/scrape', async (req, res) => {
     return res.status(400).json({ error: 'industry and location are required' });
   }
 
-  const maxResults = MAX_RESULTS_OPTIONS.includes(Number(max_results)) ? Number(max_results) : DEFAULT_MAX_RESULTS;
+  const requestedMaxResults = MAX_RESULTS_OPTIONS.includes(Number(max_results)) ? Number(max_results) : DEFAULT_MAX_RESULTS;
   const supabase = req.app.locals.supabase;
 
   const { data: user, error: userError } = await supabase
@@ -286,9 +286,17 @@ router.post('/scrape', async (req, res) => {
     return res.status(404).json({ error: 'User profile not found' });
   }
 
-  if (user.scrape_credits_used >= user.scrape_credits_limit) {
+  const remainingCredits = user.scrape_credits_limit - user.scrape_credits_used;
+  if (remainingCredits <= 0) {
     return res.status(403).json({ error: "You've used all your scrape credits for this month." });
   }
+
+  // Capping the actual search to whatever's left (rather than only blocking
+  // once already over) stops a single large search from ever running past
+  // the monthly limit - each business found still costs a real Google/Claude
+  // call, so this bounds that spend to what's actually left, not just what
+  // was requested.
+  const maxResults = Math.min(requestedMaxResults, remainingCredits);
 
   try {
     const businesses = await buildBusinessList(industry, location, radius || 5000, maxResults, country);
