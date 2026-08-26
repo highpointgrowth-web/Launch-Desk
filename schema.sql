@@ -102,6 +102,7 @@ create table if not exists agents (
   retell_agent_id text,
   retell_llm_id text,
   retell_phone_number text,
+  phone_number_next_bill_at timestamptz,
   cal_api_key text,
   cal_event_type_id text,
   monthly_charge numeric,

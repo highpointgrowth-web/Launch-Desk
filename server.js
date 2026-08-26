@@ -4,8 +4,8 @@ const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
-const { LOW_BALANCE_PAUSE_CENTS, USAGE_MARKUP_BY_PLAN } = require('./billing-constants');
-const { sendEmail } = require('./email');
+const { USAGE_MARKUP_BY_PLAN, PHONE_NUMBER_RENTAL_CENTS } = require('./billing-constants');
+const { chargeUsageBalance } = require('./billing');
 
 const supportRouter = require('./routes/support');
 const leadsRouter = require('./routes/leads');
@@ -80,122 +80,16 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
   // instead of a cost the agency fronts. Rate varies by plan - see
   // USAGE_MARKUP_BY_PLAN.
 
-  // Detaching inbound_agents (rather than deleting the number) stops the
-  // agent from actually answering - and therefore stops billable Retell
-  // usage - while keeping the number itself intact to reattach later.
-  async function detachAgentFromNumber(phoneNumber) {
-    const res = await fetch(`https://api.retellai.com/update-phone-number/${encodeURIComponent(phoneNumber)}`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${process.env.RETELL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inbound_agents: null }),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      throw new Error(`Retell update-phone-number failed (${res.status}): ${text}`);
-    }
-  }
-
-  function lowBalanceEmailBody(userName) {
-    return (
-      `Hi ${userName || 'there'},\n\n` +
-      "Your LaunchDesk usage balance ran out, so your AI agents have been paused and aren't answering calls right now.\n\n" +
-      `Add funds to resume: ${process.env.FRONTEND_URL || 'https://mylaunchdesk.com'}/dashboard.html\n\n` +
-      '- LaunchDesk'
-    );
-  }
-
-  async function sendLowBalanceEmail(userEmail, userName) {
-    try {
-      await sendEmail(userEmail, 'Your AI agents have stopped taking calls', lowBalanceEmailBody(userName));
-    } catch (err) {
-      console.error(`Failed to send low-balance email to ${userEmail}: ${err.message}`);
-    }
-  }
-
-  async function pauseAgentsForBalance(userId) {
-    const { data: activeAgents, error: fetchError } = await supabase
-      .from('agents')
-      .select('id, retell_phone_number')
-      .eq('user_id', userId)
-      .eq('status', 'active');
-
-    if (fetchError) {
-      console.error(`Failed to fetch active agents to pause for user ${userId}: ${fetchError.message}`);
-      return;
-    }
-    if (!activeAgents || activeAgents.length === 0) return;
-
-    for (const agent of activeAgents) {
-      if (!agent.retell_phone_number) continue;
-      try {
-        await detachAgentFromNumber(agent.retell_phone_number);
-      } catch (err) {
-        console.error(`Failed to detach agent ${agent.id} from its number after balance depletion: ${err.message}`);
-      }
-    }
-
-    const { error: updateError } = await supabase
-      .from('agents')
-      .update({ status: 'inactive', paused_for_balance: true, paused_at: new Date().toISOString() })
-      .in(
-        'id',
-        activeAgents.map((a) => a.id)
-      );
-
-    if (updateError) {
-      console.error(`Failed to mark agents paused_for_balance for user ${userId}: ${updateError.message}`);
-    }
-
-    // Only fires when agents were just newly paused (the length check above
-    // returns early otherwise), so this can't re-send on every subsequent
-    // webhook while the account stays at zero.
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('email, full_name')
-      .eq('id', userId)
-      .single();
-
-    if (userError || !user) {
-      console.error(`Failed to fetch user for low-balance email (user ${userId}): ${userError?.message}`);
-      return;
-    }
-
-    await sendLowBalanceEmail(user.email, user.full_name);
-  }
-
   async function chargeUsage(userId, retellCostCents, callLogId) {
     const { data: user } = await supabase.from('users').select('plan').eq('id', userId).single();
     const markup = USAGE_MARKUP_BY_PLAN[user?.plan] ?? USAGE_MARKUP_BY_PLAN.pro;
     const chargeCents = Math.ceil(retellCostCents * markup);
 
-    const { data: newBalance, error: rpcError } = await supabase.rpc('decrement_usage_balance', {
-      p_user_id: userId,
-      p_amount_cents: chargeCents,
-    });
-
-    if (rpcError) {
-      console.error(`Failed to deduct usage balance for user ${userId}: ${rpcError.message}`);
-      return;
-    }
-
-    const { error: txError } = await supabase.from('usage_transactions').insert({
-      user_id: userId,
-      amount_cents: -chargeCents,
+    await chargeUsageBalance(supabase, userId, chargeCents, {
       type: 'call_charge',
-      call_log_id: callLogId,
       description: `Call cost + ${Math.round((markup - 1) * 100)}%`,
+      callLogId,
     });
-
-    if (txError) {
-      console.error(`Failed to log usage transaction for user ${userId}: ${txError.message}`);
-    }
-
-    if (newBalance < LOW_BALANCE_PAUSE_CENTS) {
-      await pauseAgentsForBalance(userId);
-    }
   }
 
   try {
@@ -330,7 +224,10 @@ async function cleanupDormantAgentPhoneNumbers() {
   for (const agent of dormantAgents) {
     try {
       await releaseRetellPhoneNumber(agent.retell_phone_number);
-      await supabase.from('agents').update({ retell_phone_number: null }).eq('id', agent.id);
+      await supabase
+        .from('agents')
+        .update({ retell_phone_number: null, phone_number_next_bill_at: null })
+        .eq('id', agent.id);
       console.log(`Dormant-agent cleanup: released phone number for agent ${agent.id}`);
     } catch (err) {
       console.error(`Dormant-agent cleanup: failed for agent ${agent.id}: ${err.message}`);
@@ -340,6 +237,54 @@ async function cleanupDormantAgentPhoneNumbers() {
 
 setInterval(cleanupDormantAgentPhoneNumbers, CLEANUP_INTERVAL_MS);
 cleanupDormantAgentPhoneNumbers();
+
+// Retell charges us ~$2/mo per rented number for as long as an agent holds
+// one - nothing previously deducted that from the customer's balance, so it
+// silently ate margin forever (unlike scrape credits, this never resets).
+// Meters it the same way call usage is: charge, log the transaction, and
+// pause agents (see chargeUsageBalance) if the deduction drops them below
+// the safety buffer. The number itself isn't released here even if paused -
+// cleanupDormantAgentPhoneNumbers above already handles that after 60 days.
+async function chargePhoneNumberRentals() {
+  const { data: dueAgents, error } = await supabase
+    .from('agents')
+    .select('id, user_id, retell_phone_number')
+    .not('retell_phone_number', 'is', null)
+    .not('phone_number_next_bill_at', 'is', null)
+    .lte('phone_number_next_bill_at', new Date().toISOString());
+
+  if (error) {
+    console.error(`Phone rental billing: failed to fetch due agents: ${error.message}`);
+    return;
+  }
+  if (!dueAgents || dueAgents.length === 0) return;
+
+  for (const agent of dueAgents) {
+    try {
+      await chargeUsageBalance(supabase, agent.user_id, PHONE_NUMBER_RENTAL_CENTS, {
+        type: 'feature_charge',
+        description: `Phone number rental (${agent.retell_phone_number})`,
+      });
+
+      const nextBillAt = new Date();
+      nextBillAt.setUTCMonth(nextBillAt.getUTCMonth() + 1);
+
+      const { error: updateError } = await supabase
+        .from('agents')
+        .update({ phone_number_next_bill_at: nextBillAt.toISOString() })
+        .eq('id', agent.id);
+
+      if (updateError) {
+        console.error(`Phone rental billing: failed to advance next-bill date for agent ${agent.id}: ${updateError.message}`);
+      }
+    } catch (err) {
+      console.error(`Phone rental billing: failed for agent ${agent.id}: ${err.message}`);
+    }
+  }
+}
+
+setInterval(chargePhoneNumberRentals, CLEANUP_INTERVAL_MS);
+chargePhoneNumberRentals();
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {

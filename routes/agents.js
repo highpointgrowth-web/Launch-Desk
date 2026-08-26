@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { requireAuth } = require('../middleware/auth');
 const { requirePaidPlan } = require('../middleware/plan');
 const { AGENT_BUILD_CAPS } = require('../plan-constants');
+const { PHONE_NUMBER_RENTAL_CENTS } = require('../billing-constants');
 
 // Enforces the plan's monthly agent-build/prompt-generation cap atomically -
 // throws (without incrementing) if the plan is unknown or the cap is already
@@ -702,12 +703,33 @@ router.post('/:id/buy-phone', async (req, res) => {
     return res.status(400).json({ error: 'Agent already has a phone number' });
   }
 
+  // Rental is a discretionary flat fee (unlike a post-hoc call charge), so
+  // block the purchase rather than fronting the cost if the balance can't
+  // cover the first month - charge_if_sufficient is atomic, so this can't
+  // race with another charge landing between check and deduct.
+  const { data: newBalance, error: chargeError } = await supabase.rpc('charge_if_sufficient', {
+    p_user_id: req.userId,
+    p_amount_cents: PHONE_NUMBER_RENTAL_CENTS,
+  });
+
+  if (chargeError) {
+    return res.status(500).json({ error: chargeError.message });
+  }
+  if (newBalance === null) {
+    return res
+      .status(402)
+      .json({ error: `Insufficient balance to rent a phone number ($${(PHONE_NUMBER_RENTAL_CENTS / 100).toFixed(2)}/mo). Add funds and try again.` });
+  }
+
   try {
     const phoneNumber = await buyRetellPhoneNumber(agent.retell_agent_id, area_code);
 
+    const nextBillAt = new Date();
+    nextBillAt.setUTCMonth(nextBillAt.getUTCMonth() + 1);
+
     const { data: updated, error: updateError } = await supabase
       .from('agents')
-      .update({ retell_phone_number: phoneNumber.phone_number })
+      .update({ retell_phone_number: phoneNumber.phone_number, phone_number_next_bill_at: nextBillAt.toISOString() })
       .eq('id', agent.id)
       .select()
       .single();
@@ -716,8 +738,18 @@ router.post('/:id/buy-phone', async (req, res) => {
       return res.status(500).json({ error: updateError.message });
     }
 
+    await supabase.from('usage_transactions').insert({
+      user_id: req.userId,
+      amount_cents: -PHONE_NUMBER_RENTAL_CENTS,
+      type: 'feature_charge',
+      description: `Phone number rental (${phoneNumber.phone_number})`,
+    });
+
     res.status(201).json({ agent: updated });
   } catch (err) {
+    // The Retell purchase failed after the charge already went through -
+    // refund it so the customer isn't billed for a number they never got.
+    await supabase.rpc('increment_usage_balance', { p_user_id: req.userId, p_amount_cents: PHONE_NUMBER_RENTAL_CENTS });
     res.status(500).json({ error: err.message });
   }
 });

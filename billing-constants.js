@@ -12,4 +12,12 @@ const LOW_BALANCE_PAUSE_CENTS = 500;
 // cap they'll rarely hit.
 const USAGE_MARKUP_BY_PLAN = { starter: 1.1, pro: 1.1, agency: 1.05 };
 
-module.exports = { LOW_BALANCE_PAUSE_CENTS, USAGE_MARKUP_BY_PLAN };
+// Flat monthly rental charge per phone number, deducted from the customer's
+// balance the same way call usage is. Retell's real cost is ~$2.00/mo per
+// number (verified against their current published pricing) - $2.20 matches
+// what's already advertised in the Phone tab UI and mirrors what competitor
+// Client One charges for the same thing, rather than scaling by plan like
+// the call markup does.
+const PHONE_NUMBER_RENTAL_CENTS = 220;
+
+module.exports = { LOW_BALANCE_PAUSE_CENTS, USAGE_MARKUP_BY_PLAN, PHONE_NUMBER_RENTAL_CENTS };
