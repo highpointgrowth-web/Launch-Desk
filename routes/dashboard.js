@@ -38,7 +38,7 @@ router.get('/stats', async (req, res) => {
   startOfToday.setUTCHours(0, 0, 0, 0);
 
   try {
-    const [callsTodayResult, meetingsResult, clientsResult, mrrResult, userResult] = await Promise.all([
+    const [callsTodayResult, meetingsResult, clientsResult, proposalsTodayResult, mrrResult, userResult] = await Promise.all([
       supabase
         .from('call_logs')
         .select('id', { count: 'exact', head: true })
@@ -54,6 +54,11 @@ router.get('/stats', async (req, res) => {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', req.userId)
         .eq('status', 'active'),
+      supabase
+        .from('proposals')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', req.userId)
+        .gte('created_at', startOfToday.toISOString()),
       // Self-reported fallback: what the agency inputs per-agent in the
       // Billing tab. Summed across active agents to match the "clients"
       // count above - a paused-for-balance agent isn't counted as a client
@@ -62,7 +67,7 @@ router.get('/stats', async (req, res) => {
       supabase.from('users').select('stripe_connect_account_id').eq('id', req.userId).single(),
     ]);
 
-    for (const result of [callsTodayResult, meetingsResult, clientsResult, mrrResult, userResult]) {
+    for (const result of [callsTodayResult, meetingsResult, clientsResult, proposalsTodayResult, mrrResult, userResult]) {
       if (result.error) {
         return res.status(500).json({ error: result.error.message });
       }
@@ -90,6 +95,7 @@ router.get('/stats', async (req, res) => {
       calls_today: callsTodayResult.count || 0,
       meetings: meetingsResult.count || 0,
       clients: clientsResult.count || 0,
+      proposals_sent_today: proposalsTodayResult.count || 0,
       mrr,
       revenue_source: revenueSource,
     });

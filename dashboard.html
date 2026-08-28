@@ -702,7 +702,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
         <div class="stat-cell">
           <div class="stat-icon">📄</div>
           <div class="stat-label">Proposals</div>
-          <div class="stat-val">0</div>
+          <div class="stat-val" id="stat-proposals-today">0</div>
           <div class="stat-note">sent today</div>
         </div>
       </div>
@@ -3421,6 +3421,7 @@ async function loadDashboardStats(){
     if(signalCallsEl) signalCallsEl.textContent = stats.calls_today;
     document.getElementById('stat-meetings').textContent = stats.meetings;
     document.getElementById('stat-clients').textContent = stats.clients;
+    document.getElementById('stat-proposals-today').textContent = stats.proposals_sent_today;
     document.getElementById('stat-mrr').textContent = `$${stats.mrr}`;
     const signalMrrEl = document.getElementById('signal-mrr');
     if(signalMrrEl) signalMrrEl.textContent = `$${stats.mrr}`;
