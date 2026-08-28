@@ -512,7 +512,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
       <div class="signal-item live"><span class="pulse"></span><b id="signal-agents-live">0 agents live</b></div>
       <div class="signal-item">Calls today: <b id="signal-calls-today">0</b></div>
       <div class="signal-item">Pipeline: <b id="signal-pipeline">0 leads</b></div>
-      <div class="signal-item">MRR: <b>$0</b></div>
+      <div class="signal-item">MRR: <b id="signal-mrr">$0</b></div>
       <div class="signal-item">Plan: <b id="signal-plan">—</b></div>
       <div class="signal-item">Credits: <b id="signal-credits">—</b></div>
       <div class="signal-item" style="cursor:pointer" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">Balance: <b id="signal-balance">$0.00</b></div>
@@ -3422,6 +3422,8 @@ async function loadDashboardStats(){
     document.getElementById('stat-meetings').textContent = stats.meetings;
     document.getElementById('stat-clients').textContent = stats.clients;
     document.getElementById('stat-mrr').textContent = `$${stats.mrr}`;
+    const signalMrrEl = document.getElementById('signal-mrr');
+    if(signalMrrEl) signalMrrEl.textContent = `$${stats.mrr}`;
   } catch (err) {
     console.error('Failed to load dashboard stats', err);
   }
