@@ -763,6 +763,18 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
             </div>
           </div>
 
+          <div class="card card-pad">
+            <div class="card-header"><div class="card-title">My Agents</div><span class="card-action" onclick="nav('agents',null)">View all →</span></div>
+            <div id="dashboard-my-agents">
+              <div class="dash-empty">
+                <div class="dash-empty-icon">🤖</div>
+                <div class="dash-empty-title">No agents live yet</div>
+                <div class="dash-empty-sub">Deploy your first AI receptionist.</div>
+                <button class="btn btn-ghost" onclick="goToBuildAgent()">🤖 Build Agent</button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div class="side-col">
@@ -785,18 +797,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
                 <div class="dash-empty-title">No proposals yet</div>
                 <div class="dash-empty-sub">Turn a lead into a client — send your first proposal.</div>
                 <button class="btn btn-ghost" onclick="nav('crm',null)">🗂️ Go to CRM</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card card-pad">
-            <div class="card-header"><div class="card-title">My Agents</div><span class="card-action" onclick="nav('agents',null)">View all →</span></div>
-            <div id="dashboard-my-agents">
-              <div class="dash-empty">
-                <div class="dash-empty-icon">🤖</div>
-                <div class="dash-empty-title">No agents live yet</div>
-                <div class="dash-empty-sub">Deploy your first AI receptionist.</div>
-                <button class="btn btn-ghost" onclick="goToBuildAgent()">🤖 Build Agent</button>
               </div>
             </div>
           </div>
