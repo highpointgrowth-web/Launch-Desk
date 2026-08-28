@@ -280,20 +280,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 #page-dashboard .main-col>.card:last-child,#page-dashboard .side-col>.card:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
 .check-item.done .check-label{text-decoration:line-through;color:var(--ink3)}
 
-/* ── LEADERBOARD ── */
-.lb-stack{display:flex;flex-direction:column;gap:1px}
-.lb-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .1s}
-.lb-row:hover{background:var(--bg2)}
-.lb-row.you{background:var(--indigo-light);border-radius:8px}
-.lb-rank{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink3);width:18px;text-align:center;flex:none}
-.lb-rank.g{color:#d97706}
-.lb-rank.s{color:#64748b}
-.lb-rank.b{color:#b45309}
-.lb-name{flex:1;font-size:.82rem;font-weight:500;color:var(--ink)}
-.lb-row.you .lb-name{color:var(--indigo);font-weight:600}
-.lb-mrr{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--ink2)}
-.lb-row.you .lb-mrr{color:var(--indigo);font-weight:600}
-
 /* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:600;font-size:.82rem;padding:.55rem 1.1rem;border-radius:9px;border:none;cursor:pointer;transition:all .15s;text-decoration:none;white-space:nowrap;font-family:'Archivo',system-ui,sans-serif}
 .btn-indigo{background:var(--indigo);color:#fff}
@@ -819,13 +805,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
             <div class="card-header"><div class="card-title">Today's Activity</div></div>
             <div id="dashboard-todays-activity" style="display:flex;flex-direction:column;gap:8px">
               <div style="text-align:center;padding:8px;color:var(--ink3);font-size:.78rem">Loading…</div>
-            </div>
-          </div>
-
-          <div class="card card-pad">
-            <div class="card-header"><div class="card-title">MRR Leaderboard</div></div>
-            <div class="lb-stack">
-              <div style="text-align:center;padding:20px;color:var(--ink3);font-size:.78rem">Leaderboard coming soon — start closing clients to appear here.</div>
             </div>
           </div>
         </div>
