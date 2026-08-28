@@ -477,6 +477,18 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 @media(max-width:480px){
   .stat-strip{grid-template-columns:1fr !important}
 }
+
+/* Low-balance toast - replaces the old full-width pinned banner. Re-shown
+   from nav() on every tab switch (see showBalanceToast) rather than
+   sitting on screen permanently, so it stays noticeable without eating
+   header space on every page. */
+.balance-toast{position:fixed;top:66px;right:24px;width:336px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-md);padding:16px;display:flex;gap:12px;align-items:flex-start;z-index:90;animation:toast-in .22s ease}
+.balance-toast-icon{width:32px;height:32px;border-radius:9px;background:var(--red-bg);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:15px;flex:none}
+.balance-toast-title{font-size:.85rem;font-weight:700;color:var(--ink)}
+.balance-toast-sub{font-size:.78rem;color:var(--ink2);margin-top:3px;line-height:1.4}
+.balance-toast-close{background:none;border:none;color:var(--ink3);font-size:16px;cursor:pointer;padding:0;line-height:1;margin-left:auto}
+.balance-toast-close:hover{color:var(--ink)}
+@keyframes toast-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
@@ -548,9 +560,14 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
     </div>
   </div>
 
-  <div id="global-balance-banner" class="hidden" style="background:var(--red-bg,#450a0a);color:var(--red);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:.82rem;font-weight:600">
-    <span id="global-balance-banner-text">⚠ Your call balance is low.</span>
-    <button class="btn btn-indigo" style="font-size:.74rem;padding:.35rem .8rem" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">Add Funds</button>
+  <div id="global-balance-toast" class="balance-toast hidden">
+    <div class="balance-toast-icon">⚠</div>
+    <div style="flex:1">
+      <div class="balance-toast-title">Balance is low</div>
+      <div class="balance-toast-sub" id="global-balance-toast-text">Your call balance is low.</div>
+      <button class="btn btn-indigo" style="font-size:.76rem;padding:.4rem .8rem;margin-top:10px" onclick="navToPage('buy-minutes', document.getElementById('nav-buy-minutes'))">Add Funds</button>
+    </div>
+    <button class="balance-toast-close" onclick="dismissBalanceToast()">×</button>
   </div>
 
   <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
@@ -2030,6 +2047,10 @@ function nav(name, el){
   document.querySelector('.content').scrollTop=0;
   closeMobileSidebar();
   syncNavGroupForPage(name);
+  // Re-shows the low-balance toast on every tab switch (it only stops
+  // popping up once the balance is actually topped up - see
+  // updateBalanceToastState) rather than leaving it pinned on screen.
+  showBalanceToast();
 }
 
 function toggleMobileSidebar(){
@@ -3056,23 +3077,42 @@ function goToBuildAgent(){
   showBuilder();
 }
 
-function renderGlobalBalanceBanner(balanceCents){
-  const banner = document.getElementById('global-balance-banner');
-  if(!banner) return;
-  const textEl = document.getElementById('global-balance-banner-text');
+// Whether the account currently qualifies as low-balance - set here from the
+// latest fetched balance, read back by showBalanceToast() on every nav()
+// call so the toast reappears on each tab switch instead of sitting on
+// screen permanently. Flips false (and stops popping up at all) once the
+// user tops up past the threshold - no other state to reset.
+let balanceIsLow = false;
+
+function updateBalanceToastState(balanceCents){
+  const textEl = document.getElementById('global-balance-toast-text');
   const balanceStr = '$' + (balanceCents / 100).toFixed(2);
+  let text = '';
   if(balanceCents <= 0){
-    if(textEl) textEl.textContent = '⚠ $0.00 balance — agents have stopped taking calls.';
-    banner.classList.remove('hidden');
+    text = '$0.00 balance — agents have stopped taking calls.';
+    balanceIsLow = true;
   } else if(balanceCents <= 500){
     // Balance covers calls plus flat AI-generation fees (agent builds, proposals,
     // scripts) - leading with the dollar amount avoids implying it's purely
     // call-minutes, which "~X min" alone did.
-    if(textEl) textEl.textContent = `⚠ Only ${balanceStr} left (${formatMinutesLabel(balanceCents)} of call time) — add funds to avoid missed calls.`;
-    banner.classList.remove('hidden');
+    text = `Only ${balanceStr} left (${formatMinutesLabel(balanceCents)} of call time) — add funds to avoid missed calls.`;
+    balanceIsLow = true;
   } else {
-    banner.classList.add('hidden');
+    balanceIsLow = false;
   }
+  if(textEl) textEl.textContent = text;
+  showBalanceToast();
+}
+
+function showBalanceToast(){
+  const toast = document.getElementById('global-balance-toast');
+  if(!toast) return;
+  toast.classList.toggle('hidden', !balanceIsLow);
+}
+
+function dismissBalanceToast(){
+  const toast = document.getElementById('global-balance-toast');
+  if(toast) toast.classList.add('hidden');
 }
 
 function enterApp(){
@@ -3223,7 +3263,7 @@ async function loadUserStats(){
       signalBalanceEl.title = `≈ ${minutesStr} of call time — balance also covers agent builds, proposals, and cold-call scripts`;
       signalBalanceEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--indigo)';
     }
-    renderGlobalBalanceBanner(balanceCents);
+    updateBalanceToastState(balanceCents);
 
     const billingMetaEl = document.getElementById('billing-plan-meta');
     if(billingMetaEl) {
