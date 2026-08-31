@@ -232,8 +232,12 @@ function deleteRetellLlm(llmId) {
 }
 
 function buyRetellPhoneNumber(retellAgentId, areaCode) {
+  // inbound_agent_id was deprecated in favor of the weighted inbound_agents
+  // list (see Retell's phone_number_agent_fields deprecation notice) - the
+  // detach/reattach calls elsewhere already moved to this shape, this one
+  // was just missed, which broke every real number purchase outright.
   return retellFetch('POST', '/create-phone-number', {
-    inbound_agent_id: retellAgentId,
+    inbound_agents: [{ agent_id: retellAgentId, weight: 1 }],
     ...(areaCode ? { area_code: Number(areaCode) } : {}),
   });
 }
