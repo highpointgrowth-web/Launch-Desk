@@ -92,50 +92,65 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
     });
   }
 
+  // Some calls never fire call_ended at all (confirmed in practice: a call
+  // that errors out with no audio) - call_analyzed is the only event Retell
+  // sends for those. Both handlers funnel first-time logging through this,
+  // so the call still gets logged and charged even when call_ended never
+  // shows up, instead of call_analyzed only being able to update a row that
+  // was never created.
+  async function insertCallLog(call, extraFields = {}) {
+    const { data: agent, error: agentError } = await supabase
+      .from('agents')
+      .select('id, user_id')
+      .eq('retell_agent_id', call.agent_id)
+      .single();
+
+    if (agentError || !agent) {
+      console.warn(`No agent found for retell_agent_id=${call.agent_id}`);
+      return null;
+    }
+
+    const durationSeconds =
+      call.start_timestamp && call.end_timestamp
+        ? Math.round((call.end_timestamp - call.start_timestamp) / 1000)
+        : null;
+
+    const retellCostCents = call.call_cost?.combined_cost ?? null;
+
+    const { data: callLog, error: insertError } = await supabase
+      .from('call_logs')
+      .insert({
+        agent_id: agent.id,
+        user_id: agent.user_id,
+        retell_call_id: call.call_id,
+        duration_seconds: durationSeconds,
+        transcript: call.transcript || null,
+        outcome: call.disconnection_reason || null,
+        retell_cost_cents: retellCostCents,
+        cost_charged: retellCostCents != null,
+        booked: false,
+        ...extraFields,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      // Unique violation means the other event already created this row
+      // first (both handlers can race to create it) - not a real failure.
+      if (insertError.code === '23505') return 'exists';
+      throw new Error(insertError.message);
+    }
+
+    if (retellCostCents != null) {
+      await chargeUsage(agent.user_id, retellCostCents, callLog.id);
+    }
+
+    return callLog;
+  }
+
   try {
     if (payload.event === 'call_ended') {
-      const { data: agent, error: agentError } = await supabase
-        .from('agents')
-        .select('id, user_id')
-        .eq('retell_agent_id', call.agent_id)
-        .single();
-
-      if (agentError || !agent) {
-        console.warn(`No agent found for retell_agent_id=${call.agent_id}`);
-        return res.json({ received: true });
-      }
-
-      const durationSeconds =
-        call.start_timestamp && call.end_timestamp
-          ? Math.round((call.end_timestamp - call.start_timestamp) / 1000)
-          : null;
-
-      const retellCostCents = call.call_cost?.combined_cost ?? null;
-
-      const { data: callLog, error: insertError } = await supabase
-        .from('call_logs')
-        .insert({
-          agent_id: agent.id,
-          user_id: agent.user_id,
-          retell_call_id: call.call_id,
-          duration_seconds: durationSeconds,
-          transcript: call.transcript || null,
-          outcome: call.disconnection_reason || null,
-          retell_cost_cents: retellCostCents,
-          cost_charged: retellCostCents != null,
-          booked: false,
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        return res.status(500).json({ error: insertError.message });
-      }
-
-      if (retellCostCents != null) {
-        await chargeUsage(agent.user_id, retellCostCents, callLog.id);
-      }
-
+      await insertCallLog(call);
       return res.json({ received: true });
     }
 
@@ -149,7 +164,9 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
         .single();
 
       if (fetchError || !existing) {
-        console.warn(`No call_log found for retell_call_id=${call.call_id} on call_analyzed`);
+        // call_ended never arrived for this call - create (and charge) it
+        // here instead of dropping it, now that we know whether it booked.
+        await insertCallLog(call, { booked });
         return res.json({ received: true });
       }
 
