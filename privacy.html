@@ -4,32 +4,42 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy — LaunchDesk</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+:root{
+  --bg:#ffffff;
+  --bg2:#f7f6f4;
+  --border:#ececea;
+  --ink:#0a0a0a;
+  --ink2:#71706b;
+  --ink3:#a8a6a0;
+  --indigo:#5c2333;
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0c0c10;color:#f0f0f8;font-family:'Inter',system-ui,sans-serif;line-height:1.7;-webkit-font-smoothing:antialiased}
-.wrap{max-width:760px;margin:0 auto;padding:60px 28px}
+body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:60px 28px}
 .logo{display:flex;align-items:center;text-decoration:none;margin-bottom:48px}
 /* Wordmark IS the mark - no icon, no box. "Launch" climbs letter by letter,
-   "Desk" lands level in the real brand wine (not the old #4f46e5 this page
-   was still on). */
-.logo-text{font-weight:700;font-size:.95rem;letter-spacing:-.02em;color:#f0f0f8;display:inline-flex}
+   "Desk" lands level in the brand accent. */
+.logo-text{font-weight:700;font-size:.95rem;letter-spacing:-.02em;color:var(--ink);display:inline-flex}
 .logo-text b{font-weight:700;display:inline-block}
 .logo-text .lift1{transform:translateY(38%)}
 .logo-text .lift2{transform:translateY(25%)}
 .logo-text .lift3{transform:translateY(13%)}
 .logo-text .lift5{transform:translateY(-13%)}
 .logo-text .lift6{transform:translateY(-25%)}
-.logo-text .accent{color:#c98ca0;display:inline-block}
-h1{font-size:2rem;font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
-.updated{font-size:.82rem;color:#8080a0;margin-bottom:40px}
-h2{font-size:1.1rem;font-weight:700;letter-spacing:-.01em;margin:36px 0 12px;color:#f0f0f8}
-p{font-size:.92rem;color:#c0c0d8;margin-bottom:14px}
+.logo-text .accent{color:var(--indigo);display:inline-block}
+h1{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:2.4rem;letter-spacing:-.01em;margin-bottom:8px;color:var(--ink)}
+.updated{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--ink3);margin-bottom:40px}
+h2{font-size:1.05rem;font-weight:700;letter-spacing:-.01em;margin:36px 0 12px;color:var(--ink)}
+p{font-size:.9rem;color:var(--ink2);margin-bottom:14px}
 ul{margin:0 0 14px 20px}
-li{font-size:.92rem;color:#c0c0d8;margin-bottom:6px}
-a{color:#818cf8;text-decoration:none}
+li{font-size:.9rem;color:var(--ink2);margin-bottom:6px}
+a{color:var(--indigo);text-decoration:none}
 a:hover{text-decoration:underline}
-footer{margin-top:60px;padding-top:24px;border-top:1px solid #26262e;font-size:.78rem;color:#48486a;display:flex;gap:20px;flex-wrap:wrap}
+footer{margin-top:60px;padding-top:24px;border-top:1px solid var(--border);font-size:.78rem;color:var(--ink3);display:flex;gap:20px;flex-wrap:wrap}
+footer a{color:var(--ink3)}
+footer a:hover{color:var(--indigo)}
 </style>
 </head>
 <body>
@@ -46,15 +56,15 @@ footer{margin-top:60px;padding-top:24px;border-top:1px solid #26262e;font-size:.
   <h2>1. Information We Collect</h2>
   <p>We collect the following types of information:</p>
   <ul>
-    <li><strong style="color:#f0f0f8">Account information:</strong> Name, email address, and password when you create an account</li>
-    <li><strong style="color:#f0f0f8">Payment information:</strong> Billing details processed securely by Stripe — we never store your full card number</li>
-    <li><strong style="color:#f0f0f8">Usage data:</strong> How you use the Service, features you access, actions you take, and time spent</li>
-    <li><strong style="color:#f0f0f8">CRM data:</strong> Business names, phone numbers, emails, and notes you add to your leads</li>
-    <li><strong style="color:#f0f0f8">Agent data:</strong> System prompts, call transcripts, and booking data generated through the platform. Every call is automatically recorded and transcribed, with no way to disable this.</li>
-    <li><strong style="color:#f0f0f8">Integration credentials (optional):</strong> If you connect your own email account or Cal.com calendar, we store the credentials you provide (such as an app password or API key) so the Service can send emails or book appointments on your behalf. These are used only for that purpose.</li>
-    <li><strong style="color:#f0f0f8">Email engagement data:</strong> When you send a proposal through the Service, we track whether it was opened so you can see its status. This applies to the recipient's email, not just your own account.</li>
-    <li><strong style="color:#f0f0f8">Connected account data (optional):</strong> If you choose to connect your own Stripe account, we access read-only revenue and transaction data from that account solely to display it to you within the Service. We never receive the ability to move funds, view full payment card details, or act on that account in any way, and you can disconnect it at any time from Settings.</li>
-    <li><strong style="color:#f0f0f8">Device and technical data:</strong> IP address, browser type, operating system, and referring URLs</li>
+    <li><strong style="color:var(--ink)">Account information:</strong> Name, email address, and password when you create an account</li>
+    <li><strong style="color:var(--ink)">Payment information:</strong> Billing details processed securely by Stripe — we never store your full card number</li>
+    <li><strong style="color:var(--ink)">Usage data:</strong> How you use the Service, features you access, actions you take, and time spent</li>
+    <li><strong style="color:var(--ink)">CRM data:</strong> Business names, phone numbers, emails, and notes you add to your leads</li>
+    <li><strong style="color:var(--ink)">Agent data:</strong> System prompts, call transcripts, and booking data generated through the platform. Every call is automatically recorded and transcribed, with no way to disable this.</li>
+    <li><strong style="color:var(--ink)">Integration credentials (optional):</strong> If you connect your own email account or Cal.com calendar, we store the credentials you provide (such as an app password or API key) so the Service can send emails or book appointments on your behalf. These are used only for that purpose.</li>
+    <li><strong style="color:var(--ink)">Email engagement data:</strong> When you send a proposal through the Service, we track whether it was opened so you can see its status. This applies to the recipient's email, not just your own account.</li>
+    <li><strong style="color:var(--ink)">Connected account data (optional):</strong> If you choose to connect your own Stripe account, we access read-only revenue and transaction data from that account solely to display it to you within the Service. We never receive the ability to move funds, view full payment card details, or act on that account in any way, and you can disconnect it at any time from Settings.</li>
+    <li><strong style="color:var(--ink)">Device and technical data:</strong> IP address, browser type, operating system, and referring URLs</li>
   </ul>
 
   <h2>2. How We Use Your Information</h2>
@@ -72,15 +82,15 @@ footer{margin-top:60px;padding-top:24px;border-top:1px solid #26262e;font-size:.
   <h2>3. Third-Party Services</h2>
   <p>LaunchDesk uses the following third-party services that may process your data:</p>
   <ul>
-    <li><strong style="color:#f0f0f8">Supabase</strong> — database and authentication hosting</li>
-    <li><strong style="color:#f0f0f8">Stripe</strong> — payment processing</li>
-    <li><strong style="color:#f0f0f8">Cal.com</strong> — calendar booking integration for agents</li>
-    <li><strong style="color:#f0f0f8">Retell AI</strong> — voice AI for agent calls and call transcripts</li>
-    <li><strong style="color:#f0f0f8">Anthropic (Claude)</strong> — AI-generated prompts and proposals</li>
-    <li><strong style="color:#f0f0f8">Google Places API</strong> — business search and lead data</li>
-    <li><strong style="color:#f0f0f8">Firecrawl</strong> — website scraping for agent knowledge bases</li>
-    <li><strong style="color:#f0f0f8">Railway</strong> — backend infrastructure hosting</li>
-    <li><strong style="color:#f0f0f8">Vercel</strong> — frontend hosting</li>
+    <li><strong style="color:var(--ink)">Supabase</strong> — database and authentication hosting</li>
+    <li><strong style="color:var(--ink)">Stripe</strong> — payment processing</li>
+    <li><strong style="color:var(--ink)">Cal.com</strong> — calendar booking integration for agents</li>
+    <li><strong style="color:var(--ink)">Retell AI</strong> — voice AI for agent calls and call transcripts</li>
+    <li><strong style="color:var(--ink)">Anthropic (Claude)</strong> — AI-generated prompts and proposals</li>
+    <li><strong style="color:var(--ink)">Google Places API</strong> — business search and lead data</li>
+    <li><strong style="color:var(--ink)">Firecrawl</strong> — website scraping for agent knowledge bases</li>
+    <li><strong style="color:var(--ink)">Railway</strong> — backend infrastructure hosting</li>
+    <li><strong style="color:var(--ink)">Vercel</strong> — frontend hosting</li>
   </ul>
   <p>Each of these services has its own privacy policy. We encourage you to review them.</p>
 
@@ -93,11 +103,11 @@ footer{margin-top:60px;padding-top:24px;border-top:1px solid #26262e;font-size:.
   <h2>6. Your Rights</h2>
   <p>Depending on your location, you may have the following rights regarding your personal data:</p>
   <ul>
-    <li><strong style="color:#f0f0f8">Access:</strong> Request a copy of the data we hold about you</li>
-    <li><strong style="color:#f0f0f8">Correction:</strong> Request correction of inaccurate data</li>
-    <li><strong style="color:#f0f0f8">Deletion:</strong> Request deletion of your data</li>
-    <li><strong style="color:#f0f0f8">Portability:</strong> Request your data in a portable format</li>
-    <li><strong style="color:#f0f0f8">Objection:</strong> Object to certain types of processing</li>
+    <li><strong style="color:var(--ink)">Access:</strong> Request a copy of the data we hold about you</li>
+    <li><strong style="color:var(--ink)">Correction:</strong> Request correction of inaccurate data</li>
+    <li><strong style="color:var(--ink)">Deletion:</strong> Request deletion of your data</li>
+    <li><strong style="color:var(--ink)">Portability:</strong> Request your data in a portable format</li>
+    <li><strong style="color:var(--ink)">Objection:</strong> Object to certain types of processing</li>
   </ul>
   <p>To exercise any of these rights, contact us at <a href="mailto:highpointgrowth@gmail.com">highpointgrowth@gmail.com</a>. We will respond within 30 days.</p>
 
