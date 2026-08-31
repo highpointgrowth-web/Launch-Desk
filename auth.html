@@ -222,6 +222,14 @@ async function handleSignupSubmit(){
 if(new URLSearchParams(window.location.search).get('expired') === '1'){
   setError('login-error', 'Your session expired, please log in again.');
 }
+
+// Every "Get started" CTA on the marketing site linked here with no way to
+// land on the Sign Up tab - new visitors were landing on Log In (asking for
+// a password they don't have) instead of the form that actually gets them
+// started.
+if(new URLSearchParams(window.location.search).get('tab') === 'signup'){
+  switchAuthTab('signup');
+}
 </script>
 
 </body>
