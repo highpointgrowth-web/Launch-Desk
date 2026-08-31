@@ -93,8 +93,18 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 
 /* ── SIDEBAR (mobile-only slide-in drawer; hidden on desktop, see media query) ── */
 .sidebar{display:none;background:var(--surface);border-left:1px solid var(--border);flex-direction:column;overflow:hidden;min-height:0}
-.logo-mark{width:26px;height:26px;border-radius:7px;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
-.logo-text{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:1.2rem;letter-spacing:-.01em;color:var(--ink)}
+/* Wordmark IS the mark - no icon, no box. "Launch" climbs letter by letter
+   on translateY percentages (so it scales with font-size automatically),
+   "Desk" lands level in the brand accent - the idea lives in the type
+   itself instead of a bolted-on symbol. */
+.logo-text{font-family:'Archivo',sans-serif;font-weight:800;font-size:1.2rem;letter-spacing:-.03em;color:var(--ink);display:inline-flex}
+.logo-text b{font-weight:800;display:inline-block}
+.logo-text .lift1{transform:translateY(38%)}
+.logo-text .lift2{transform:translateY(25%)}
+.logo-text .lift3{transform:translateY(13%)}
+.logo-text .lift5{transform:translateY(-13%)}
+.logo-text .lift6{transform:translateY(-25%)}
+.logo-text .accent{color:var(--indigo);display:inline-block}
 .sidebar-nav{flex:1;overflow-y:auto;padding:8px 12px 12px}
 .sidebar-nav::-webkit-scrollbar{width:4px}
 .sidebar-nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
@@ -480,11 +490,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
 <body>
 
 <div class="hidden" id="paywall-root" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center">
-  <div style="display:flex;align-items:center;gap:9px;margin-bottom:28px">
-    <div class="logo-mark" style="width:28px;height:28px;border-radius:8px;background:var(--indigo);display:flex;align-items:center;justify-content:center">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-    </div>
-    <span style="font-weight:800;font-size:1.05rem;letter-spacing:-.03em">LaunchDesk</span>
+  <div style="display:flex;align-items:center;margin-bottom:28px">
+    <span class="logo-text" style="font-size:1.05rem"><b class="lift1">L</b><b class="lift2">a</b><b class="lift3">u</b><b>n</b><b class="lift5">c</b><b class="lift6">h</b><b class="accent">Desk</b></span>
   </div>
   <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin-bottom:8px">Choose a plan to continue</h1>
   <p style="color:var(--ink2);font-size:.9rem;max-width:420px;margin-bottom:32px">Your account is created, but LaunchDesk doesn't have a free tier — pick a plan below to unlock lead scraping, agent building, and the rest of the dashboard.</p>
@@ -498,8 +505,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
   <!-- TOP BAR -->
   <div class="topbar-full">
     <a class="topbar-logo" href="#" onclick="nav('dashboard',document.getElementById('nav-dashboard')); return false;">
-      <div class="logo-mark">⚡</div>
-      <span class="logo-text">LaunchDesk</span>
+      <span class="logo-text"><b class="lift1">L</b><b class="lift2">a</b><b class="lift3">u</b><b>n</b><b class="lift5">c</b><b class="lift6">h</b><b class="accent">Desk</b></span>
     </a>
     <nav class="topnav-groups">
       <button class="topnav-group active" id="nav-dashboard" onclick="nav('dashboard',this); closeNavFlyouts();">Overview</button>

@@ -38,9 +38,18 @@ body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-
 
 .auth-card{position:relative;width:380px;max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);padding:34px}
 
-.auth-logo{display:flex;align-items:center;gap:8px;margin-bottom:30px}
-.logo-mark{width:26px;height:26px;border-radius:7px;background:var(--indigo);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
-.logo-text{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:1.15rem;letter-spacing:-.01em;color:var(--ink)}
+.auth-logo{display:flex;align-items:center;margin-bottom:30px}
+/* Wordmark IS the mark - no icon, no box. "Launch" climbs letter by letter
+   on translateY percentages (so it scales with font-size automatically),
+   "Desk" lands level in the brand accent. */
+.logo-text{font-family:'Archivo',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-.03em;color:var(--ink);display:inline-flex}
+.logo-text b{font-weight:800;display:inline-block}
+.logo-text .lift1{transform:translateY(38%)}
+.logo-text .lift2{transform:translateY(25%)}
+.logo-text .lift3{transform:translateY(13%)}
+.logo-text .lift5{transform:translateY(-13%)}
+.logo-text .lift6{transform:translateY(-25%)}
+.logo-text .accent{color:var(--indigo);display:inline-block}
 
 .auth-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:3px;margin-bottom:24px}
 .auth-tab{flex:1;text-align:center;padding:.55rem 0;border-radius:6px;border:none;background:none;cursor:pointer;font-family:'Archivo',system-ui,sans-serif;font-size:.82rem;font-weight:600;color:var(--ink2);transition:all .15s}
@@ -90,8 +99,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-
 
 <div class="auth-card">
   <div class="auth-logo">
-    <div class="logo-mark">⚡</div>
-    <span class="logo-text">LaunchDesk</span>
+    <span class="logo-text"><b class="lift1">L</b><b class="lift2">a</b><b class="lift3">u</b><b>n</b><b class="lift5">c</b><b class="lift6">h</b><b class="accent">Desk</b></span>
   </div>
 
   <div class="auth-tabs">

@@ -35,9 +35,19 @@ body{background:var(--bg);color:var(--ink);font-family:'Archivo',system-ui,sans-
 /* NAV */
 header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
 .nav{display:flex;align-items:center;justify-content:space-between;height:56px}
-.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
-.logo-mark{width:26px;height:26px;border-radius:7px;background:var(--indigo);display:flex;align-items:center;justify-content:center}
-.logo-text{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;font-size:1.15rem;letter-spacing:-.01em;color:var(--ink)}
+.nav-logo{display:flex;align-items:center;text-decoration:none}
+/* Wordmark IS the mark - no icon, no box. "Launch" climbs letter by letter
+   on translateY percentages (so it scales with font-size automatically),
+   "Desk" lands level in the brand accent - the idea lives in the type
+   itself instead of a bolted-on symbol. */
+.logo-text{font-family:'Archivo',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-.03em;color:var(--ink);display:inline-flex}
+.logo-text b{font-weight:800;display:inline-block}
+.logo-text .lift1{transform:translateY(38%)}
+.logo-text .lift2{transform:translateY(25%)}
+.logo-text .lift3{transform:translateY(13%)}
+.logo-text .lift5{transform:translateY(-13%)}
+.logo-text .lift6{transform:translateY(-25%)}
+.logo-text .accent{color:var(--indigo);display:inline-block}
 .nav-links{display:flex;align-items:center;gap:4px}
 .nav-links a{font-size:.82rem;font-weight:500;color:var(--ink2);text-decoration:none;padding:.4rem .75rem;border-radius:7px;transition:all .15s}
 .nav-links a:hover{color:var(--ink);background:var(--bg2)}
@@ -166,8 +176,7 @@ footer p{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--ink3)
 <header>
   <div class="wrap nav">
     <a class="nav-logo" href="#">
-      <div class="logo-mark" style="display:flex;align-items:center;justify-content:center;font-size:13px">⚡</div>
-      <span class="logo-text">LaunchDesk</span>
+      <span class="logo-text"><b class="lift1">L</b><b class="lift2">a</b><b class="lift3">u</b><b>n</b><b class="lift5">c</b><b class="lift6">h</b><b class="accent">Desk</b></span>
     </a>
     <div class="nav-links">
       <a href="#how">How it works</a>
