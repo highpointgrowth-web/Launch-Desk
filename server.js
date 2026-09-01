@@ -201,6 +201,7 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
 
     res.json({ received: true });
   } catch (err) {
+    console.error(`Webhook handler error (event=${payload.event}, call_id=${call?.call_id}):`, err);
     res.status(500).json({ error: err.message });
   }
 });
