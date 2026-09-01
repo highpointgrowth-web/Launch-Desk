@@ -115,7 +115,11 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
         ? Math.round((call.end_timestamp - call.start_timestamp) / 1000)
         : null;
 
-    const retellCostCents = call.call_cost?.combined_cost ?? null;
+    // Retell's combined_cost carries fractional cents (e.g. 5.4666678) -
+    // retell_cost_cents is an integer column, so an unrounded value here
+    // fails the insert outright.
+    const retellCostCents =
+      call.call_cost?.combined_cost != null ? Math.round(call.call_cost.combined_cost) : null;
 
     const { data: callLog, error: insertError } = await supabase
       .from('call_logs')
@@ -173,7 +177,8 @@ app.post('/api/webhooks/retell', express.raw({ type: 'application/json' }), asyn
       // call_cost may not be finalized yet at call_ended - pick it up here too
       // if it's present, same way booked only becomes known at this stage.
       const updates = { booked };
-      const newCostCents = call.call_cost?.combined_cost ?? null;
+      const newCostCents =
+        call.call_cost?.combined_cost != null ? Math.round(call.call_cost.combined_cost) : null;
       const shouldCharge = !existing.cost_charged && newCostCents != null;
 
       if (newCostCents != null) {
