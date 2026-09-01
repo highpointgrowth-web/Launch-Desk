@@ -450,22 +450,40 @@ router.post('/connect/disconnect', requireAuth, async (req, res) => {
 // Filtering paymentMethods.list by type:'card' misses a real, common case -
 // a customer whose saved method is Stripe Link (or a bank account) rather
 // than a plain card object, which showed up as "no payment method" for an
-// account that was actively being billed monthly. The customer's own
-// invoice_settings.default_payment_method is what Stripe itself already
-// uses to auto-charge the subscription, so it's guaranteed reusable
-// off-session regardless of its underlying type - reuse that instead of
-// re-deriving it from a type-filtered list.
-async function getDefaultPaymentMethodId(stripeCustomerId) {
+// account that was actively being billed monthly. Verified live: this
+// customer's payment method lives on the SUBSCRIPTION's own
+// default_payment_method, not the customer's invoice_settings - Stripe lets
+// each differ, and only the subscription-level one is what's actually
+// charging this account every month. Check that first, falling back to the
+// customer-level default for anyone without an active subscription.
+async function getDefaultPaymentMethodId(stripeCustomerId, stripeSubscriptionId) {
+  if (stripeSubscriptionId) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+      const pm = subscription.default_payment_method;
+      if (pm) return typeof pm === 'string' ? pm : pm.id;
+    } catch (err) {
+      console.error(`Failed to retrieve subscription ${stripeSubscriptionId}: ${err.message}`);
+    }
+  }
+
   const customer = await stripe.customers.retrieve(stripeCustomerId);
   if (customer.deleted) return null;
-  return customer.invoice_settings?.default_payment_method || customer.default_source || null;
+  const defaultId = customer.invoice_settings?.default_payment_method || customer.default_source || null;
+  if (defaultId) return defaultId;
+
+  // Neither the subscription nor the customer has a "default" set, but a
+  // method can still be attached to the customer without being marked
+  // default - covers that case rather than reporting nothing to charge.
+  const methods = await stripe.customers.listPaymentMethods(stripeCustomerId);
+  return methods.data[0]?.id || null;
 }
 
 router.get('/auto-topup', requireAuth, async (req, res) => {
   const supabase = req.app.locals.supabase;
   const { data: user, error } = await supabase
     .from('users')
-    .select('auto_topup_enabled, auto_topup_threshold_cents, auto_topup_amount_cents, stripe_customer_id')
+    .select('auto_topup_enabled, auto_topup_threshold_cents, auto_topup_amount_cents, stripe_customer_id, stripe_subscription_id')
     .eq('id', req.userId)
     .single();
 
@@ -476,7 +494,7 @@ router.get('/auto-topup', requireAuth, async (req, res) => {
   let hasPaymentMethod = false;
   if (user.stripe_customer_id) {
     try {
-      hasPaymentMethod = !!(await getDefaultPaymentMethodId(user.stripe_customer_id));
+      hasPaymentMethod = !!(await getDefaultPaymentMethodId(user.stripe_customer_id, user.stripe_subscription_id));
     } catch (err) {
       console.error(`Failed to check payment methods for user ${req.userId}: ${err.message}`);
     }
@@ -506,7 +524,7 @@ router.post('/auto-topup', requireAuth, async (req, res) => {
 
     const { data: user, error: fetchError } = await supabase
       .from('users')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, stripe_subscription_id')
       .eq('id', req.userId)
       .single();
 
@@ -518,7 +536,7 @@ router.post('/auto-topup', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Add a payment method first (Settings → Payment method) before enabling auto top-up.' });
     }
 
-    const paymentMethodId = await getDefaultPaymentMethodId(user.stripe_customer_id);
+    const paymentMethodId = await getDefaultPaymentMethodId(user.stripe_customer_id, user.stripe_subscription_id);
     if (!paymentMethodId) {
       return res.status(400).json({ error: 'Add a payment method first (Settings → Payment method) before enabling auto top-up.' });
     }
@@ -547,7 +565,7 @@ router.post('/auto-topup', requireAuth, async (req, res) => {
 async function runAutoTopups(supabase) {
   const { data: candidates, error } = await supabase
     .from('users')
-    .select('id, usage_balance_cents, auto_topup_threshold_cents, auto_topup_amount_cents, stripe_customer_id')
+    .select('id, usage_balance_cents, auto_topup_threshold_cents, auto_topup_amount_cents, stripe_customer_id, stripe_subscription_id')
     .eq('auto_topup_enabled', true)
     .not('stripe_customer_id', 'is', null);
 
@@ -561,7 +579,7 @@ async function runAutoTopups(supabase) {
     if ((user.usage_balance_cents ?? 0) >= (user.auto_topup_threshold_cents ?? 0)) continue;
 
     try {
-      const paymentMethodId = await getDefaultPaymentMethodId(user.stripe_customer_id);
+      const paymentMethodId = await getDefaultPaymentMethodId(user.stripe_customer_id, user.stripe_subscription_id);
       if (!paymentMethodId) {
         console.error(`Auto top-up: user ${user.id} has no saved payment method - skipping`);
         continue;
