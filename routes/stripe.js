@@ -447,6 +447,20 @@ router.post('/connect/disconnect', requireAuth, async (req, res) => {
 // method already on file from their plan subscription rather than asking
 // for a card again.
 
+// Filtering paymentMethods.list by type:'card' misses a real, common case -
+// a customer whose saved method is Stripe Link (or a bank account) rather
+// than a plain card object, which showed up as "no payment method" for an
+// account that was actively being billed monthly. The customer's own
+// invoice_settings.default_payment_method is what Stripe itself already
+// uses to auto-charge the subscription, so it's guaranteed reusable
+// off-session regardless of its underlying type - reuse that instead of
+// re-deriving it from a type-filtered list.
+async function getDefaultPaymentMethodId(stripeCustomerId) {
+  const customer = await stripe.customers.retrieve(stripeCustomerId);
+  if (customer.deleted) return null;
+  return customer.invoice_settings?.default_payment_method || customer.default_source || null;
+}
+
 router.get('/auto-topup', requireAuth, async (req, res) => {
   const supabase = req.app.locals.supabase;
   const { data: user, error } = await supabase
@@ -462,8 +476,7 @@ router.get('/auto-topup', requireAuth, async (req, res) => {
   let hasPaymentMethod = false;
   if (user.stripe_customer_id) {
     try {
-      const methods = await stripe.paymentMethods.list({ customer: user.stripe_customer_id, type: 'card' });
-      hasPaymentMethod = methods.data.length > 0;
+      hasPaymentMethod = !!(await getDefaultPaymentMethodId(user.stripe_customer_id));
     } catch (err) {
       console.error(`Failed to check payment methods for user ${req.userId}: ${err.message}`);
     }
@@ -505,8 +518,8 @@ router.post('/auto-topup', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Add a payment method first (Settings → Payment method) before enabling auto top-up.' });
     }
 
-    const methods = await stripe.paymentMethods.list({ customer: user.stripe_customer_id, type: 'card' });
-    if (methods.data.length === 0) {
+    const paymentMethodId = await getDefaultPaymentMethodId(user.stripe_customer_id);
+    if (!paymentMethodId) {
       return res.status(400).json({ error: 'Add a payment method first (Settings → Payment method) before enabling auto top-up.' });
     }
   }
@@ -548,10 +561,9 @@ async function runAutoTopups(supabase) {
     if ((user.usage_balance_cents ?? 0) >= (user.auto_topup_threshold_cents ?? 0)) continue;
 
     try {
-      const methods = await stripe.paymentMethods.list({ customer: user.stripe_customer_id, type: 'card' });
-      const paymentMethod = methods.data[0];
-      if (!paymentMethod) {
-        console.error(`Auto top-up: user ${user.id} has no saved card - skipping`);
+      const paymentMethodId = await getDefaultPaymentMethodId(user.stripe_customer_id);
+      if (!paymentMethodId) {
+        console.error(`Auto top-up: user ${user.id} has no saved payment method - skipping`);
         continue;
       }
 
@@ -560,7 +572,7 @@ async function runAutoTopups(supabase) {
         amount: amountCents,
         currency: 'usd',
         customer: user.stripe_customer_id,
-        payment_method: paymentMethod.id,
+        payment_method: paymentMethodId,
         off_session: true,
         confirm: true,
         description: 'LaunchDesk auto top-up',
