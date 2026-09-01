@@ -309,6 +309,14 @@ async function chargePhoneNumberRentals() {
 setInterval(chargePhoneNumberRentals, CLEANUP_INTERVAL_MS);
 chargePhoneNumberRentals();
 
+// Balance can drain during the day from real calls, unlike the once-a-month
+// rental/reset jobs above - checking hourly instead of daily is what makes
+// auto top-up actually prevent a pause instead of just noticing one after
+// the fact.
+const AUTO_TOPUP_INTERVAL_MS = 60 * 60 * 1000;
+setInterval(() => stripeRouter.runAutoTopups(supabase), AUTO_TOPUP_INTERVAL_MS);
+stripeRouter.runAutoTopups(supabase);
+
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`LaunchDesk server running on port ${PORT}`);

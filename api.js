@@ -341,6 +341,14 @@
       return request('GET', '/api/stripe/usage-transactions');
     },
 
+    async getAutoTopup() {
+      return request('GET', '/api/stripe/auto-topup');
+    },
+
+    async setAutoTopup({ enabled, threshold_cents, amount_cents }) {
+      return request('POST', '/api/stripe/auto-topup', { enabled, threshold_cents, amount_cents });
+    },
+
     async getConnectUrl() {
       return request('GET', '/api/stripe/connect/authorize-url');
     },

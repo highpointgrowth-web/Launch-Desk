@@ -1722,6 +1722,28 @@ Happy to. What's the biggest headache with missed calls for you right now — so
         <div id="bm-packages-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"></div>
         <span id="bm-error" style="color:var(--red);font-size:.76rem;display:block;margin-top:10px"></span>
       </div>
+
+      <div class="card card-pad" style="margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px">
+          <div>
+            <div class="card-title">Auto Top-Up</div>
+            <div style="font-size:.78rem;color:var(--ink3);margin-top:2px">Off by default — recharge your card automatically instead of adding funds by hand</div>
+          </div>
+          <div class="toggle" id="auto-topup-toggle" onclick="handleAutoTopupToggle()"><div class="toggle-knob"></div></div>
+        </div>
+        <div id="auto-topup-fields" class="hidden" style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+          <div class="f-field" style="flex:1;min-width:160px">
+            <label class="f-label">When balance drops below ($)</label>
+            <input class="f-input" id="auto-topup-threshold" type="number" step="1" min="1" value="10">
+          </div>
+          <div class="f-field" style="flex:1;min-width:160px">
+            <label class="f-label">Add this much ($)</label>
+            <input class="f-input" id="auto-topup-amount" type="number" step="1" min="5" value="25">
+          </div>
+          <button class="btn btn-indigo" id="auto-topup-save-btn" onclick="saveAutoTopupSettings()">Save</button>
+        </div>
+        <div id="auto-topup-status" style="font-size:.76rem;margin-top:10px;min-height:1em"></div>
+      </div>
       <div class="card card-pad">
         <div class="card-title" style="margin-bottom:16px">Recent Activity</div>
         <table class="data-table">
@@ -3640,8 +3662,85 @@ async function handleAddFunds(amount, btn){
 
 const USAGE_TX_LABELS = { topup: 'Top-up', call_charge: 'Call', feature_charge: 'Feature' };
 
+let autoTopupState = { enabled: false, has_payment_method: false };
+
+async function loadAutoTopupCard(){
+  const toggleEl = document.getElementById('auto-topup-toggle');
+  const fieldsEl = document.getElementById('auto-topup-fields');
+  const statusEl = document.getElementById('auto-topup-status');
+  if(!toggleEl) return;
+  try {
+    const settings = await API.stripe.getAutoTopup();
+    autoTopupState = settings;
+    toggleEl.classList.toggle('on', settings.enabled);
+    if(fieldsEl) fieldsEl.classList.toggle('hidden', !settings.enabled);
+    if(settings.threshold_cents != null) document.getElementById('auto-topup-threshold').value = (settings.threshold_cents / 100).toFixed(0);
+    if(settings.amount_cents != null) document.getElementById('auto-topup-amount').value = (settings.amount_cents / 100).toFixed(0);
+    if(statusEl) statusEl.textContent = settings.enabled ? `On — recharges automatically off your card on file.` : '';
+  } catch (err) {
+    if(statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Failed to load auto top-up settings: ' + err.message; }
+  }
+}
+
+function handleAutoTopupToggle(){
+  const toggleEl = document.getElementById('auto-topup-toggle');
+  const fieldsEl = document.getElementById('auto-topup-fields');
+  const statusEl = document.getElementById('auto-topup-status');
+  const turningOn = !toggleEl.classList.contains('on');
+
+  if(turningOn && !autoTopupState.has_payment_method){
+    if(statusEl){ statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Add a payment method first in Settings → Payment method before turning this on.'; }
+    return;
+  }
+
+  toggleEl.classList.toggle('on', turningOn);
+  if(fieldsEl) fieldsEl.classList.toggle('hidden', !turningOn);
+  if(statusEl){ statusEl.style.color = ''; statusEl.textContent = turningOn ? 'Set your amounts below, then Save.' : ''; }
+
+  if(!turningOn) saveAutoTopupSettings();
+}
+
+async function saveAutoTopupSettings(){
+  const toggleEl = document.getElementById('auto-topup-toggle');
+  const statusEl = document.getElementById('auto-topup-status');
+  const saveBtn = document.getElementById('auto-topup-save-btn');
+  const enabled = toggleEl.classList.contains('on');
+
+  const thresholdDollars = Number(document.getElementById('auto-topup-threshold').value);
+  const amountDollars = Number(document.getElementById('auto-topup-amount').value);
+
+  if(enabled && (!Number.isFinite(amountDollars) || amountDollars < 5)){
+    if(statusEl){ statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Top-up amount must be at least $5.'; }
+    return;
+  }
+  if(enabled && (!Number.isFinite(thresholdDollars) || thresholdDollars < 1)){
+    if(statusEl){ statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Threshold must be at least $1.'; }
+    return;
+  }
+
+  if(saveBtn){ saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+  try {
+    const result = await API.stripe.setAutoTopup({
+      enabled,
+      threshold_cents: enabled ? Math.round(thresholdDollars * 100) : null,
+      amount_cents: enabled ? Math.round(amountDollars * 100) : null,
+    });
+    autoTopupState = { ...autoTopupState, enabled: result.enabled };
+    if(statusEl){ statusEl.style.color = 'var(--green)'; statusEl.textContent = enabled ? 'Saved — auto top-up is on.' : 'Auto top-up turned off.'; }
+  } catch (err) {
+    if(statusEl){ statusEl.style.color = 'var(--red)'; statusEl.textContent = err.message; }
+    // Roll the toggle back visually if the save failed, so it doesn't show
+    // "on" when the server never actually enabled it.
+    toggleEl.classList.toggle('on', autoTopupState.enabled);
+    document.getElementById('auto-topup-fields').classList.toggle('hidden', !autoTopupState.enabled);
+  } finally {
+    if(saveBtn){ saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+  }
+}
+
 async function loadBuyMinutesPage(){
   renderMinutePackages();
+  loadAutoTopupCard();
   if(cachedUser) {
     const balanceCents = cachedUser.usage_balance_cents || 0;
     const bmBalanceEl = document.getElementById('bm-balance-display');

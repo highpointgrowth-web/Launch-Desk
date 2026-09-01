@@ -441,6 +441,164 @@ router.post('/connect/disconnect', requireAuth, async (req, res) => {
   res.json({ connected: false });
 });
 
+// ── AUTO TOP-UP ──
+// Off by default for every user - only someone who explicitly flips this on
+// in their own Settings gets charged automatically. Reuses the payment
+// method already on file from their plan subscription rather than asking
+// for a card again.
+
+router.get('/auto-topup', requireAuth, async (req, res) => {
+  const supabase = req.app.locals.supabase;
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('auto_topup_enabled, auto_topup_threshold_cents, auto_topup_amount_cents, stripe_customer_id')
+    .eq('id', req.userId)
+    .single();
+
+  if (error || !user) {
+    return res.status(404).json({ error: 'User profile not found' });
+  }
+
+  let hasPaymentMethod = false;
+  if (user.stripe_customer_id) {
+    try {
+      const methods = await stripe.paymentMethods.list({ customer: user.stripe_customer_id, type: 'card' });
+      hasPaymentMethod = methods.data.length > 0;
+    } catch (err) {
+      console.error(`Failed to check payment methods for user ${req.userId}: ${err.message}`);
+    }
+  }
+
+  res.json({
+    enabled: user.auto_topup_enabled,
+    threshold_cents: user.auto_topup_threshold_cents,
+    amount_cents: user.auto_topup_amount_cents,
+    has_payment_method: hasPaymentMethod,
+  });
+});
+
+router.post('/auto-topup', requireAuth, async (req, res) => {
+  const { enabled, threshold_cents, amount_cents } = req.body;
+  const supabase = req.app.locals.supabase;
+
+  // Same $5 floor as a manual top-up, for the same reason: Stripe's own fee
+  // eats too much of anything smaller.
+  if (enabled) {
+    if (!Number.isFinite(amount_cents) || amount_cents < 500) {
+      return res.status(400).json({ error: 'Auto top-up amount must be at least $5' });
+    }
+    if (!Number.isFinite(threshold_cents) || threshold_cents < 0) {
+      return res.status(400).json({ error: 'Threshold must be a positive amount' });
+    }
+
+    const { data: user, error: fetchError } = await supabase
+      .from('users')
+      .select('stripe_customer_id')
+      .eq('id', req.userId)
+      .single();
+
+    if (fetchError || !user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    if (!user.stripe_customer_id) {
+      return res.status(400).json({ error: 'Add a payment method first (Settings → Payment method) before enabling auto top-up.' });
+    }
+
+    const methods = await stripe.paymentMethods.list({ customer: user.stripe_customer_id, type: 'card' });
+    if (methods.data.length === 0) {
+      return res.status(400).json({ error: 'Add a payment method first (Settings → Payment method) before enabling auto top-up.' });
+    }
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      auto_topup_enabled: !!enabled,
+      auto_topup_threshold_cents: enabled ? Math.round(threshold_cents) : null,
+      auto_topup_amount_cents: enabled ? Math.round(amount_cents) : null,
+    })
+    .eq('id', req.userId);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ enabled: !!enabled, threshold_cents: threshold_cents ?? null, amount_cents: amount_cents ?? null });
+});
+
+// Runs periodically from server.js. For every user who has opted in and
+// whose balance has dropped below their own threshold, charges their saved
+// card off-session for their configured amount - no checkout redirect, no
+// user present, exactly the point of "automatic".
+async function runAutoTopups(supabase) {
+  const { data: candidates, error } = await supabase
+    .from('users')
+    .select('id, usage_balance_cents, auto_topup_threshold_cents, auto_topup_amount_cents, stripe_customer_id')
+    .eq('auto_topup_enabled', true)
+    .not('stripe_customer_id', 'is', null);
+
+  if (error) {
+    console.error(`Auto top-up: failed to fetch candidates: ${error.message}`);
+    return;
+  }
+  if (!candidates || candidates.length === 0) return;
+
+  for (const user of candidates) {
+    if ((user.usage_balance_cents ?? 0) >= (user.auto_topup_threshold_cents ?? 0)) continue;
+
+    try {
+      const methods = await stripe.paymentMethods.list({ customer: user.stripe_customer_id, type: 'card' });
+      const paymentMethod = methods.data[0];
+      if (!paymentMethod) {
+        console.error(`Auto top-up: user ${user.id} has no saved card - skipping`);
+        continue;
+      }
+
+      const amountCents = user.auto_topup_amount_cents;
+      const intent = await stripe.paymentIntents.create({
+        amount: amountCents,
+        currency: 'usd',
+        customer: user.stripe_customer_id,
+        payment_method: paymentMethod.id,
+        off_session: true,
+        confirm: true,
+        description: 'LaunchDesk auto top-up',
+      });
+
+      if (intent.status !== 'succeeded') {
+        console.error(`Auto top-up: PaymentIntent for user ${user.id} did not succeed (status=${intent.status})`);
+        continue;
+      }
+
+      const { data: newBalance, error: rpcError } = await supabase.rpc('increment_usage_balance', {
+        p_user_id: user.id,
+        p_amount_cents: amountCents,
+      });
+
+      if (rpcError) {
+        console.error(`Auto top-up: charged user ${user.id} but failed to credit balance: ${rpcError.message}`);
+        continue;
+      }
+
+      await supabase.from('usage_transactions').insert({
+        user_id: user.id,
+        amount_cents: amountCents,
+        type: 'topup',
+        description: 'Auto top-up',
+      });
+
+      if (newBalance >= LOW_BALANCE_PAUSE_CENTS) {
+        await resumeAgentsForBalance(supabase, user.id);
+      }
+    } catch (err) {
+      // A declined/expired card is expected occasionally - log and move on
+      // rather than letting one user's failure stop everyone else's.
+      console.error(`Auto top-up failed for user ${user.id}: ${err.message}`);
+    }
+  }
+}
+
 router.get('/usage-transactions', requireAuth, async (req, res) => {
   const supabase = req.app.locals.supabase;
   const { data, error } = await supabase
@@ -458,3 +616,4 @@ router.get('/usage-transactions', requireAuth, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.runAutoTopups = runAutoTopups;
