@@ -219,6 +219,15 @@ function getRetellAgent(agentId) {
   return retellFetch('GET', `/get-agent/${agentId}`);
 }
 
+// An agent created via /create-agent starts as an unpublished draft
+// (is_published: false) - real calls against it don't reliably get full
+// webhook delivery until it's actually published. Every agent this app has
+// ever created was left in that draft state, which is very likely why real
+// call_ended/call_analyzed events were never arriving.
+function publishRetellAgentVersion(agentId, version) {
+  return retellFetch('POST', `/publish-agent-version/${agentId}`, { version });
+}
+
 function updateRetellLlm(llmId, fields) {
   return retellFetch('PATCH', `/update-retell-llm/${llmId}`, fields);
 }
@@ -356,6 +365,7 @@ router.post('/build', async (req, res) => {
 
     const llm = await createRetellLlm(systemPrompt, greeting);
     const retellAgent = await createRetellAgent(agent_name, voice, llm.llm_id);
+    await publishRetellAgentVersion(retellAgent.agent_id, retellAgent.version ?? 0);
 
     const { data: agent, error: insertError } = await supabase
       .from('agents')
