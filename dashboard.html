@@ -3112,7 +3112,7 @@ function updateBalanceToastState(balanceCents){
   if(balanceCents <= 0){
     text = '$0.00 balance — agents have stopped taking calls.';
     balanceIsLow = true;
-  } else if(balanceCents <= 500){
+  } else if(balanceCents <= 1000){
     // Balance covers calls plus flat AI-generation fees (agent builds, proposals,
     // scripts) - leading with the dollar amount avoids implying it's purely
     // call-minutes, which "~X min" alone did.
@@ -3276,7 +3276,7 @@ async function loadUserStats(){
       bmBalanceMinutesEl.style.color = balanceCents <= 0 ? 'var(--red)' : 'var(--ink)';
     }
     const bmLowWarningEl = document.getElementById('bm-low-warning');
-    if(bmLowWarningEl) bmLowWarningEl.classList.toggle('hidden', balanceCents > 500);
+    if(bmLowWarningEl) bmLowWarningEl.classList.toggle('hidden', balanceCents > 1000);
 
     const signalBalanceEl = document.getElementById('signal-balance');
     if(signalBalanceEl){
@@ -3762,7 +3762,7 @@ async function loadBuyMinutesPage(){
     const bmLowWarningEl = document.getElementById('bm-low-warning');
     if(bmBalanceEl) bmBalanceEl.textContent = '$' + (balanceCents / 100).toFixed(2);
     if(bmBalanceMinutesEl) bmBalanceMinutesEl.textContent = formatMinutesLabel(balanceCents);
-    if(bmLowWarningEl) bmLowWarningEl.classList.toggle('hidden', balanceCents > 500);
+    if(bmLowWarningEl) bmLowWarningEl.classList.toggle('hidden', balanceCents > 1000);
   }
 
   const tbody = document.getElementById('bm-activity-body');
