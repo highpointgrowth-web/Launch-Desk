@@ -6,6 +6,7 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const { USAGE_MARKUP_BY_PLAN, PHONE_NUMBER_RENTAL_CENTS } = require('./billing-constants');
 const { chargeUsageBalance } = require('./billing');
+const { sendEmail } = require('./email');
 
 const supportRouter = require('./routes/support');
 const leadsRouter = require('./routes/leads');
@@ -316,6 +317,83 @@ chargePhoneNumberRentals();
 const AUTO_TOPUP_INTERVAL_MS = 60 * 60 * 1000;
 setInterval(() => stripeRouter.runAutoTopups(supabase), AUTO_TOPUP_INTERVAL_MS);
 stripeRouter.runAutoTopups(supabase);
+
+// The billing pipeline broke silently for months before anyone noticed -
+// real calls happened, real Retell cost was incurred, but nothing ever got
+// logged or charged, and there was no way to find out except by accident.
+// This is the smoke detector for the *next* time something like that
+// breaks: compare what Retell says actually happened against what we
+// logged, and say something the same day instead of leaving it to chance.
+const WEBHOOK_HEALTH_SUPPORT_INBOX = process.env.SUPPORT_INBOX_EMAIL || 'highpointgrowth@gmail.com';
+const WEBHOOK_HEALTH_INTERVAL_MS = 60 * 60 * 1000;
+
+async function checkWebhookHealth() {
+  const now = Date.now();
+  // Finished calls only - anything still "ongoing"/"registered" wouldn't
+  // have a final webhook yet regardless. The 10-minute trailing buffer
+  // gives call_analyzed (which can lag call_ended) room to actually arrive
+  // before a call gets flagged as missing.
+  const windowStart = now - 2 * 60 * 60 * 1000;
+  const windowEnd = now - 10 * 60 * 1000;
+
+  let calls;
+  try {
+    const res = await fetch('https://api.retellai.com/v3/list-calls', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RETELL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filter_criteria: {
+          start_timestamp: { type: 'range', op: 'bt', value: [windowStart, windowEnd] },
+        },
+        limit: 200,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Retell list-calls failed (${res.status}): ${text}`);
+    }
+    calls = await res.json();
+  } catch (err) {
+    console.error(`Webhook health check: failed to fetch calls from Retell: ${err.message}`);
+    return;
+  }
+
+  const finishedCalls = (Array.isArray(calls) ? calls : calls.calls || []).filter(
+    (c) => c.call_status === 'ended' || c.call_status === 'error'
+  );
+  if (finishedCalls.length === 0) return;
+
+  const callIds = finishedCalls.map((c) => c.call_id);
+  const { data: loggedRows, error } = await supabase.from('call_logs').select('retell_call_id').in('retell_call_id', callIds);
+
+  if (error) {
+    console.error(`Webhook health check: failed to query call_logs: ${error.message}`);
+    return;
+  }
+
+  const loggedIds = new Set((loggedRows || []).map((r) => r.retell_call_id));
+  const missing = finishedCalls.filter((c) => !loggedIds.has(c.call_id));
+  if (missing.length === 0) return;
+
+  const summary = missing.map((c) => `- ${c.call_id} (agent ${c.agent_id}, status ${c.call_status})`).join('\n');
+  console.error(`Webhook health check: ${missing.length} real Retell call(s) never got logged to call_logs:\n${summary}`);
+
+  try {
+    await sendEmail(
+      WEBHOOK_HEALTH_SUPPORT_INBOX,
+      `LaunchDesk: ${missing.length} call(s) missing from call_logs`,
+      `Retell shows these finished calls that never made it into call_logs (likely a webhook delivery or processing failure):\n\n${summary}\n\nCheck Railway deploy logs and the /api/webhooks/retell handler.`
+    );
+  } catch (err) {
+    console.error(`Webhook health check: failed to send alert email: ${err.message}`);
+  }
+}
+
+setInterval(checkWebhookHealth, WEBHOOK_HEALTH_INTERVAL_MS);
+checkWebhookHealth();
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
