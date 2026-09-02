@@ -1074,15 +1074,16 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:'Archivo
                   </select>
                 </div>
                 <div class="f-field">
-                  <label class="f-label">Transfer / Escalation Number (optional)</label>
-                  <input class="f-input" id="escalation-number" placeholder="Number to transfer true emergencies or human requests">
+                  <label class="f-label">Transfer / Escalation Number</label>
+                  <input class="f-input" id="escalation-number" placeholder="e.g. (512) 555-0100 — the client's own line">
+                  <div style="font-size:.74rem;color:var(--ink3);margin-top:4px">Required — this is where a call goes if the AI can't take it (busy, error, or over capacity), instead of the caller getting silence.</div>
                 </div>
               </div>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;margin-top:16px">
             <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
-            <button class="btn btn-indigo" onclick="goStep(4)">Continue →</button>
+            <button class="btn btn-indigo" onclick="continueFromStep3()">Continue →</button>
           </div>
         </div>
 
@@ -2643,6 +2644,14 @@ function goStep(n){
   if(n===5) updateReviewStep();
 }
 
+function continueFromStep3(){
+  if(!document.getElementById('escalation-number').value.trim()){
+    alert('Add a transfer/escalation number before continuing — it\'s the fallback if the AI can\'t take a call, so every agent needs one.');
+    return;
+  }
+  goStep(4);
+}
+
 function collectBuilderExtraContext(){
   const escalationNumber = document.getElementById('escalation-number').value.trim();
   return [
@@ -2971,6 +2980,11 @@ async function deployAgent(){
   }
   if(!systemPrompt){
     alert('Go back to Step 4 and generate the agent prompt first.');
+    return;
+  }
+  if(!escalationNumber){
+    alert('Go back to Step 3 and add a transfer/escalation number first.');
+    goStep(3);
     return;
   }
 

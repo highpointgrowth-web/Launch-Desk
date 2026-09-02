@@ -37,6 +37,17 @@ async function enforceAgentBuildCap(supabase, userId, plan) {
 const router = express.Router();
 const anthropic = new Anthropic();
 
+// Retell's fallback_number (and everything else phone-related) wants E.164.
+// Customers type it however they like ("(512) 555-0100"), so normalize the
+// common US shapes rather than rejecting anything that isn't already E.164.
+function toE164(raw) {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  if (raw.startsWith('+')) return raw;
+  return null;
+}
+
 const RETELL_BASE = 'https://api.retellai.com';
 
 // Pro and Agency are unlimited (no entry here); only Starter is capped,
@@ -240,14 +251,19 @@ function deleteRetellLlm(llmId) {
   return retellFetch('DELETE', `/delete-retell-llm/${llmId}`);
 }
 
-function buyRetellPhoneNumber(retellAgentId, areaCode) {
+function buyRetellPhoneNumber(retellAgentId, areaCode, fallbackNumber) {
   // inbound_agent_id was deprecated in favor of the weighted inbound_agents
   // list (see Retell's phone_number_agent_fields deprecation notice) - the
   // detach/reattach calls elsewhere already moved to this shape, this one
   // was just missed, which broke every real number purchase outright.
+  //
+  // fallback_number is Retell's own safety net: if the call can't get a
+  // slot (concurrency limit) or nothing answers after extended ringing, it
+  // forwards there instead of the caller just getting silence or a drop.
   return retellFetch('POST', '/create-phone-number', {
     inbound_agents: [{ agent_id: retellAgentId, weight: 1 }],
     ...(areaCode ? { area_code: Number(areaCode) } : {}),
+    ...(fallbackNumber ? { fallback_number: fallbackNumber } : {}),
   });
 }
 
@@ -717,6 +733,20 @@ router.post('/:id/buy-phone', async (req, res) => {
     return res.status(400).json({ error: 'Agent already has a phone number' });
   }
 
+  // A real phone number with no fallback means a caller gets silence or a
+  // dropped call the moment anything goes wrong (concurrency limit, no
+  // answer, an outage) - block the purchase rather than let a number go
+  // live with no safety net, the same way an insufficient balance blocks it.
+  if (!agent.transfer_number) {
+    return res.status(400).json({
+      error: 'Set a transfer/escalation number for this agent (Prompt tab) before buying a phone number - it\'s the fallback if the AI can\'t take a call.',
+    });
+  }
+  const fallbackNumber = toE164(agent.transfer_number);
+  if (!fallbackNumber) {
+    return res.status(400).json({ error: `Transfer/escalation number "${agent.transfer_number}" isn't a valid phone number.` });
+  }
+
   // Rental is a discretionary flat fee (unlike a post-hoc call charge), so
   // block the purchase rather than fronting the cost if the balance can't
   // cover the first month - charge_if_sufficient is atomic, so this can't
@@ -736,7 +766,7 @@ router.post('/:id/buy-phone', async (req, res) => {
   }
 
   try {
-    const phoneNumber = await buyRetellPhoneNumber(agent.retell_agent_id, area_code);
+    const phoneNumber = await buyRetellPhoneNumber(agent.retell_agent_id, area_code, fallbackNumber);
 
     const nextBillAt = new Date();
     nextBillAt.setUTCMonth(nextBillAt.getUTCMonth() + 1);
