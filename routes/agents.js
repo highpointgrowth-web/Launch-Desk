@@ -5,6 +5,18 @@ const { requirePaidPlan } = require('../middleware/plan');
 const { AGENT_BUILD_CAPS } = require('../plan-constants');
 const { PHONE_NUMBER_RENTAL_CENTS } = require('../billing-constants');
 
+// cal_api_key is the client's own Cal.com credential - sending it back to the
+// browser on every page load (select('*') pulls it in like any other column)
+// left it sitting in plain text in the response/JS state for no real reason,
+// since the only thing the UI needs to know is whether one's saved. Swaps it
+// for a has_cal_key boolean instead of the real value wherever an agent
+// leaves this server.
+function redactAgent(agent) {
+  if (!agent) return agent;
+  const { cal_api_key, ...rest } = agent;
+  return { ...rest, has_cal_key: !!cal_api_key };
+}
+
 // Enforces the plan's monthly agent-build/prompt-generation cap atomically -
 // throws (without incrementing) if the plan is unknown or the cap is already
 // hit, so the caller can skip the paid Firecrawl/Claude call entirely.
@@ -427,7 +439,7 @@ router.get('/', async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 
-  res.json({ agents: data });
+  res.json({ agents: data.map(redactAgent) });
 });
 
 router.get('/:id', async (req, res) => {
@@ -443,7 +455,7 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Agent not found' });
   }
 
-  res.json({ agent: data });
+  res.json({ agent: redactAgent(data) });
 });
 
 router.get('/:id/calls', async (req, res) => {
@@ -502,7 +514,7 @@ router.put('/:id', async (req, res) => {
     return res.status(404).json({ error: error.message });
   }
 
-  res.json({ agent: data });
+  res.json({ agent: redactAgent(data) });
 });
 
 router.delete('/:id', async (req, res) => {

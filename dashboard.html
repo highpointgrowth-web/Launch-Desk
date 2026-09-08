@@ -2363,16 +2363,27 @@ function renderAgentCalendarTab(){
   const hintEl = document.getElementById('agent-cal-hint');
   if(!apiKeyInput || !eventTypeInput || !currentAgent) return;
 
-  const hasOwn = !!currentAgent.cal_api_key;
+  // The server no longer sends the real cal_api_key back (only a has_cal_key
+  // flag) - it lived in the page's JS/network response for no real reason
+  // beyond letting this box pre-fill itself. An already-connected agent now
+  // shows an empty, placeholder-only box instead of the real key; leaving it
+  // empty on save keeps the existing key untouched (see saveAgentCalSettings).
+  const hasOwn = !!currentAgent.has_cal_key;
   const accountCal = cachedIntegrations.cal;
   const hasDefault = !!(accountCal && accountCal.connected);
 
   if(!hasOwn && hasDefault){
-    apiKeyInput.value = accountCal.api_key || '';
+    // Same fix as above, one level up: the account-level default's real key
+    // isn't sent to the browser either (has_api_key instead of api_key) -
+    // this agent will actually use it server-side, it just can't be shown
+    // or re-typed into this box.
+    apiKeyInput.value = '';
+    apiKeyInput.placeholder = 'Using your account-level Cal.com connection — paste a key here to use a different calendar for this agent';
     eventTypeInput.value = currentAgent.cal_event_type_id || accountCal.event_type_id || '';
-    if(hintEl) hintEl.textContent = 'Pre-filled from your account-level Cal.com connection — edit to use a different calendar for this agent.';
+    if(hintEl) hintEl.textContent = 'Using your account-level Cal.com connection — edit to use a different calendar for this agent.';
   } else {
-    apiKeyInput.value = currentAgent.cal_api_key || '';
+    apiKeyInput.value = '';
+    apiKeyInput.placeholder = hasOwn ? 'Already connected — leave blank to keep, or paste a new key to replace' : 'cal_live_…';
     eventTypeInput.value = currentAgent.cal_event_type_id || '';
     if(hintEl) hintEl.textContent = '';
   }
@@ -2389,9 +2400,11 @@ function updateAgentCalBadge(){
   if(!badge || !apiKeyInput || !eventTypeInput) return;
 
   const apiKeyVal = apiKeyInput.value.trim();
-  const eventTypeVal = eventTypeInput.value.trim();
+  // A blank box no longer means "not connected" - it can also mean "already
+  // connected, key just isn't shown" (see renderAgentCalendarTab).
+  const alreadyConnected = !!(currentAgent && currentAgent.has_cal_key);
 
-  if(!apiKeyVal){
+  if(!apiKeyVal && !alreadyConnected){
     badge.textContent = 'Not connected';
     badge.className = 'badge b-gray';
     return;
@@ -2399,7 +2412,11 @@ function updateAgentCalBadge(){
 
   const accountCal = cachedIntegrations.cal;
   const hasDefault = !!(accountCal && accountCal.connected);
-  const matchesDefaultExactly = hasDefault && apiKeyVal === accountCal.api_key && eventTypeVal === (accountCal.event_type_id || '');
+  // Can no longer compare key strings now that the real default key isn't
+  // sent to the browser either - an untouched default now just means the box
+  // is blank, this agent has no key of its own, and there is a default to
+  // fall back to (matches the branch renderAgentCalendarTab used to fill it).
+  const matchesDefaultExactly = !apiKeyVal && !alreadyConnected && hasDefault;
 
   if(matchesDefaultExactly){
     badge.textContent = '⚠ Using default — unedited';
@@ -2421,7 +2438,14 @@ async function saveAgentCalSettings(){
   if(statusEl){ statusEl.textContent = ''; }
 
   try {
-    const { agent } = await API.agents.update(currentAgent.id, { cal_api_key: api_key, cal_event_type_id: event_type_id });
+    // The key box now stays blank for an already-connected agent (its real
+    // value is never sent to the browser) - sending it as-is would wipe the
+    // saved key on every save that doesn't retype it. Only send cal_api_key
+    // when the box actually has something in it, i.e. setting or replacing
+    // one; event_type_id can still be updated on its own either way.
+    const updates = { cal_event_type_id: event_type_id };
+    if(api_key) updates.cal_api_key = api_key;
+    const { agent } = await API.agents.update(currentAgent.id, updates);
     currentAgent = agent;
     updateAgentCalBadge();
     if(statusEl){ statusEl.textContent = '✓ Saved'; statusEl.style.color = 'var(--green)'; }
@@ -5163,7 +5187,7 @@ async function saveCalIntegration(){
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     await API.integrations.saveCal({ api_key, event_type_id });
-    cachedIntegrations.cal = { connected: true, api_key, event_type_id };
+    cachedIntegrations.cal = { connected: true, has_api_key: true, event_type_id };
     setIntegrationBadge('cal', true);
     document.getElementById('settings-cal-api-key').value = '';
     closeModal('cal');

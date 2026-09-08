@@ -7,13 +7,15 @@ const router = express.Router();
 router.use(requireAuth);
 router.use(requirePaidPlan);
 
-// Email secrets (app password / SMTP password) are write-only once saved -
-// email sending happens entirely server-side, so the client never needs them
-// back. The Cal.com key does get returned, matching agents.js which already
-// round-trips cal_api_key so the Agent Calendar tab can pre-fill it.
+// Every secret here is write-only once saved - integration credentials go
+// out over the API server-side (email sending, Cal.com booking) and never
+// need to come back to the browser. The Cal.com key used to round-trip so
+// the Agent Calendar tab could pre-fill it, same issue as agents.js's
+// cal_api_key - fixed the same way, by returning has_api_key instead of the
+// real value.
 function publicConfig(provider, config) {
   if (provider === 'cal') {
-    return { api_key: config.api_key || null, event_type_id: config.event_type_id || null };
+    return { has_api_key: !!config.api_key, event_type_id: config.event_type_id || null };
   }
   if (provider === 'email') {
     return { email: config.email || null, mode: config.mode || null };
