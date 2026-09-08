@@ -4,6 +4,7 @@ const Stripe = require('stripe');
 const { requireAuth } = require('../middleware/auth');
 const { LOW_BALANCE_PAUSE_CENTS } = require('../billing-constants');
 const { PLAN_CREDITS } = require('../plan-constants');
+const { sendEmail } = require('../email');
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -184,6 +185,47 @@ async function handleSubscriptionUpdated(supabase, subscription) {
   }
 }
 
+// Stripe retries a failed subscription charge over ~3 weeks (its default
+// dunning schedule) before customer.subscription.deleted ever fires - during
+// that whole window handleSubscriptionUpdated deliberately leaves the
+// customer's plan untouched (see the comment there), so nothing warns them
+// their card is failing until they're suddenly locked out weeks later. This
+// sends one heads-up on the first failed attempt only (attempt_count === 1)
+// so it doesn't re-fire on every retry, and only for actual subscription
+// invoices - not usage top-up payment attempts, which aren't tied to a
+// subscription at all.
+function paymentFailedEmailBody(userName) {
+  return (
+    `Hi ${userName || 'there'},\n\n` +
+    "We couldn't charge your card for your LaunchDesk subscription renewal. " +
+    "Your account still works for now - Stripe will keep retrying automatically over the " +
+    'next few weeks, but if the charge never goes through you will eventually lose access.\n\n' +
+    `Update your payment method here: ${process.env.FRONTEND_URL || 'https://mylaunchdesk.com'}/dashboard.html\n\n` +
+    '- LaunchDesk'
+  );
+}
+
+async function handlePaymentFailed(supabase, invoice) {
+  if (!invoice.subscription || invoice.attempt_count !== 1) return;
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('email, full_name')
+    .eq('stripe_customer_id', invoice.customer)
+    .single();
+
+  if (error || !user) {
+    console.error(`No user found for failed-payment customer ${invoice.customer}: ${error?.message}`);
+    return;
+  }
+
+  try {
+    await sendEmail(user.email, 'Your LaunchDesk payment failed', paymentFailedEmailBody(user.full_name));
+  } catch (err) {
+    console.error(`Failed to send payment-failed email to ${user.email}: ${err.message}`);
+  }
+}
+
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const signature = req.headers['stripe-signature'];
   let event;
@@ -210,6 +252,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         break;
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(supabase, event.data.object);
+        break;
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(supabase, event.data.object);
         break;
     }
   } catch (err) {
