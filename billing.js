@@ -90,6 +90,82 @@ async function pauseAgentsForBalance(supabase, userId) {
   await sendLowBalanceEmail(user.email, user.full_name);
 }
 
+function subscriptionPausedEmailBody(userName) {
+  return (
+    `Hi ${userName || 'there'},\n\n` +
+    "We still can't charge your card for your LaunchDesk subscription after a second attempt, " +
+    "so your AI agents have been paused and aren't answering calls right now - we don't want to " +
+    'keep covering usage cost for an account that isn\'t paying for it.\n\n' +
+    `Update your payment method to resume: ${process.env.FRONTEND_URL || 'https://mylaunchdesk.com'}/dashboard.html\n\n` +
+    '- LaunchDesk'
+  );
+}
+
+async function sendSubscriptionPausedEmail(userEmail, userName) {
+  try {
+    await sendEmail(userEmail, 'Your AI agents have been paused', subscriptionPausedEmailBody(userName));
+  } catch (err) {
+    console.error(`Failed to send subscription-paused email to ${userEmail}: ${err.message}`);
+  }
+}
+
+// Mirrors pauseAgentsForBalance above but keyed off paused_for_subscription
+// instead of paused_for_balance, so a subscription-triggered pause and a
+// balance-triggered pause can't clobber each other's resume logic (each side
+// only ever resumes agents carrying its own flag). Called from
+// routes/stripe.js on the second failed subscription-charge attempt, not the
+// first - see the no-fronting-money conversation this was derived from: a
+// single failed attempt is usually a temporary card issue that resolves on
+// its own within days via Stripe's retry, and cutting off a live phone
+// agent immediately over that is worse than a few extra days of grace.
+async function pauseAgentsForSubscription(supabase, userId) {
+  const { data: activeAgents, error: fetchError } = await supabase
+    .from('agents')
+    .select('id, retell_phone_number')
+    .eq('user_id', userId)
+    .eq('status', 'active');
+
+  if (fetchError) {
+    console.error(`Failed to fetch active agents to pause for user ${userId}: ${fetchError.message}`);
+    return;
+  }
+  if (!activeAgents || activeAgents.length === 0) return;
+
+  for (const agent of activeAgents) {
+    if (!agent.retell_phone_number) continue;
+    try {
+      await detachAgentFromNumber(agent.retell_phone_number);
+    } catch (err) {
+      console.error(`Failed to detach agent ${agent.id} from its number after subscription failure: ${err.message}`);
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from('agents')
+    .update({ status: 'inactive', paused_for_subscription: true, paused_at: new Date().toISOString() })
+    .in(
+      'id',
+      activeAgents.map((a) => a.id)
+    );
+
+  if (updateError) {
+    console.error(`Failed to mark agents paused_for_subscription for user ${userId}: ${updateError.message}`);
+  }
+
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('email, full_name')
+    .eq('id', userId)
+    .single();
+
+  if (userError || !user) {
+    console.error(`Failed to fetch user for subscription-paused email (user ${userId}): ${userError?.message}`);
+    return;
+  }
+
+  await sendSubscriptionPausedEmail(user.email, user.full_name);
+}
+
 // Deducts chargeCents from a user's prepaid balance (allowed to go negative
 // - the underlying cost is already incurred, same as a call charge), logs
 // the transaction, and pauses their agents if it drops them below the
@@ -122,4 +198,4 @@ async function chargeUsageBalance(supabase, userId, chargeCents, { type, descrip
   }
 }
 
-module.exports = { chargeUsageBalance, pauseAgentsForBalance };
+module.exports = { chargeUsageBalance, pauseAgentsForBalance, pauseAgentsForSubscription };

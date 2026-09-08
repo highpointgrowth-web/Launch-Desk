@@ -5,6 +5,7 @@ const { requireAuth } = require('../middleware/auth');
 const { LOW_BALANCE_PAUSE_CENTS } = require('../billing-constants');
 const { PLAN_CREDITS } = require('../plan-constants');
 const { sendEmail } = require('../email');
+const { pauseAgentsForSubscription } = require('../billing');
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -108,6 +109,44 @@ async function resumeAgentsForBalance(supabase, userId) {
   }
 }
 
+// Mirrors resumeAgentsForBalance above but for paused_for_subscription -
+// fires from handleSubscriptionUpdated once Stripe successfully collects a
+// retried charge and the subscription status flips back to active.
+async function resumeAgentsForSubscription(supabase, userId) {
+  const { data: pausedAgents, error: fetchError } = await supabase
+    .from('agents')
+    .select('id, retell_agent_id, retell_phone_number')
+    .eq('user_id', userId)
+    .eq('paused_for_subscription', true);
+
+  if (fetchError) {
+    console.error(`Failed to fetch subscription-paused agents to resume for user ${userId}: ${fetchError.message}`);
+    return;
+  }
+  if (!pausedAgents || pausedAgents.length === 0) return;
+
+  for (const agent of pausedAgents) {
+    if (!agent.retell_phone_number || !agent.retell_agent_id) continue;
+    try {
+      await reattachAgentToNumber(agent.retell_phone_number, agent.retell_agent_id);
+    } catch (err) {
+      console.error(`Failed to reattach agent ${agent.id} after subscription payment recovered: ${err.message}`);
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from('agents')
+    .update({ status: 'active', paused_for_subscription: false, paused_at: null })
+    .in(
+      'id',
+      pausedAgents.map((a) => a.id)
+    );
+
+  if (updateError) {
+    console.error(`Failed to un-pause subscription-paused agents for user ${userId}: ${updateError.message}`);
+  }
+}
+
 async function handleUsageTopupCompleted(supabase, session) {
   const userId = session.client_reference_id;
   if (!userId) {
@@ -171,51 +210,67 @@ async function handleSubscriptionUpdated(supabase, subscription) {
     return;
   }
 
-  const { error } = await supabase
+  const { data: user, error } = await supabase
     .from('users')
     .update({
       plan,
       scrape_credits_limit: planCredits,
       stripe_subscription_id: subscription.id,
     })
-    .eq('stripe_customer_id', subscription.customer);
+    .eq('stripe_customer_id', subscription.customer)
+    .select('id')
+    .single();
 
   if (error) {
     throw new Error(`Failed to update user plan after subscription update: ${error.message}`);
   }
+
+  // Covers the recovery side of pauseAgentsForSubscription below - a
+  // successful retried charge brings the subscription back to 'active' and
+  // fires this same event, so that's the natural place to resume.
+  if (user) {
+    await resumeAgentsForSubscription(supabase, user.id);
+  }
 }
 
 // Stripe retries a failed subscription charge over ~3 weeks (its default
-// dunning schedule) before customer.subscription.deleted ever fires - during
-// that whole window handleSubscriptionUpdated deliberately leaves the
-// customer's plan untouched (see the comment there), so nothing warns them
-// their card is failing until they're suddenly locked out weeks later. This
-// sends one heads-up on the first failed attempt only (attempt_count === 1)
-// so it doesn't re-fire on every retry, and only for actual subscription
-// invoices - not usage top-up payment attempts, which aren't tied to a
-// subscription at all.
+// dunning schedule) before customer.subscription.deleted ever fires. Letting
+// a customer keep full access that whole window means LaunchDesk keeps
+// paying real vendor cost (AI generation, scraping) for an account that
+// isn't paying for it - see the no-fronting-money conversation this was
+// derived from. So: warn on the first failed attempt (usually a temporary
+// card issue that resolves on its own within days - not worth cutting a live
+// phone agent off over), then actually pause on the second, rather than
+// waiting the full window. Only reacts to real subscription invoices, not
+// usage top-up payment attempts, which aren't tied to a subscription at all.
 function paymentFailedEmailBody(userName) {
   return (
     `Hi ${userName || 'there'},\n\n` +
     "We couldn't charge your card for your LaunchDesk subscription renewal. " +
-    "Your account still works for now - Stripe will keep retrying automatically over the " +
-    'next few weeks, but if the charge never goes through you will eventually lose access.\n\n' +
+    "Your account still works for now, but if we can't collect it on the next attempt " +
+    'your AI agents will be paused.\n\n' +
     `Update your payment method here: ${process.env.FRONTEND_URL || 'https://mylaunchdesk.com'}/dashboard.html\n\n` +
     '- LaunchDesk'
   );
 }
 
 async function handlePaymentFailed(supabase, invoice) {
-  if (!invoice.subscription || invoice.attempt_count !== 1) return;
+  if (!invoice.subscription) return;
+  if (invoice.attempt_count !== 1 && invoice.attempt_count !== 2) return;
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('email, full_name')
+    .select('id, email, full_name')
     .eq('stripe_customer_id', invoice.customer)
     .single();
 
   if (error || !user) {
     console.error(`No user found for failed-payment customer ${invoice.customer}: ${error?.message}`);
+    return;
+  }
+
+  if (invoice.attempt_count === 2) {
+    await pauseAgentsForSubscription(supabase, user.id);
     return;
   }
 
